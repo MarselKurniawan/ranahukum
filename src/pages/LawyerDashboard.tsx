@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
   Bell, Settings, LogOut, Calendar, Users, TrendingUp,
-  ChevronRight, Play
+  ChevronRight, Play, BadgeCheck, DollarSign
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LawyerCalendar } from "@/components/LawyerCalendar";
+import { EarningsDashboard } from "@/components/EarningsDashboard";
 
 interface ConsultationRequest {
   id: string;
@@ -70,6 +72,7 @@ const lawyerProfile = {
   thisMonthConsultations: 45,
   pendingRequests: 2,
   earnings: 6750000,
+  isVerified: true,
 };
 
 export default function LawyerDashboard() {
@@ -234,7 +237,12 @@ export default function LawyerDashboard() {
             <AvatarFallback>AF</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="font-semibold text-primary-foreground">{lawyerProfile.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-primary-foreground">{lawyerProfile.name}</h2>
+              {lawyerProfile.isVerified && (
+                <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-1">
               <Star className="w-4 h-4 fill-warning text-warning" />
               <span className="text-primary-foreground/80 text-sm">{lawyerProfile.rating}</span>
@@ -288,19 +296,28 @@ export default function LawyerDashboard() {
           </Card>
         )}
 
-        {/* Request Tabs */}
-        <Tabs defaultValue="pending" className="w-full">
+        {/* Main Tabs */}
+        <Tabs defaultValue="requests" className="w-full">
           <TabsList className="w-full mb-4 grid grid-cols-3">
-            <TabsTrigger value="pending" className="text-xs">
-              Menunggu ({pendingRequests.length})
-            </TabsTrigger>
-            <TabsTrigger value="active" className="text-xs">
-              Aktif ({activeRequests.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="text-xs">
-              Selesai ({completedRequests.length})
-            </TabsTrigger>
+            <TabsTrigger value="requests" className="text-xs">Konsultasi</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs">Jadwal</TabsTrigger>
+            <TabsTrigger value="earnings" className="text-xs">Pendapatan</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="requests">
+            {/* Request Tabs */}
+            <Tabs defaultValue="pending" className="w-full">
+              <TabsList className="w-full mb-4 grid grid-cols-3">
+                <TabsTrigger value="pending" className="text-xs">
+                  Menunggu ({pendingRequests.length})
+                </TabsTrigger>
+                <TabsTrigger value="active" className="text-xs">
+                  Aktif ({activeRequests.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs">
+                  Selesai ({completedRequests.length})
+                </TabsTrigger>
+              </TabsList>
 
           <TabsContent value="pending" className="space-y-3">
             {pendingRequests.length > 0 ? (
@@ -339,6 +356,16 @@ export default function LawyerDashboard() {
                 <p className="text-muted-foreground text-sm">Belum ada riwayat konsultasi</p>
               </div>
             )}
+            </TabsContent>
+          </Tabs>
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <LawyerCalendar />
+          </TabsContent>
+
+          <TabsContent value="earnings">
+            <EarningsDashboard />
           </TabsContent>
         </Tabs>
       </div>

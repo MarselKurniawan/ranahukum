@@ -17,6 +17,8 @@ import LawyerDashboard from "./pages/LawyerDashboard";
 import LawyerChat from "./pages/LawyerChat";
 import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
+import DocumentTemplates from "./pages/DocumentTemplates";
+import LegalCalculator from "./pages/LegalCalculator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,8 @@ const App = () => (
           <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
           <Route path="/legal-assistance" element={<LegalAssistance />} />
           <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
+          <Route path="/document-templates" element={<DocumentTemplates />} />
+          <Route path="/legal-calculator" element={<LegalCalculator />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -13,6 +13,7 @@ interface LawyerCardProps {
   isOnline?: boolean;
   responseTime?: string;
   location?: { city: string; province: string };
+  isVerified?: boolean;
   onClick?: () => void;
 }
 
@@ -26,6 +27,7 @@ export function LawyerCard({
   isOnline = false,
   responseTime = "< 5 menit",
   location,
+  isVerified = false,
   onClick,
 }: LawyerCardProps) {
   return (
@@ -80,10 +82,12 @@ export function LawyerCard({
               <Clock className="w-3 h-3" />
               {responseTime}
             </span>
-            <span className="flex items-center gap-1">
-              <CheckCircle className="w-3 h-3 text-success" />
-              Terverifikasi
-            </span>
+            {isVerified && (
+              <span className="flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-success" />
+                Terverifikasi
+              </span>
+            )}
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Mulai dari</p>
