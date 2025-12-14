@@ -11,7 +11,12 @@ import WaitingRoom from "./pages/WaitingRoom";
 import Chat from "./pages/Chat";
 import AIAssistant from "./pages/AIAssistant";
 import Consultations from "./pages/Consultations";
+import ConsultationHistory from "./pages/ConsultationHistory";
 import Profile from "./pages/Profile";
+import LawyerDashboard from "./pages/LawyerDashboard";
+import LawyerChat from "./pages/LawyerChat";
+import LegalAssistance from "./pages/LegalAssistance";
+import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +36,12 @@ const App = () => (
           <Route path="/chat/:id" element={<Chat />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/consultations" element={<Consultations />} />
+          <Route path="/consultation/:id" element={<ConsultationHistory />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
+          <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
+          <Route path="/legal-assistance" element={<LegalAssistance />} />
+          <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Send, Bot, User, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, Sparkles, ChevronRight, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { lawCategories, faqByCategory } from "@/data/mockLawyers";
 
 interface Message {
   id: string;
@@ -14,68 +15,9 @@ interface Message {
   timestamp: Date;
 }
 
-const suggestedQuestions = [
-  "Bagaimana proses perceraian?",
-  "Dokumen apa saja untuk sengketa tanah?",
-  "Hak karyawan jika di-PHK?",
-  "Prosedur pembagian warisan?",
-];
-
-const aiResponses: Record<string, string> = {
-  perceraian: `Proses perceraian di Indonesia melibatkan beberapa tahap:
-
-1. **Pengajuan Gugatan** - Diajukan ke Pengadilan Agama (Muslim) atau Pengadilan Negeri (non-Muslim)
-
-2. **Dokumen yang Diperlukan**:
-   - Surat nikah asli
-   - KTP kedua pihak
-   - Kartu Keluarga
-   - Surat keterangan domisili
-
-3. **Proses Mediasi** - Pengadilan akan memediasi kedua pihak
-
-4. **Sidang** - Jika mediasi gagal, dilanjutkan ke proses persidangan
-
-💡 **Butuh bantuan lebih lanjut?** Konsultasikan dengan pengacara kami untuk pendampingan lengkap.`,
-
-  tanah: `Untuk sengketa tanah, dokumen yang diperlukan:
-
-1. **Sertifikat Tanah** (SHM/SHGB/Girik)
-2. **Bukti Pembayaran PBB**
-3. **Akta Jual Beli** (jika ada)
-4. **Surat Ukur**
-5. **IMB** (jika ada bangunan)
-
-⚠️ **Penting**: Simpan semua dokumen asli dengan baik.
-
-💡 Untuk kasus yang kompleks, disarankan berkonsultasi dengan pengacara yang berpengalaman di bidang pertanahan.`,
-
-  phk: `Hak karyawan jika terkena PHK:
-
-1. **Uang Pesangon** - Berdasarkan masa kerja
-2. **Uang Penghargaan Masa Kerja**
-3. **Uang Penggantian Hak** (cuti, ongkos pulang, dll)
-
-📋 **Rumus Pesangon** (UU Cipta Kerja):
-- < 1 tahun: 1 bulan gaji
-- 1-2 tahun: 2 bulan gaji
-- 2-3 tahun: 3 bulan gaji
-- dst...
-
-💡 Hubungi pengacara ketenagakerjaan untuk menghitung hak Anda secara detail.`,
-
-  default: `Terima kasih atas pertanyaan Anda. Untuk pertanyaan yang lebih spesifik dan mendalam, saya sarankan untuk berkonsultasi langsung dengan pengacara profesional kami.
-
-Pengacara kami dapat memberikan:
-✓ Konsultasi personal
-✓ Analisis kasus mendalam
-✓ Pendampingan hukum
-
-Apakah Anda ingin dihubungkan dengan pengacara yang sesuai?`,
-};
-
 export default function AIAssistant() {
   const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -91,16 +33,41 @@ export default function AIAssistant() {
 
   const getAIResponse = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
+    
+    // Check FAQ answers first
+    for (const category of Object.keys(faqByCategory)) {
+      for (const faq of faqByCategory[category]) {
+        if (lowerQuestion.includes(faq.question.toLowerCase().slice(0, 20))) {
+          return faq.answer;
+        }
+      }
+    }
+
+    // Keyword matching
     if (lowerQuestion.includes("perceraian") || lowerQuestion.includes("cerai")) {
-      return aiResponses.perceraian;
+      return faqByCategory.keluarga[0].answer;
     }
-    if (lowerQuestion.includes("tanah") || lowerQuestion.includes("sengketa")) {
-      return aiResponses.tanah;
+    if (lowerQuestion.includes("waris")) {
+      return faqByCategory.keluarga[2].answer;
     }
-    if (lowerQuestion.includes("phk") || lowerQuestion.includes("karyawan") || lowerQuestion.includes("kerja")) {
-      return aiResponses.phk;
+    if (lowerQuestion.includes("tanah") || lowerQuestion.includes("sertifikat")) {
+      return faqByCategory.pertanahan[0].answer;
     }
-    return aiResponses.default;
+    if (lowerQuestion.includes("phk") || lowerQuestion.includes("kerja")) {
+      return faqByCategory.ketenagakerjaan[0].answer;
+    }
+    if (lowerQuestion.includes("pidana") || lowerQuestion.includes("laporan polisi")) {
+      return faqByCategory.pidana[0].answer;
+    }
+    
+    return `Terima kasih atas pertanyaan Anda. Untuk pertanyaan yang lebih spesifik, saya sarankan berkonsultasi langsung dengan pengacara profesional kami.
+
+Pengacara kami dapat memberikan:
+✓ Konsultasi personal
+✓ Analisis kasus mendalam
+✓ Pendampingan hukum
+
+Apakah Anda ingin dihubungkan dengan pengacara yang sesuai?`;
   };
 
   const handleSend = (content?: string) => {
@@ -118,7 +85,6 @@ export default function AIAssistant() {
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate AI response
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -131,12 +97,18 @@ export default function AIAssistant() {
     }, 1500);
   };
 
+  const handleFAQClick = (question: string) => {
+    handleSend(question);
+  };
+
+  const currentFAQs = selectedCategory ? faqByCategory[selectedCategory] || [] : [];
+
   return (
     <MobileLayout showBottomNav={false}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
         <div className="flex items-center gap-3 p-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => selectedCategory && messages.length === 0 ? setSelectedCategory(null) : navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -145,40 +117,86 @@ export default function AIAssistant() {
             </div>
             <div>
               <h2 className="font-semibold text-sm">Asisten Hukum AI</h2>
-              <p className="text-xs text-muted-foreground">Tanya pertanyaan umum</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedCategory ? lawCategories.find(c => c.id === selectedCategory)?.name : "Pilih kategori hukum"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 pb-20 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="text-center py-8 animate-fade-in">
-            <div className="w-16 h-16 rounded-2xl gradient-accent flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-accent-foreground" />
+      {/* Content */}
+      <div className="flex-1 p-4 pb-24 overflow-y-auto">
+        {!selectedCategory ? (
+          /* Category Selection */
+          <div className="animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl gradient-accent flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-accent-foreground" />
+              </div>
+              <h2 className="font-semibold text-lg mb-2">Halo! Saya Asisten Hukum AI</h2>
+              <p className="text-muted-foreground text-sm">
+                Pilih kategori hukum yang ingin Anda tanyakan
+              </p>
             </div>
-            <h2 className="font-semibold text-lg mb-2">Halo! Saya Asisten Hukum AI</h2>
-            <p className="text-muted-foreground text-sm mb-6">
-              Tanyakan pertanyaan hukum umum, saya akan bantu jawab sebaik mungkin
-            </p>
 
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-2">Pertanyaan populer:</p>
-              {suggestedQuestions.map((question) => (
+            <div className="grid grid-cols-2 gap-3">
+              {lawCategories.map((category) => (
                 <Card
-                  key={question}
-                  className="cursor-pointer hover:border-primary/50 transition-all"
-                  onClick={() => handleSend(question)}
+                  key={category.id}
+                  className="cursor-pointer hover:border-primary/50 hover:shadow-elevated transition-all"
+                  onClick={() => setSelectedCategory(category.id)}
                 >
-                  <CardContent className="p-3 text-sm text-left">
-                    {question}
+                  <CardContent className="p-4 text-center">
+                    <span className="text-3xl mb-2 block">{category.icon}</span>
+                    <h3 className="font-semibold text-sm mb-1">{category.name}</h3>
+                    <p className="text-[10px] text-muted-foreground">{category.description}</p>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
+        ) : messages.length === 0 ? (
+          /* FAQ List */
+          <div className="animate-fade-in">
+            <div className="text-center mb-6">
+              <span className="text-4xl mb-2 block">
+                {lawCategories.find(c => c.id === selectedCategory)?.icon}
+              </span>
+              <h2 className="font-semibold text-lg">
+                {lawCategories.find(c => c.id === selectedCategory)?.name}
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Pilih pertanyaan atau ketik sendiri
+              </p>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <p className="text-xs text-muted-foreground font-medium">Pertanyaan Umum:</p>
+              {currentFAQs.map((faq, index) => (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:border-primary/50 transition-all"
+                  onClick={() => handleFAQClick(faq.question)}
+                >
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <span className="text-sm">{faq.question}</span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setSelectedCategory(null)}
+            >
+              Pilih Kategori Lain
+            </Button>
+          </div>
         ) : (
+          /* Chat Messages */
           <div className="space-y-4">
             {messages.map((message) => (
               <div
@@ -226,35 +244,53 @@ export default function AIAssistant() {
               </div>
             )}
 
+            {/* Suggest search lawyer */}
+            {messages.length > 0 && !isTyping && (
+              <Card className="border-primary/20 bg-primary/5 animate-fade-in">
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Butuh konsultasi lebih lanjut?</p>
+                    <p className="text-xs text-muted-foreground">Temukan pengacara yang sesuai</p>
+                  </div>
+                  <Button size="sm" variant="gradient" onClick={() => navigate("/search")}>
+                    Cari Pengacara
+                    <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
-        <div className="flex items-center gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Tanya tentang hukum..."
-            className="flex-1 rounded-full bg-secondary border-0"
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-          />
-          <Button
-            variant="gradient"
-            size="icon"
-            className="shrink-0 rounded-full"
-            onClick={() => handleSend()}
-            disabled={!inputValue.trim() || isTyping}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+      {/* Input - only show when category selected */}
+      {selectedCategory && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+          <div className="flex items-center gap-2">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Tanya tentang hukum..."
+              className="flex-1 rounded-full bg-secondary border-0"
+              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            />
+            <Button
+              variant="gradient"
+              size="icon"
+              className="shrink-0 rounded-full"
+              onClick={() => handleSend()}
+              disabled={!inputValue.trim() || isTyping}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-center text-muted-foreground mt-2">
+            AI memberikan informasi umum. Untuk kasus spesifik, konsultasikan dengan pengacara.
+          </p>
         </div>
-        <p className="text-[10px] text-center text-muted-foreground mt-2">
-          AI dapat memberikan informasi umum. Untuk kasus spesifik, konsultasikan dengan pengacara.
-        </p>
-      </div>
+      )}
     </MobileLayout>
   );
 }

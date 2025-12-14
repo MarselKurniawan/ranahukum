@@ -12,6 +12,11 @@ export interface Lawyer {
   experience: number;
   education: string;
   licenseNumber: string;
+  location: {
+    city: string;
+    province: string;
+  };
+  pendampinganPrice?: number;
 }
 
 export const specializations = [
@@ -42,6 +47,8 @@ export const mockLawyers: Lawyer[] = [
     experience: 15,
     education: "Universitas Indonesia",
     licenseNumber: "12345/ADV/2010",
+    location: { city: "Jakarta Selatan", province: "DKI Jakarta" },
+    pendampinganPrice: 5000000,
   },
   {
     id: "2",
@@ -57,6 +64,8 @@ export const mockLawyers: Lawyer[] = [
     experience: 10,
     education: "Leiden University",
     licenseNumber: "23456/ADV/2014",
+    location: { city: "Bandung", province: "Jawa Barat" },
+    pendampinganPrice: 7500000,
   },
   {
     id: "3",
@@ -72,6 +81,8 @@ export const mockLawyers: Lawyer[] = [
     experience: 20,
     education: "Universitas Gadjah Mada",
     licenseNumber: "34567/ADV/2005",
+    location: { city: "Yogyakarta", province: "DI Yogyakarta" },
+    pendampinganPrice: 10000000,
   },
   {
     id: "4",
@@ -87,6 +98,8 @@ export const mockLawyers: Lawyer[] = [
     experience: 8,
     education: "Universitas Airlangga",
     licenseNumber: "45678/ADV/2016",
+    location: { city: "Surabaya", province: "Jawa Timur" },
+    pendampinganPrice: 4500000,
   },
   {
     id: "5",
@@ -102,6 +115,8 @@ export const mockLawyers: Lawyer[] = [
     experience: 12,
     education: "Universitas Padjajaran",
     licenseNumber: "56789/ADV/2012",
+    location: { city: "Semarang", province: "Jawa Tengah" },
+    pendampinganPrice: 8000000,
   },
   {
     id: "6",
@@ -117,5 +132,45 @@ export const mockLawyers: Lawyer[] = [
     experience: 9,
     education: "Universitas Katolik Parahyangan",
     licenseNumber: "67890/ADV/2015",
+    location: { city: "Denpasar", province: "Bali" },
+    pendampinganPrice: 6000000,
   },
 ];
+
+// Law categories for AI Assistant
+export const lawCategories = [
+  { id: "perdata", name: "Hukum Perdata", icon: "📋", description: "Perjanjian, wanprestasi, ganti rugi" },
+  { id: "pidana", name: "Hukum Pidana", icon: "⚖️", description: "Tindak pidana, pembelaan, pelaporan" },
+  { id: "keluarga", name: "Hukum Keluarga", icon: "👨‍👩‍👧", description: "Perceraian, waris, hak asuh" },
+  { id: "pertanahan", name: "Hukum Pertanahan", icon: "🏠", description: "Sertifikat, sengketa tanah, jual beli" },
+  { id: "ketenagakerjaan", name: "Hukum Ketenagakerjaan", icon: "💼", description: "PHK, kontrak kerja, upah" },
+  { id: "bisnis", name: "Hukum Bisnis", icon: "🏢", description: "Kontrak, pendirian PT, perizinan" },
+];
+
+export const faqByCategory: Record<string, { question: string; answer: string }[]> = {
+  perdata: [
+    { question: "Apa itu wanprestasi?", answer: "Wanprestasi adalah ingkar janji atau tidak dipenuhinya prestasi dalam suatu perjanjian. Terdapat 4 bentuk: tidak melakukan apa yang dijanjikan, melaksanakan tapi tidak sesuai, terlambat melaksanakan, atau melakukan yang dilarang." },
+    { question: "Bagaimana cara menggugat ganti rugi?", answer: "Gugatan ganti rugi diajukan ke Pengadilan Negeri dengan menyertakan bukti kerugian materiil/imateriil, bukti hubungan sebab-akibat, dan identitas para pihak." },
+  ],
+  pidana: [
+    { question: "Bagaimana cara membuat laporan polisi?", answer: "Datang ke kantor polisi terdekat, bawa KTP, bukti/kronologi kejadian. Laporan akan dicatat dan Anda mendapat Surat Tanda Penerimaan Laporan (STPL)." },
+    { question: "Apa hak tersangka dalam proses hukum?", answer: "Tersangka berhak mendapat pendampingan pengacara, diberitahu tentang tuduhan, tidak disiksa, dikunjungi keluarga, dan diadili secara terbuka." },
+  ],
+  keluarga: [
+    { question: "Bagaimana proses perceraian?", answer: "Gugatan diajukan ke Pengadilan Agama (Islam) atau Pengadilan Negeri. Proses meliputi mediasi, sidang, dan putusan. Dokumen: surat nikah, KTP, KK, bukti alasan cerai." },
+    { question: "Bagaimana pembagian harta gono-gini?", answer: "Harta yang diperoleh selama pernikahan dibagi rata (50:50), kecuali ada perjanjian pranikah atau kesepakatan lain yang disahkan pengadilan." },
+    { question: "Bagaimana prosedur pembagian warisan?", answer: "Untuk Muslim: sesuai hukum waris Islam (faraidh). Non-Muslim: KUHPerdata. Buat akta keterangan waris di notaris, lalu balik nama aset." },
+  ],
+  pertanahan: [
+    { question: "Dokumen apa untuk sengketa tanah?", answer: "Sertifikat tanah (SHM/SHGB), bukti PBB, akta jual beli, surat ukur, IMB (jika ada bangunan), dan riwayat kepemilikan." },
+    { question: "Bagaimana cara balik nama sertifikat?", answer: "Ajukan ke BPN dengan akta jual beli dari PPAT, KTP penjual-pembeli, sertifikat asli, bukti PBB, dan izin peralihan (jika diperlukan)." },
+  ],
+  ketenagakerjaan: [
+    { question: "Apa hak karyawan jika di-PHK?", answer: "Hak: uang pesangon (berdasarkan masa kerja), uang penghargaan masa kerja, uang penggantian hak (cuti, ongkos pulang). Besaran diatur UU Cipta Kerja." },
+    { question: "Bagaimana jika tidak dibayar upah?", answer: "Laporkan ke Disnaker setempat, bisa juga menggugat ke PHI (Pengadilan Hubungan Industrial). Simpan bukti kontrak dan slip gaji." },
+  ],
+  bisnis: [
+    { question: "Bagaimana mendirikan PT?", answer: "Buat akta pendirian di notaris, daftarkan ke Kemenkumham via AHU Online, urus NIB di OSS, lalu TDP dan izin usaha lainnya." },
+    { question: "Apa yang harus ada dalam kontrak bisnis?", answer: "Identitas pihak, objek perjanjian, hak & kewajiban, jangka waktu, force majeure, penyelesaian sengketa, dan tanda tangan bermaterai." },
+  ],
+};

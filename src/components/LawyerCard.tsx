@@ -1,8 +1,6 @@
-import { Star, MessageCircle, Clock, CheckCircle } from "lucide-react";
+import { Star, Clock, CheckCircle, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface LawyerCardProps {
   id: string;
@@ -14,6 +12,7 @@ interface LawyerCardProps {
   price: number;
   isOnline?: boolean;
   responseTime?: string;
+  location?: { city: string; province: string };
   onClick?: () => void;
 }
 
@@ -26,6 +25,7 @@ export function LawyerCard({
   price,
   isOnline = false,
   responseTime = "< 5 menit",
+  location,
   onClick,
 }: LawyerCardProps) {
   return (
@@ -35,55 +35,45 @@ export function LawyerCard({
     >
       <CardContent className="p-4">
         <div className="flex gap-3">
-          {/* Photo */}
           <div className="relative">
-            <img
-              src={photo}
-              alt={name}
-              className="w-16 h-16 rounded-xl object-cover"
-            />
+            <img src={photo} alt={name} className="w-16 h-16 rounded-xl object-cover" />
             {isOnline && (
               <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-card" />
             )}
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-semibold text-foreground truncate">{name}</h3>
+                {location && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="w-3 h-3" />
+                    {location.city}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star className="w-3.5 h-3.5 fill-warning text-warning" />
                   <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-                  <span className="text-muted-foreground text-xs">
-                    • {totalConsultations} konsultasi
-                  </span>
+                  <span className="text-muted-foreground text-xs">• {totalConsultations} konsultasi</span>
                 </div>
               </div>
               {isOnline && (
-                <Badge variant="success" className="text-[10px] shrink-0">
-                  Online
-                </Badge>
+                <Badge variant="success" className="text-[10px] shrink-0">Online</Badge>
               )}
             </div>
 
-            {/* Tags */}
             <div className="flex flex-wrap gap-1 mt-2">
               {specializations.slice(0, 3).map((spec) => (
-                <Badge key={spec} variant="tag" className="text-[10px]">
-                  {spec}
-                </Badge>
+                <Badge key={spec} variant="tag" className="text-[10px]">{spec}</Badge>
               ))}
               {specializations.length > 3 && (
-                <Badge variant="muted" className="text-[10px]">
-                  +{specializations.length - 3}
-                </Badge>
+                <Badge variant="muted" className="text-[10px]">+{specializations.length - 3}</Badge>
               )}
             </div>
           </div>
         </div>
 
-        {/* Bottom section */}
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -97,9 +87,7 @@ export function LawyerCard({
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Mulai dari</p>
-            <p className="font-semibold text-primary">
-              Rp {price.toLocaleString("id-ID")}
-            </p>
+            <p className="font-semibold text-primary">Rp {price.toLocaleString("id-ID")}</p>
           </div>
         </div>
       </CardContent>

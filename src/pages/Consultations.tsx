@@ -113,17 +113,14 @@ export default function Consultations() {
                   </Button>
                 )}
 
-                {consultation.status === "completed" && consultation.rating && (
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: consultation.rating }).map((_, i) => (
-                      <Star key={i} className="w-3 h-3 fill-warning text-warning" />
-                    ))}
-                  </div>
-                )}
-
-                {consultation.status === "completed" && !consultation.rating && (
-                  <Button size="sm" variant="outline" className="h-8 text-xs">
-                    Beri Rating
+                {consultation.status === "completed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs"
+                    onClick={() => navigate(`/consultation/${consultation.id}`)}
+                  >
+                    Lihat Detail
                   </Button>
                 )}
               </div>
