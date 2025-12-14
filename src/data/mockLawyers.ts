@@ -17,6 +17,7 @@ export interface Lawyer {
     province: string;
   };
   pendampinganPrice?: number;
+  isVerified: boolean;
 }
 
 export const specializations = [
@@ -49,6 +50,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "12345/ADV/2010",
     location: { city: "Jakarta Selatan", province: "DKI Jakarta" },
     pendampinganPrice: 5000000,
+    isVerified: true,
   },
   {
     id: "2",
@@ -66,6 +68,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "23456/ADV/2014",
     location: { city: "Bandung", province: "Jawa Barat" },
     pendampinganPrice: 7500000,
+    isVerified: true,
   },
   {
     id: "3",
@@ -83,6 +86,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "34567/ADV/2005",
     location: { city: "Yogyakarta", province: "DI Yogyakarta" },
     pendampinganPrice: 10000000,
+    isVerified: true,
   },
   {
     id: "4",
@@ -100,6 +104,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "45678/ADV/2016",
     location: { city: "Surabaya", province: "Jawa Timur" },
     pendampinganPrice: 4500000,
+    isVerified: false,
   },
   {
     id: "5",
@@ -117,6 +122,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "56789/ADV/2012",
     location: { city: "Semarang", province: "Jawa Tengah" },
     pendampinganPrice: 8000000,
+    isVerified: true,
   },
   {
     id: "6",
@@ -134,6 +140,7 @@ export const mockLawyers: Lawyer[] = [
     licenseNumber: "67890/ADV/2015",
     location: { city: "Denpasar", province: "Bali" },
     pendampinganPrice: 6000000,
+    isVerified: false,
   },
 ];
 
