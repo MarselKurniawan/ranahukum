@@ -4,32 +4,20 @@ import { ArrowLeft, Send, Mic, Paperclip, MoreVertical, Phone, Video } from "luc
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockLawyers } from "@/data/mockLawyers";
 import { cn } from "@/lib/utils";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "lawyer";
-  timestamp: Date;
-  type: "text" | "voice" | "file";
-}
-
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    content: "Selamat siang, ada yang bisa saya bantu mengenai kasus Anda?",
-    sender: "lawyer",
-    timestamp: new Date(),
-    type: "text",
-  },
-];
+import { useConsultation } from "@/hooks/useConsultations";
+import { useMessages, useSendMessage } from "@/hooks/useMessages";
+import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Chat() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const lawyer = mockLawyers.find((l) => l.id === id);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { user } = useAuth();
+  const { data: consultation, isLoading: loadingConsultation } = useConsultation(id || '');
+  const { data: messages = [], isLoading: loadingMessages } = useMessages(id || '');
+  const sendMessage = useSendMessage();
+  
   const [inputValue, setInputValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,49 +30,51 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  if (!lawyer) {
+  const handleSend = async () => {
+    if (!inputValue.trim() || !id) return;
+
+    const content = inputValue;
+    setInputValue("");
+
+    await sendMessage.mutateAsync({
+      consultationId: id,
+      content,
+      messageType: 'text'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loadingConsultation || loadingMessages) {
     return (
       <MobileLayout showBottomNav={false}>
-        <div className="flex items-center justify-center h-screen">
-          <p>Pengacara tidak ditemukan</p>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-20 w-3/4" />
+          <Skeleton className="h-20 w-3/4 ml-auto" />
+          <Skeleton className="h-20 w-3/4" />
         </div>
       </MobileLayout>
     );
   }
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  if (!consultation) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="flex items-center justify-center h-screen">
+          <p>Konsultasi tidak ditemukan</p>
+        </div>
+      </MobileLayout>
+    );
+  }
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: "user",
-      timestamp: new Date(),
-      type: "text",
-    };
-
-    setMessages([...messages, newMessage]);
-    setInputValue("");
-
-    // Simulate lawyer response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "Terima kasih atas informasinya. Bisa jelaskan lebih detail mengenai kronologi kasusnya?",
-        sender: "lawyer",
-        timestamp: new Date(),
-        type: "text",
-      };
-      setMessages((prev) => [...prev, response]);
-    }, 2000);
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const lawyer = consultation.lawyers;
+  const lawyerUserId = (lawyer as { user_id?: string })?.user_id;
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -98,14 +88,14 @@ export default function Chat() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <img
-                  src={lawyer.photo}
-                  alt={lawyer.name}
+                  src={lawyer?.image_url || '/placeholder.svg'}
+                  alt={lawyer?.name || 'Lawyer'}
                   className="w-10 h-10 rounded-full object-cover"
                 />
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm">{lawyer.name}</h2>
+                <h2 className="font-semibold text-sm">{lawyer?.name}</h2>
                 <p className="text-xs text-success">Online</p>
               </div>
             </div>
@@ -127,36 +117,46 @@ export default function Chat() {
       {/* Messages */}
       <div className="flex-1 p-4 pb-20 overflow-y-auto">
         <div className="space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex animate-fade-in",
-                message.sender === "user" ? "justify-end" : "justify-start"
-              )}
-            >
+          {messages.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Belum ada pesan. Mulai percakapan!
+            </div>
+          )}
+          {messages.map((message) => {
+            const isUser = message.sender_id === user?.id;
+            const isLawyer = message.sender_id === lawyerUserId;
+            
+            return (
               <div
+                key={message.id}
                 className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2.5",
-                  message.sender === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  "flex animate-fade-in",
+                  isUser ? "justify-end" : "justify-start"
                 )}
               >
-                <p className="text-sm">{message.content}</p>
-                <p
+                <div
                   className={cn(
-                    "text-[10px] mt-1",
-                    message.sender === "user"
-                      ? "text-primary-foreground/70"
-                      : "text-muted-foreground"
+                    "max-w-[80%] rounded-2xl px-4 py-2.5",
+                    isUser
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-secondary text-secondary-foreground rounded-bl-md"
                   )}
                 >
-                  {formatTime(message.timestamp)}
-                </p>
+                  <p className="text-sm">{message.content}</p>
+                  <p
+                    className={cn(
+                      "text-[10px] mt-1",
+                      isUser
+                        ? "text-primary-foreground/70"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {formatTime(message.created_at)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -180,6 +180,7 @@ export default function Chat() {
               size="icon"
               className="shrink-0 rounded-full"
               onClick={handleSend}
+              disabled={sendMessage.isPending}
             >
               <Send className="w-4 h-4" />
             </Button>

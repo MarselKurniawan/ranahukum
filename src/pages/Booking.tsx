@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Wallet, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { mockLawyers } from "@/data/mockLawyers";
 import { toast } from "@/hooks/use-toast";
+import { useCreateConsultation } from "@/hooks/useConsultations";
+import { useAuth } from "@/hooks/useAuth";
+import { useLawyer } from "@/hooks/useLawyers";
 
 const paymentMethods = [
   { id: "gopay", name: "GoPay", icon: "💚" },
@@ -17,8 +23,20 @@ const paymentMethods = [
 export default function Booking() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const lawyer = mockLawyers.find((l) => l.id === id);
+  const { user } = useAuth();
+  const { data: dbLawyer } = useLawyer(id || '');
+  const createConsultation = useCreateConsultation();
+  
+  // Fallback to mock data if not in database
+  const mockLawyer = mockLawyers.find((l) => l.id === id);
+  const lawyer = dbLawyer || mockLawyer;
+  const lawyerPrice = dbLawyer?.price || mockLawyer?.price || 150000;
+  const lawyerName = dbLawyer?.name || mockLawyer?.name || 'Lawyer';
+  const lawyerPhoto = dbLawyer?.image_url || mockLawyer?.photo || '/placeholder.svg';
+  const lawyerSpecs = dbLawyer?.specialization || mockLawyer?.specializations || [];
+
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!lawyer) {
@@ -32,6 +50,16 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
+    if (!user) {
+      toast({
+        title: "Login Diperlukan",
+        description: "Silakan login terlebih dahulu",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     if (!selectedPayment) {
       toast({
         title: "Pilih metode pembayaran",
@@ -41,18 +69,52 @@ export default function Booking() {
       return;
     }
 
+    if (!topic.trim()) {
+      toast({
+        title: "Topik Diperlukan",
+        description: "Silakan jelaskan topik konsultasi Anda",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    toast({
-      title: "Pembayaran Berhasil!",
-      description: "Menunggu pengacara menerima konsultasi...",
-    });
-    
-    // Navigate to waiting room
-    navigate(`/waiting/${lawyer.id}`);
+    try {
+      // If we have a database lawyer, create consultation
+      if (dbLawyer) {
+        const consultation = await createConsultation.mutateAsync({
+          lawyerId: dbLawyer.id,
+          topic: topic.trim(),
+          price: lawyerPrice + 5000
+        });
+
+        toast({
+          title: "Pembayaran Berhasil!",
+          description: "Menunggu pengacara menerima konsultasi...",
+        });
+        
+        navigate(`/waiting/${consultation.id}`);
+      } else {
+        // Fallback for mock data
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        toast({
+          title: "Pembayaran Berhasil!",
+          description: "Menunggu pengacara menerima konsultasi...",
+        });
+        
+        navigate(`/waiting/${id}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat memproses pembayaran",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -76,14 +138,14 @@ export default function Booking() {
         <Card className="mb-4">
           <CardContent className="p-4 flex items-center gap-3">
             <img
-              src={lawyer.photo}
-              alt={lawyer.name}
+              src={lawyerPhoto}
+              alt={lawyerName}
               className="w-14 h-14 rounded-xl object-cover"
             />
             <div className="flex-1">
-              <h3 className="font-semibold text-sm">{lawyer.name}</h3>
+              <h3 className="font-semibold text-sm">{lawyerName}</h3>
               <p className="text-xs text-muted-foreground">
-                {lawyer.specializations.join(", ")}
+                {lawyerSpecs.join(", ")}
               </p>
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                 <Clock className="w-3 h-3" />
@@ -92,6 +154,19 @@ export default function Booking() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Topic */}
+        <div className="mb-4">
+          <Label htmlFor="topic">Topik Konsultasi</Label>
+          <Textarea
+            id="topic"
+            placeholder="Jelaskan topik atau pertanyaan yang ingin Anda konsultasikan..."
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="mt-2"
+            rows={3}
+          />
+        </div>
 
         {/* Payment Methods */}
         <h2 className="font-semibold mb-3">Metode Pembayaran</h2>
@@ -126,7 +201,7 @@ export default function Booking() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Biaya Konsultasi</span>
-                <span>Rp {lawyer.price.toLocaleString("id-ID")}</span>
+                <span>Rp {lawyerPrice.toLocaleString("id-ID")}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Biaya Platform</span>
@@ -135,7 +210,7 @@ export default function Booking() {
               <div className="border-t border-border pt-2 flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="text-primary">
-                  Rp {(lawyer.price + 5000).toLocaleString("id-ID")}
+                  Rp {(lawyerPrice + 5000).toLocaleString("id-ID")}
                 </span>
               </div>
             </div>

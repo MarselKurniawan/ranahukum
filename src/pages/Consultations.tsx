@@ -1,104 +1,78 @@
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle, MessageCircle, Star } from "lucide-react";
+import { Clock, CheckCircle, MessageCircle, XCircle, AlertCircle } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockLawyers } from "@/data/mockLawyers";
-
-interface Consultation {
-  id: string;
-  lawyerId: string;
-  status: "active" | "completed" | "pending";
-  date: Date;
-  topic: string;
-  rating?: number;
-}
-
-const mockConsultations: Consultation[] = [
-  {
-    id: "1",
-    lawyerId: "1",
-    status: "active",
-    date: new Date(),
-    topic: "Konsultasi perceraian",
-  },
-  {
-    id: "2",
-    lawyerId: "2",
-    status: "completed",
-    date: new Date(Date.now() - 86400000 * 2),
-    topic: "Sengketa tanah warisan",
-    rating: 5,
-  },
-  {
-    id: "3",
-    lawyerId: "4",
-    status: "completed",
-    date: new Date(Date.now() - 86400000 * 5),
-    topic: "Kontrak kerja",
-    rating: 4,
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useConsultations, Consultation } from "@/hooks/useConsultations";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Consultations() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: consultations = [], isLoading } = useConsultations();
 
-  const activeConsultations = mockConsultations.filter((c) => c.status === "active" || c.status === "pending");
-  const completedConsultations = mockConsultations.filter((c) => c.status === "completed");
+  const activeConsultations = consultations.filter((c) => 
+    c.status === "active" || c.status === "pending" || c.status === "accepted"
+  );
+  const completedConsultations = consultations.filter((c) => 
+    c.status === "completed" || c.status === "rejected" || c.status === "cancelled"
+  );
 
-  const getLawyer = (lawyerId: string) => mockLawyers.find((l) => l.id === lawyerId);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("id-ID", {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="success" className="text-[10px]">Aktif</Badge>;
+      case 'pending':
+        return <Badge variant="warning" className="text-[10px]">Menunggu</Badge>;
+      case 'accepted':
+        return <Badge variant="accent" className="text-[10px]">Diterima</Badge>;
+      case 'completed':
+        return <Badge variant="secondary" className="text-[10px]">Selesai</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive" className="text-[10px]">Ditolak</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="text-[10px]">Dibatalkan</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
+    }
+  };
+
   const ConsultationCard = ({ consultation }: { consultation: Consultation }) => {
-    const lawyer = getLawyer(consultation.lawyerId);
-    if (!lawyer) return null;
+    const lawyer = consultation.lawyers;
 
     return (
       <Card className="animate-fade-in">
         <CardContent className="p-4">
           <div className="flex gap-3">
             <img
-              src={lawyer.photo}
-              alt={lawyer.name}
+              src={lawyer?.image_url || '/placeholder.svg'}
+              alt={lawyer?.name || 'Lawyer'}
               className="w-12 h-12 rounded-xl object-cover"
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold text-sm truncate">{lawyer.name}</h3>
-                  <p className="text-xs text-muted-foreground">{consultation.topic}</p>
+                  <h3 className="font-semibold text-sm truncate">{lawyer?.name}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{consultation.topic}</p>
                 </div>
-                <Badge
-                  variant={
-                    consultation.status === "active"
-                      ? "success"
-                      : consultation.status === "pending"
-                      ? "warning"
-                      : "secondary"
-                  }
-                  className="text-[10px] shrink-0"
-                >
-                  {consultation.status === "active"
-                    ? "Aktif"
-                    : consultation.status === "pending"
-                    ? "Menunggu"
-                    : "Selesai"}
-                </Badge>
+                {getStatusBadge(consultation.status)}
               </div>
 
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
-                  {formatDate(consultation.date)}
+                  {formatDate(consultation.created_at)}
                 </div>
 
                 {consultation.status === "active" && (
@@ -106,11 +80,30 @@ export default function Consultations() {
                     size="sm"
                     variant="gradient"
                     className="h-8 text-xs"
-                    onClick={() => navigate(`/chat/${lawyer.id}`)}
+                    onClick={() => navigate(`/chat/${consultation.id}`)}
                   >
                     <MessageCircle className="w-3 h-3 mr-1" />
                     Lanjut Chat
                   </Button>
+                )}
+
+                {consultation.status === "accepted" && (
+                  <Button
+                    size="sm"
+                    variant="gradient"
+                    className="h-8 text-xs"
+                    onClick={() => navigate(`/chat/${consultation.id}`)}
+                  >
+                    <MessageCircle className="w-3 h-3 mr-1" />
+                    Mulai Chat
+                  </Button>
+                )}
+
+                {consultation.status === "pending" && (
+                  <div className="flex items-center gap-1 text-xs text-warning">
+                    <AlertCircle className="w-3 h-3" />
+                    Menunggu konfirmasi
+                  </div>
                 )}
 
                 {consultation.status === "completed" && (
@@ -130,6 +123,35 @@ export default function Consultations() {
       </Card>
     );
   };
+
+  if (!user) {
+    return (
+      <MobileLayout>
+        <div className="p-4 text-center py-12">
+          <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+          <p className="text-muted-foreground text-sm mb-4">
+            Silakan login untuk melihat konsultasi Anda
+          </p>
+          <Button variant="gradient" onClick={() => navigate('/auth')}>
+            Login
+          </Button>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <MobileLayout>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>
