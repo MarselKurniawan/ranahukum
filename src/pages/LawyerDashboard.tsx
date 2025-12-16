@@ -16,72 +16,16 @@ import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-interface ConsultationRequest {
-  id: string;
-  clientName: string;
-  clientPhoto: string;
-  topic: string;
-  date: Date;
-  status: "pending" | "accepted" | "rejected" | "active" | "completed";
-  price: number;
-}
-
-const mockRequests: ConsultationRequest[] = [
-  {
-    id: "1",
-    clientName: "Andi Pratama",
-    clientPhoto: "https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&h=100&fit=crop&crop=face",
-    topic: "Konsultasi perceraian dan hak asuh anak",
-    date: new Date(),
-    status: "pending",
-    price: 150000,
-  },
-  {
-    id: "2",
-    clientName: "Siti Rahayu",
-    clientPhoto: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-    topic: "Sengketa tanah warisan keluarga",
-    date: new Date(Date.now() - 3600000),
-    status: "pending",
-    price: 150000,
-  },
-  {
-    id: "3",
-    clientName: "Budi Hartono",
-    clientPhoto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    topic: "Masalah kontrak kerja",
-    date: new Date(Date.now() - 7200000),
-    status: "active",
-    price: 150000,
-  },
-  {
-    id: "4",
-    clientName: "Maya Anggraini",
-    clientPhoto: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    topic: "Pembagian harta gono-gini",
-    date: new Date(Date.now() - 86400000),
-    status: "completed",
-    price: 150000,
-  },
-];
-
-const lawyerProfile = {
-  name: "Dr. Ahmad Fauzi, S.H., M.H.",
-  photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face",
-  rating: 4.9,
-  totalConsultations: 1250,
-  thisMonthConsultations: 45,
-  pendingRequests: 2,
-  earnings: 6750000,
-  isVerified: true,
-};
+import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LawyerDashboard() {
   const navigate = useNavigate();
   const { user, role, loading, signOut } = useAuth();
   const { toast } = useToast();
+  const { data: consultations = [], isLoading: loadingConsultations } = useLawyerConsultations();
+  const updateConsultation = useUpdateConsultation();
   const [isOnline, setIsOnline] = useState(true);
-  const [requests, setRequests] = useState(mockRequests);
 
   useEffect(() => {
     if (!loading && (!user || role !== 'lawyer')) {
@@ -99,41 +43,41 @@ export default function LawyerDashboard() {
     navigate('/');
   };
 
-  if (loading) {
+  if (loading || loadingConsultations) {
     return (
       <MobileLayout showBottomNav={false}>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
         </div>
       </MobileLayout>
     );
   }
 
   const userName = user?.user_metadata?.full_name || "Lawyer";
-  const pendingRequests = requests.filter((r) => r.status === "pending");
-  const activeRequests = requests.filter((r) => r.status === "active");
-  const completedRequests = requests.filter((r) => r.status === "completed");
+  const pendingRequests = consultations.filter((r) => r.status === "pending");
+  const acceptedRequests = consultations.filter((r) => r.status === "accepted");
+  const activeRequests = consultations.filter((r) => r.status === "active");
+  const completedRequests = consultations.filter((r) => r.status === "completed");
 
-  const handleAccept = (id: string) => {
-    setRequests(requests.map((r) => 
-      r.id === id ? { ...r, status: "accepted" as const } : r
-    ));
+  const handleAccept = async (id: string) => {
+    await updateConsultation.mutateAsync({ id, status: 'accepted' });
+    toast({ title: "Konsultasi diterima" });
   };
 
-  const handleReject = (id: string) => {
-    setRequests(requests.map((r) => 
-      r.id === id ? { ...r, status: "rejected" as const } : r
-    ));
+  const handleReject = async (id: string) => {
+    await updateConsultation.mutateAsync({ id, status: 'rejected' });
+    toast({ title: "Konsultasi ditolak" });
   };
 
-  const handleStartConsultation = (id: string) => {
-    setRequests(requests.map((r) => 
-      r.id === id ? { ...r, status: "active" as const } : r
-    ));
+  const handleStartConsultation = async (id: string) => {
+    await updateConsultation.mutateAsync({ id, status: 'active' });
     navigate(`/lawyer/chat/${id}`);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -144,18 +88,21 @@ export default function LawyerDashboard() {
     return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
 
-  const RequestCard = ({ request }: { request: ConsultationRequest }) => (
+  const RequestCard = ({ request }: { request: Consultation }) => (
     <Card className="animate-fade-in">
       <CardContent className="p-4">
         <div className="flex gap-3">
           <Avatar className="w-12 h-12">
-            <AvatarImage src={request.clientPhoto} alt={request.clientName} />
-            <AvatarFallback>{request.clientName[0]}</AvatarFallback>
+            <AvatarFallback>
+              {request.profiles?.full_name?.[0] || 'U'}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-sm">{request.clientName}</h3>
+                <h3 className="font-semibold text-sm">
+                  {request.profiles?.full_name || 'Pengguna Anonim'}
+                </h3>
                 <p className="text-xs text-muted-foreground line-clamp-2">{request.topic}</p>
               </div>
               <Badge
@@ -177,7 +124,7 @@ export default function LawyerDashboard() {
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                {formatDate(request.date)}
+                {formatDate(request.created_at)}
               </div>
 
               {request.status === "pending" && (
@@ -263,20 +210,17 @@ export default function LawyerDashboard() {
 
         <div className="flex items-center gap-4">
           <Avatar className="w-16 h-16 border-2 border-primary-foreground/20">
-            <AvatarImage src={lawyerProfile.photo} alt={userName} />
             <AvatarFallback>{userName[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-primary-foreground">{userName}</h2>
-              {lawyerProfile.isVerified && (
-                <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
-              )}
+              <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Star className="w-4 h-4 fill-warning text-warning" />
-              <span className="text-primary-foreground/80 text-sm">{lawyerProfile.rating}</span>
-              <span className="text-primary-foreground/60 text-sm">• {lawyerProfile.totalConsultations} konsultasi</span>
+              <span className="text-primary-foreground/80 text-sm">-</span>
+              <span className="text-primary-foreground/60 text-sm">• {completedRequests.length} konsultasi</span>
             </div>
           </div>
         </div>
@@ -298,15 +242,15 @@ export default function LawyerDashboard() {
           <Card className="shadow-elevated">
             <CardContent className="p-4 text-center">
               <Calendar className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{lawyerProfile.thisMonthConsultations}</p>
-              <p className="text-xs text-muted-foreground">Konsultasi Bulan Ini</p>
+              <p className="text-2xl font-bold">{consultations.length}</p>
+              <p className="text-xs text-muted-foreground">Total Konsultasi</p>
             </CardContent>
           </Card>
           <Card className="shadow-elevated">
             <CardContent className="p-4 text-center">
               <TrendingUp className="w-6 h-6 mx-auto text-success mb-2" />
-              <p className="text-2xl font-bold">Rp {(lawyerProfile.earnings / 1000000).toFixed(1)}jt</p>
-              <p className="text-xs text-muted-foreground">Pendapatan Bulan Ini</p>
+              <p className="text-2xl font-bold">{pendingRequests.length}</p>
+              <p className="text-xs text-muted-foreground">Menunggu</p>
             </CardContent>
           </Card>
         </div>
@@ -339,7 +283,7 @@ export default function LawyerDashboard() {
             <Tabs defaultValue="pending" className="w-full">
               <TabsList className="w-full mb-4 grid grid-cols-3">
                 <TabsTrigger value="pending" className="text-xs">
-                  Menunggu ({pendingRequests.length})
+                  Menunggu ({pendingRequests.length + acceptedRequests.length})
                 </TabsTrigger>
                 <TabsTrigger value="active" className="text-xs">
                   Aktif ({activeRequests.length})
@@ -350,8 +294,8 @@ export default function LawyerDashboard() {
               </TabsList>
 
           <TabsContent value="pending" className="space-y-3">
-            {pendingRequests.length > 0 ? (
-              pendingRequests.map((request) => (
+            {[...pendingRequests, ...acceptedRequests].length > 0 ? (
+              [...pendingRequests, ...acceptedRequests].map((request) => (
                 <RequestCard key={request.id} request={request} />
               ))
             ) : (
@@ -404,7 +348,7 @@ export default function LawyerDashboard() {
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
         <Button variant="outline" className="w-full gap-2" onClick={handleLogout}>
           <LogOut className="w-4 h-4" />
-          Kembali ke Mode Client
+          Keluar
         </Button>
       </div>
     </MobileLayout>

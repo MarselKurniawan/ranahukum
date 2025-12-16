@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultations: {
+        Row: {
+          client_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          lawyer_id: string
+          lawyer_notes: string | null
+          price: number
+          started_at: string | null
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lawyer_id: string
+          lawyer_notes?: string | null
+          price: number
+          started_at?: string | null
+          status?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lawyer_id?: string
+          lawyer_notes?: string | null
+          price?: number
+          started_at?: string | null
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyers: {
         Row: {
           consultation_count: number | null
@@ -70,6 +120,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          consultation_id: string
+          content: string
+          created_at: string
+          file_url: string | null
+          id: string
+          is_read: boolean | null
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          consultation_id: string
+          content: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          consultation_id?: string
+          content?: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
