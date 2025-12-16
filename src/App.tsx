@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Search from "./pages/Search";
 import LawyerDetail from "./pages/LawyerDetail";
@@ -13,6 +14,7 @@ import AIAssistant from "./pages/AIAssistant";
 import Consultations from "./pages/Consultations";
 import ConsultationHistory from "./pages/ConsultationHistory";
 import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
 import LawyerDashboard from "./pages/LawyerDashboard";
 import LawyerChat from "./pages/LawyerChat";
 import LegalAssistance from "./pages/LegalAssistance";
@@ -26,29 +28,32 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/lawyer/:id" element={<LawyerDetail />} />
-          <Route path="/booking/:id" element={<Booking />} />
-          <Route path="/waiting/:id" element={<WaitingRoom />} />
-          <Route path="/chat/:id" element={<Chat />} />
-          <Route path="/ai-assistant" element={<AIAssistant />} />
-          <Route path="/consultations" element={<Consultations />} />
-          <Route path="/consultation/:id" element={<ConsultationHistory />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
-          <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
-          <Route path="/legal-assistance" element={<LegalAssistance />} />
-          <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
-          <Route path="/document-templates" element={<DocumentTemplates />} />
-          <Route path="/legal-calculator" element={<LegalCalculator />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/lawyer/:id" element={<LawyerDetail />} />
+            <Route path="/booking/:id" element={<Booking />} />
+            <Route path="/waiting/:id" element={<WaitingRoom />} />
+            <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/ai-assistant" element={<AIAssistant />} />
+            <Route path="/consultations" element={<Consultations />} />
+            <Route path="/consultation/:id" element={<ConsultationHistory />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
+            <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
+            <Route path="/legal-assistance" element={<LegalAssistance />} />
+            <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
+            <Route path="/document-templates" element={<DocumentTemplates />} />
+            <Route path="/legal-calculator" element={<LegalCalculator />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
