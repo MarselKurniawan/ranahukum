@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Shield, MessageCircle, Clock, ChevronRight, Bot } from "lucide-react";
+import { Scale, Shield, MessageCircle, Clock, ChevronRight, Bot, User } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { SearchBar } from "@/components/SearchBar";
 import { TagFilter } from "@/components/TagFilter";
@@ -8,6 +8,7 @@ import { LawyerCard } from "@/components/LawyerCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockLawyers, specializations } from "@/data/mockLawyers";
+import { useAuth } from "@/hooks/useAuth";
 
 const features = [
   { icon: Shield, label: "Terverifikasi", desc: "Pengacara berlisensi" },
@@ -17,6 +18,7 @@ const features = [
 
 export default function Index() {
   const navigate = useNavigate();
+  const { user, role } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
 
@@ -46,14 +48,25 @@ export default function Index() {
   return (
     <MobileLayout>
       {/* Hero Section */}
-      <div className="gradient-hero px-4 pt-12 pb-8 rounded-b-3xl">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
+      <div className="gradient-hero px-4 pt-6 pb-8 rounded-b-3xl">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-3 py-1">
             <Scale className="w-4 h-4 text-primary-foreground" />
-            <span className="text-xs text-primary-foreground font-medium">
-              Konsultasi Hukum Online
-            </span>
+            <span className="text-xs text-primary-foreground font-medium">HukumKu</span>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => navigate(user ? '/profile' : '/auth')}
+          >
+            <User className="w-4 h-4 mr-1" />
+            {user ? (user.is_anonymous ? 'Anonim' : 'Profil') : 'Masuk'}
+          </Button>
+        </div>
+
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-primary-foreground mb-2">
             Temukan Pengacara Terbaik
           </h1>

@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
   Bell, Settings, LogOut, Calendar, Users, TrendingUp,
-  ChevronRight, Play, BadgeCheck, DollarSign
+  ChevronRight, Play, BadgeCheck
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
-
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 interface ConsultationRequest {
   id: string;
   clientName: string;
@@ -77,9 +78,38 @@ const lawyerProfile = {
 
 export default function LawyerDashboard() {
   const navigate = useNavigate();
+  const { user, role, loading, signOut } = useAuth();
+  const { toast } = useToast();
   const [isOnline, setIsOnline] = useState(true);
   const [requests, setRequests] = useState(mockRequests);
 
+  useEffect(() => {
+    if (!loading && (!user || role !== 'lawyer')) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Halaman ini hanya untuk lawyer",
+        variant: "destructive"
+      });
+      navigate('/auth');
+    }
+  }, [user, role, loading, navigate, toast]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  if (loading) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  const userName = user?.user_metadata?.full_name || "Lawyer";
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const activeRequests = requests.filter((r) => r.status === "active");
   const completedRequests = requests.filter((r) => r.status === "completed");
@@ -233,12 +263,12 @@ export default function LawyerDashboard() {
 
         <div className="flex items-center gap-4">
           <Avatar className="w-16 h-16 border-2 border-primary-foreground/20">
-            <AvatarImage src={lawyerProfile.photo} alt={lawyerProfile.name} />
-            <AvatarFallback>AF</AvatarFallback>
+            <AvatarImage src={lawyerProfile.photo} alt={userName} />
+            <AvatarFallback>{userName[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-primary-foreground">{lawyerProfile.name}</h2>
+              <h2 className="font-semibold text-primary-foreground">{userName}</h2>
               {lawyerProfile.isVerified && (
                 <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
               )}
@@ -372,7 +402,7 @@ export default function LawyerDashboard() {
 
       {/* Bottom Actions */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
-        <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/")}>
+        <Button variant="outline" className="w-full gap-2" onClick={handleLogout}>
           <LogOut className="w-4 h-4" />
           Kembali ke Mode Client
         </Button>
