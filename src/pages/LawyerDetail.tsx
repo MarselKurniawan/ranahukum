@@ -1,14 +1,23 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Phone, Shield, Clock, GraduationCap, Briefcase, Award } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Phone, Shield, Clock, GraduationCap, Briefcase, Award, MapPin } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockLawyers } from "@/data/mockLawyers";
+import { ReviewList } from "@/components/ReviewList";
+import { ReviewForm } from "@/components/ReviewForm";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LawyerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [refreshReviews, setRefreshReviews] = useState(0);
+  
   const lawyer = mockLawyers.find((l) => l.id === id);
 
   if (!lawyer) {
@@ -20,6 +29,11 @@ export default function LawyerDetail() {
       </MobileLayout>
     );
   }
+
+  const handleReviewSuccess = () => {
+    setShowReviewForm(false);
+    setRefreshReviews(prev => prev + 1);
+  };
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -45,6 +59,14 @@ export default function LawyerDetail() {
           <h1 className="text-lg font-bold text-primary-foreground mb-1">
             {lawyer.name}
           </h1>
+          {lawyer.location && (
+            <div className="flex items-center justify-center gap-1 mb-2">
+              <MapPin className="w-3 h-3 text-primary-foreground/70" />
+              <span className="text-primary-foreground/70 text-xs">
+                {lawyer.location.city}, {lawyer.location.province}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-warning text-warning" />
@@ -93,44 +115,82 @@ export default function LawyerDetail() {
           </CardContent>
         </Card>
 
-        {/* Status */}
-        <Card className="mb-4">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${lawyer.isOnline ? "bg-success animate-pulse-soft" : "bg-muted-foreground"}`} />
-              <span className="text-sm font-medium">
-                {lawyer.isOnline ? "Online - Siap Konsultasi" : "Offline"}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">{lawyer.responseTime}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="about" className="mb-4">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="about">Tentang</TabsTrigger>
+            <TabsTrigger value="reviews">Ulasan</TabsTrigger>
+          </TabsList>
 
-        {/* Bio */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-2">Tentang</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {lawyer.bio}
-            </p>
-          </CardContent>
-        </Card>
+          <TabsContent value="about" className="space-y-4 mt-4">
+            {/* Status */}
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${lawyer.isOnline ? "bg-success animate-pulse-soft" : "bg-muted-foreground"}`} />
+                  <span className="text-sm font-medium">
+                    {lawyer.isOnline ? "Online - Siap Konsultasi" : "Offline"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">{lawyer.responseTime}</span>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Verified Badge */}
-        <Card className="mb-4 border-success/20 bg-success/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Shield className="w-5 h-5 text-success" />
-            <div>
-              <p className="font-medium text-sm">Pengacara Terverifikasi</p>
-              <p className="text-xs text-muted-foreground">
-                Identitas dan lisensi telah diverifikasi
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Bio */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-2">Tentang</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {lawyer.bio}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Verified Badge */}
+            {lawyer.isVerified && (
+              <Card className="border-success/20 bg-success/5">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-success" />
+                  <div>
+                    <p className="font-medium text-sm">Pengacara Terverifikasi</p>
+                    <p className="text-xs text-muted-foreground">
+                      Identitas dan lisensi telah diverifikasi
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reviews" className="space-y-4 mt-4">
+            {/* Add Review Button */}
+            {user && !showReviewForm && (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowReviewForm(true)}
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Tulis Ulasan
+              </Button>
+            )}
+
+            {/* Review Form */}
+            {showReviewForm && (
+              <ReviewForm
+                lawyerId={lawyer.id}
+                onSuccess={handleReviewSuccess}
+                onCancel={() => setShowReviewForm(false)}
+              />
+            )}
+
+            {/* Reviews List */}
+            <ReviewList lawyerId={lawyer.id} refreshTrigger={refreshReviews} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Fixed Bottom CTA */}
