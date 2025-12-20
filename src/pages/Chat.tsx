@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Mic, Paperclip, MoreVertical, Phone, Video } from "lucide-react";
+import { ArrowLeft, Send, Mic, Paperclip, MoreVertical, Phone, Video, Play, Pause, FileText, Image as ImageIcon, X } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,76 @@ import { cn } from "@/lib/utils";
 import { useConsultation } from "@/hooks/useConsultations";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatUpload } from "@/hooks/useChatUpload";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function VoicePlayer({ src }: { src: string }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full"
+        onClick={togglePlay}
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </Button>
+      <div className="flex-1">
+        <div className="h-1 bg-background/30 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-current rounded-full transition-all"
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-xs opacity-70">
+        {formatDuration(currentTime)} / {formatDuration(duration || 0)}
+      </span>
+    </div>
+  );
+}
 
 export default function Chat() {
   const { id } = useParams();
@@ -17,9 +86,12 @@ export default function Chat() {
   const { data: consultation, isLoading: loadingConsultation } = useConsultation(id || '');
   const { data: messages = [], isLoading: loadingMessages } = useMessages(id || '');
   const sendMessage = useSendMessage();
+  const { isUploading, isRecording, sendFileMessage, toggleRecording } = useChatUpload({ 
+    consultationId: id || '' 
+  });
   
   const [inputValue, setInputValue] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -43,11 +115,59 @@ export default function Chat() {
     });
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await sendFileMessage(file);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const renderMessageContent = (message: { message_type: string; content: string; file_url: string | null }, isUser: boolean) => {
+    if (message.message_type === 'voice' && message.file_url) {
+      return <VoicePlayer src={message.file_url} />;
+    }
+
+    if (message.message_type === 'file' && message.file_url) {
+      const isImage = message.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      
+      if (isImage) {
+        return (
+          <div className="space-y-1">
+            <img 
+              src={message.file_url} 
+              alt="Uploaded image"
+              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => window.open(message.file_url!, '_blank')}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <a 
+          href={message.file_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 hover:underline"
+        >
+          <FileText className="w-4 h-4" />
+          <span className="text-sm">{message.content}</span>
+        </a>
+      );
+    }
+
+    return <p className="text-sm">{message.content}</p>;
   };
 
   if (loadingConsultation || loadingMessages) {
@@ -78,6 +198,15 @@ export default function Chat() {
 
   return (
     <MobileLayout showBottomNav={false}>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
         <div className="flex items-center justify-between p-3">
@@ -142,7 +271,7 @@ export default function Chat() {
                       : "bg-secondary text-secondary-foreground rounded-bl-md"
                   )}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  {renderMessageContent(message, isUser)}
                   <p
                     className={cn(
                       "text-[10px] mt-1",
@@ -163,16 +292,39 @@ export default function Chat() {
 
       {/* Input */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+        {/* Recording indicator */}
+        {isRecording && (
+          <div className="flex items-center justify-center gap-2 mb-2 text-destructive">
+            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+            <span className="text-sm">Merekam...</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={toggleRecording}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <Paperclip className="w-5 h-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || isRecording}
+          >
+            <Paperclip className={cn("w-5 h-5", isUploading && "animate-pulse")} />
           </Button>
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ketik pesan..."
+            placeholder={isRecording ? "Rekaman aktif..." : "Ketik pesan..."}
             className="flex-1 rounded-full bg-secondary border-0"
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            disabled={isRecording}
           />
           {inputValue.trim() ? (
             <Button
@@ -180,7 +332,7 @@ export default function Chat() {
               size="icon"
               className="shrink-0 rounded-full"
               onClick={handleSend}
-              disabled={sendMessage.isPending}
+              disabled={sendMessage.isPending || isUploading}
             >
               <Send className="w-4 h-4" />
             </Button>
@@ -189,7 +341,8 @@ export default function Chat() {
               variant={isRecording ? "destructive" : "secondary"}
               size="icon"
               className="shrink-0 rounded-full"
-              onClick={() => setIsRecording(!isRecording)}
+              onClick={toggleRecording}
+              disabled={isUploading}
             >
               <Mic className={cn("w-4 h-4", isRecording && "animate-pulse")} />
             </Button>
