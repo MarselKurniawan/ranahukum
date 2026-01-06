@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { mockLawyers } from "@/data/mockLawyers";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useLawyer } from "@/hooks/useLawyers";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +25,22 @@ import { toast } from "sonner";
 export default function LegalAssistanceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { data: lawyer, isLoading } = useLawyer(id || '');
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [caseDescription, setCaseDescription] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  
-  const lawyer = mockLawyers.find((l) => l.id === id);
+
+  if (isLoading) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </MobileLayout>
+    );
+  }
 
   if (!lawyer) {
     return (
@@ -68,7 +80,7 @@ export default function LegalAssistanceDetail() {
 
         <div className="pt-16 pb-24 px-4 text-center">
           <img
-            src={lawyer.photo}
+            src={lawyer.image_url || '/placeholder.svg'}
             alt={lawyer.name}
             className="w-24 h-24 rounded-2xl mx-auto mb-3 border-4 border-primary-foreground/20 object-cover"
           />
@@ -77,7 +89,7 @@ export default function LegalAssistanceDetail() {
           </h1>
           <div className="flex items-center justify-center gap-2 text-primary-foreground/80 text-sm mb-2">
             <MapPin className="w-4 h-4" />
-            <span>{lawyer.location.city}, {lawyer.location.province}</span>
+            <span>{lawyer.location || 'Indonesia'}</span>
           </div>
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="flex items-center gap-1">
@@ -88,11 +100,11 @@ export default function LegalAssistanceDetail() {
             </div>
             <span className="text-primary-foreground/60">•</span>
             <span className="text-primary-foreground/80 text-sm">
-              {lawyer.totalConsultations} konsultasi
+              {lawyer.consultation_count} konsultasi
             </span>
           </div>
           <div className="flex flex-wrap justify-center gap-1">
-            {lawyer.specializations.map((spec) => (
+            {lawyer.specialization.map((spec) => (
               <Badge
                 key={spec}
                 className="bg-primary-foreground/20 text-primary-foreground border-0 text-xs"
@@ -108,32 +120,17 @@ export default function LegalAssistanceDetail() {
       <div className="px-4 -mt-16 relative z-10 pb-32">
         {/* Stats Card */}
         <Card className="mb-4 shadow-elevated">
-          <CardContent className="p-4 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <GraduationCap className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-xs text-muted-foreground">Pendidikan</p>
-              <p className="text-sm font-medium truncate">{lawyer.education}</p>
-            </div>
+          <CardContent className="p-4 grid grid-cols-2 gap-4 text-center">
             <div>
               <Briefcase className="w-5 h-5 mx-auto text-primary mb-1" />
               <p className="text-xs text-muted-foreground">Pengalaman</p>
-              <p className="text-sm font-medium">{lawyer.experience} tahun</p>
+              <p className="text-sm font-medium">{lawyer.experience_years} tahun</p>
             </div>
             <div>
               <Award className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-xs text-muted-foreground">Lisensi</p>
-              <p className="text-sm font-medium truncate">{lawyer.licenseNumber.split("/")[0]}</p>
+              <p className="text-xs text-muted-foreground">Review</p>
+              <p className="text-sm font-medium">{lawyer.review_count} ulasan</p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Bio */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-2">Tentang</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {lawyer.bio}
-            </p>
           </CardContent>
         </Card>
 
@@ -165,18 +162,19 @@ export default function LegalAssistanceDetail() {
           </CardContent>
         </Card>
 
-        {/* Verified Badge */}
-        <Card className="mb-4 border-success/20 bg-success/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Shield className="w-5 h-5 text-success" />
-            <div>
-              <p className="font-medium text-sm">Pengacara Terverifikasi</p>
-              <p className="text-xs text-muted-foreground">
-                Identitas dan lisensi telah diverifikasi
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {lawyer.is_verified && (
+          <Card className="mb-4 border-success/20 bg-success/5">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Shield className="w-5 h-5 text-success" />
+              <div>
+                <p className="font-medium text-sm">Pengacara Terverifikasi</p>
+                <p className="text-xs text-muted-foreground">
+                  Identitas dan lisensi telah diverifikasi
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Fixed Bottom CTA */}
@@ -185,7 +183,7 @@ export default function LegalAssistanceDetail() {
           <div>
             <p className="text-xs text-muted-foreground">Biaya Pendampingan</p>
             <p className="text-lg font-bold text-primary">
-              Rp {(lawyer.pendampinganPrice || 0).toLocaleString("id-ID")}
+              Rp {(lawyer.pendampingan_price || 0).toLocaleString("id-ID")}
               <span className="text-xs text-muted-foreground font-normal">
                 /kasus
               </span>

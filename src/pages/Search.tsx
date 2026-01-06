@@ -4,10 +4,13 @@ import { MobileLayout } from "@/components/MobileLayout";
 import { SearchBar } from "@/components/SearchBar";
 import { TagFilter } from "@/components/TagFilter";
 import { LawyerCard } from "@/components/LawyerCard";
-import { mockLawyers, specializations } from "@/data/mockLawyers";
+import { specializations } from "@/data/mockLawyers";
+import { useLawyers } from "@/hooks/useLawyers";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Search() {
   const navigate = useNavigate();
+  const { data: lawyers, isLoading } = useLawyers();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
 
@@ -22,15 +25,15 @@ export default function Search() {
     }
   };
 
-  const filteredLawyers = mockLawyers.filter((lawyer) => {
+  const filteredLawyers = (lawyers || []).filter((lawyer) => {
     const matchesSearch =
       lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lawyer.specializations.some((s) =>
+      lawyer.specialization.some((s) =>
         s.toLowerCase().includes(searchQuery.toLowerCase())
       );
     const matchesTags =
       selectedTags.includes("Semua") ||
-      lawyer.specializations.some((s) => selectedTags.includes(s));
+      lawyer.specialization.some((s) => selectedTags.includes(s));
     return matchesSearch && matchesTags;
   });
 
@@ -61,25 +64,51 @@ export default function Search() {
         </div>
 
         <div className="space-y-3">
-          {filteredLawyers.map((lawyer, index) => (
-            <div
-              key={lawyer.id}
-              style={{ animationDelay: `${index * 50}ms` }}
-              className="animate-slide-up"
-            >
-              <LawyerCard
-                {...lawyer}
-                onClick={() => navigate(`/lawyer/${lawyer.id}`)}
-              />
-            </div>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-4 bg-card rounded-xl">
+                <div className="flex gap-3">
+                  <Skeleton className="w-16 h-16 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              {filteredLawyers.map((lawyer, index) => (
+                <div
+                  key={lawyer.id}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="animate-slide-up"
+                >
+                  <LawyerCard
+                    id={lawyer.id}
+                    name={lawyer.name}
+                    specializations={lawyer.specialization}
+                    rating={lawyer.rating || 0}
+                    consultationCount={lawyer.consultation_count || 0}
+                    price={lawyer.price || 0}
+                    photo={lawyer.image_url || '/placeholder.svg'}
+                    isOnline={lawyer.is_available}
+                    isVerified={lawyer.is_verified}
+                    location={lawyer.location || undefined}
+                    onClick={() => navigate(`/lawyer/${lawyer.id}`)}
+                  />
+                </div>
+              ))}
 
-          {filteredLawyers.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Tidak ada pengacara ditemukan
-              </p>
-            </div>
+              {filteredLawyers.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    Tidak ada pengacara ditemukan
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
