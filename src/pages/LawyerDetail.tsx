@@ -6,19 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockLawyers } from "@/data/mockLawyers";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ReviewList } from "@/components/ReviewList";
 import { ReviewForm } from "@/components/ReviewForm";
 import { useAuth } from "@/hooks/useAuth";
+import { useLawyer } from "@/hooks/useLawyers";
 
 export default function LawyerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: lawyer, isLoading } = useLawyer(id || '');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [refreshReviews, setRefreshReviews] = useState(0);
-  
-  const lawyer = mockLawyers.find((l) => l.id === id);
+
+  if (isLoading) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </MobileLayout>
+    );
+  }
 
   if (!lawyer) {
     return (
@@ -52,7 +64,7 @@ export default function LawyerDetail() {
 
         <div className="pt-16 pb-24 px-4 text-center">
           <img
-            src={lawyer.photo}
+            src={lawyer.image_url || '/placeholder.svg'}
             alt={lawyer.name}
             className="w-24 h-24 rounded-2xl mx-auto mb-3 border-4 border-primary-foreground/20 object-cover"
           />
@@ -63,7 +75,7 @@ export default function LawyerDetail() {
             <div className="flex items-center justify-center gap-1 mb-2">
               <MapPin className="w-3 h-3 text-primary-foreground/70" />
               <span className="text-primary-foreground/70 text-xs">
-                {lawyer.location.city}, {lawyer.location.province}
+                {lawyer.location}
               </span>
             </div>
           )}
@@ -76,11 +88,11 @@ export default function LawyerDetail() {
             </div>
             <span className="text-primary-foreground/60">•</span>
             <span className="text-primary-foreground/80 text-sm">
-              {lawyer.totalConsultations} konsultasi
+              {lawyer.consultation_count} konsultasi
             </span>
           </div>
           <div className="flex flex-wrap justify-center gap-1">
-            {lawyer.specializations.map((spec) => (
+            {lawyer.specialization.map((spec) => (
               <Badge
                 key={spec}
                 className="bg-primary-foreground/20 text-primary-foreground border-0 text-xs"
@@ -96,21 +108,16 @@ export default function LawyerDetail() {
       <div className="px-4 -mt-16 relative z-10 pb-24">
         {/* Stats Card */}
         <Card className="mb-4 shadow-elevated">
-          <CardContent className="p-4 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <GraduationCap className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-xs text-muted-foreground">Pendidikan</p>
-              <p className="text-sm font-medium truncate">{lawyer.education}</p>
-            </div>
+          <CardContent className="p-4 grid grid-cols-2 gap-4 text-center">
             <div>
               <Briefcase className="w-5 h-5 mx-auto text-primary mb-1" />
               <p className="text-xs text-muted-foreground">Pengalaman</p>
-              <p className="text-sm font-medium">{lawyer.experience} tahun</p>
+              <p className="text-sm font-medium">{lawyer.experience_years} tahun</p>
             </div>
             <div>
               <Award className="w-5 h-5 mx-auto text-primary mb-1" />
-              <p className="text-xs text-muted-foreground">Lisensi</p>
-              <p className="text-sm font-medium truncate">{lawyer.licenseNumber.split("/")[0]}</p>
+              <p className="text-xs text-muted-foreground">Review</p>
+              <p className="text-sm font-medium">{lawyer.review_count} ulasan</p>
             </div>
           </CardContent>
         </Card>
@@ -127,30 +134,16 @@ export default function LawyerDetail() {
             <Card>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${lawyer.isOnline ? "bg-success animate-pulse-soft" : "bg-muted-foreground"}`} />
+                  <div className={`w-3 h-3 rounded-full ${lawyer.is_available ? "bg-success animate-pulse-soft" : "bg-muted-foreground"}`} />
                   <span className="text-sm font-medium">
-                    {lawyer.isOnline ? "Online - Siap Konsultasi" : "Offline"}
+                    {lawyer.is_available ? "Online - Siap Konsultasi" : "Offline"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm">{lawyer.responseTime}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Bio */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Tentang</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {lawyer.bio}
-                </p>
               </CardContent>
             </Card>
 
             {/* Verified Badge */}
-            {lawyer.isVerified && (
+            {lawyer.is_verified && (
               <Card className="border-success/20 bg-success/5">
                 <CardContent className="p-4 flex items-center gap-3">
                   <Shield className="w-5 h-5 text-success" />
@@ -199,7 +192,7 @@ export default function LawyerDetail() {
           <div>
             <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
             <p className="text-lg font-bold text-primary">
-              Rp {lawyer.price.toLocaleString("id-ID")}
+              Rp {(lawyer.price || 0).toLocaleString("id-ID")}
               <span className="text-xs text-muted-foreground font-normal">
                 /sesi
               </span>

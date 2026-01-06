@@ -8,11 +8,11 @@ interface LawyerCardProps {
   photo: string;
   specializations: string[];
   rating: number;
-  totalConsultations: number;
+  consultationCount: number;
   price: number;
   isOnline?: boolean;
   responseTime?: string;
-  location?: { city: string; province: string };
+  location?: string;
   isVerified?: boolean;
   onClick?: () => void;
 }
@@ -22,7 +22,7 @@ export function LawyerCard({
   photo,
   specializations,
   rating,
-  totalConsultations,
+  consultationCount,
   price,
   isOnline = false,
   responseTime = "< 5 menit",
@@ -51,13 +51,13 @@ export function LawyerCard({
                 {location && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                     <MapPin className="w-3 h-3" />
-                    {location.city}
+                    {location}
                   </div>
                 )}
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star className="w-3.5 h-3.5 fill-warning text-warning" />
                   <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-                  <span className="text-muted-foreground text-xs">• {totalConsultations} konsultasi</span>
+                  <span className="text-muted-foreground text-xs">• {consultationCount} konsultasi</span>
                 </div>
               </div>
               {isOnline && (
