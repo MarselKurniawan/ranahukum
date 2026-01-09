@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -17,6 +18,7 @@ export interface Consultation {
     name: string;
     image_url: string | null;
     specialization: string[];
+    user_id?: string;
   };
   profiles?: {
     full_name: string | null;
@@ -25,8 +27,9 @@ export interface Consultation {
 
 export function useConsultations() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['consultations', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,12 +46,40 @@ export function useConsultations() {
     },
     enabled: !!user
   });
+
+  // Realtime subscription for status updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('consultations-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'consultations',
+          filter: `client_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['consultations', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
+  return query;
 }
 
 export function useLawyerConsultations() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['lawyer-consultations', user?.id],
     queryFn: async () => {
       // First get the lawyer id
@@ -84,10 +115,55 @@ export function useLawyerConsultations() {
     },
     enabled: !!user
   });
+
+  // Realtime subscription for new consultations
+  useEffect(() => {
+    if (!user) return;
+
+    // Get lawyer id first
+    const setupRealtime = async () => {
+      const { data: lawyer } = await supabase
+        .from('lawyers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!lawyer) return;
+
+      const channel = supabase
+        .channel('lawyer-consultations-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'consultations',
+            filter: `lawyer_id=eq.${lawyer.id}`
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['lawyer-consultations', user.id] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanup = setupRealtime();
+    return () => {
+      cleanup.then(fn => fn?.());
+    };
+  }, [user, queryClient]);
+
+  return query;
 }
 
 export function useConsultation(id: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ['consultation', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -104,6 +180,36 @@ export function useConsultation(id: string) {
     },
     enabled: !!id
   });
+
+  // Realtime subscription for this specific consultation
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`consultation-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'consultations',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          queryClient.setQueryData(['consultation', id], (old: Consultation | undefined) => {
+            if (!old) return old;
+            return { ...old, ...payload.new };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient]);
+
+  return query;
 }
 
 export function useCreateConsultation() {
