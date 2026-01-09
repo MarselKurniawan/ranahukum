@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { mockLawyers } from "@/data/mockLawyers";
 import { toast } from "@/hooks/use-toast";
 import { useCreateConsultation } from "@/hooks/useConsultations";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const paymentMethods = [
   { id: "gopay", name: "GoPay", icon: "💚" },
@@ -24,30 +23,40 @@ export default function Booking() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: dbLawyer } = useLawyer(id || '');
+  const { data: lawyer, isLoading } = useLawyer(id || '');
   const createConsultation = useCreateConsultation();
   
-  // Fallback to mock data if not in database
-  const mockLawyer = mockLawyers.find((l) => l.id === id);
-  const lawyer = dbLawyer || mockLawyer;
-  const lawyerPrice = dbLawyer?.price || mockLawyer?.price || 150000;
-  const lawyerName = dbLawyer?.name || mockLawyer?.name || 'Lawyer';
-  const lawyerPhoto = dbLawyer?.image_url || mockLawyer?.photo || '/placeholder.svg';
-  const lawyerSpecs = dbLawyer?.specialization || mockLawyer?.specializations || [];
-
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  if (!lawyer) {
+  if (isLoading) {
     return (
       <MobileLayout showBottomNav={false}>
-        <div className="flex items-center justify-center h-screen">
-          <p>Pengacara tidak ditemukan</p>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-48 w-full" />
         </div>
       </MobileLayout>
     );
   }
+
+  if (!lawyer) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="flex flex-col items-center justify-center h-screen p-6">
+          <AlertCircle className="w-16 h-16 text-destructive mb-4" />
+          <p className="text-lg font-semibold mb-2">Pengacara tidak ditemukan</p>
+          <Button variant="outline" onClick={() => navigate("/search")}>
+            Cari Pengacara
+          </Button>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  const lawyerPrice = lawyer.price || 150000;
 
   const handlePayment = async () => {
     if (!user) {
@@ -81,32 +90,20 @@ export default function Booking() {
     setIsProcessing(true);
     
     try {
-      // If we have a database lawyer, create consultation
-      if (dbLawyer) {
-        const consultation = await createConsultation.mutateAsync({
-          lawyerId: dbLawyer.id,
-          topic: topic.trim(),
-          price: lawyerPrice + 5000
-        });
+      const consultation = await createConsultation.mutateAsync({
+        lawyerId: lawyer.id,
+        topic: topic.trim(),
+        price: lawyerPrice + 5000
+      });
 
-        toast({
-          title: "Pembayaran Berhasil!",
-          description: "Menunggu pengacara menerima konsultasi...",
-        });
-        
-        navigate(`/waiting/${consultation.id}`);
-      } else {
-        // Fallback for mock data
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        
-        toast({
-          title: "Pembayaran Berhasil!",
-          description: "Menunggu pengacara menerima konsultasi...",
-        });
-        
-        navigate(`/waiting/${id}`);
-      }
+      toast({
+        title: "Pembayaran Berhasil!",
+        description: "Menunggu pengacara menerima konsultasi...",
+      });
+      
+      navigate(`/waiting/${consultation.id}`);
     } catch (error) {
+      console.error('Error creating consultation:', error);
       toast({
         title: "Gagal",
         description: "Terjadi kesalahan saat memproses pembayaran",
@@ -138,14 +135,14 @@ export default function Booking() {
         <Card className="mb-4">
           <CardContent className="p-4 flex items-center gap-3">
             <img
-              src={lawyerPhoto}
-              alt={lawyerName}
+              src={lawyer.image_url || '/placeholder.svg'}
+              alt={lawyer.name}
               className="w-14 h-14 rounded-xl object-cover"
             />
             <div className="flex-1">
-              <h3 className="font-semibold text-sm">{lawyerName}</h3>
+              <h3 className="font-semibold text-sm">{lawyer.name}</h3>
               <p className="text-xs text-muted-foreground">
-                {lawyerSpecs.join(", ")}
+                {lawyer.specialization?.join(", ")}
               </p>
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                 <Clock className="w-3 h-3" />
