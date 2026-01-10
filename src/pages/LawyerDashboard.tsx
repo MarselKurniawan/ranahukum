@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
-  Bell, Settings, LogOut, Calendar, Users, TrendingUp,
+  Bell, Settings, Calendar, Users, TrendingUp,
   ChevronRight, Play, BadgeCheck
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -386,9 +386,9 @@ export default function LawyerDashboard() {
 
       {/* Bottom Actions */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
-        <Button variant="outline" className="w-full gap-2" onClick={handleLogout}>
-          <LogOut className="w-4 h-4" />
-          Keluar
+        <Button variant="gradient" className="w-full gap-2" onClick={() => navigate('/lawyer/profile')}>
+          <Settings className="w-4 h-4" />
+          Pengaturan Profil
         </Button>
       </div>
     </MobileLayout>

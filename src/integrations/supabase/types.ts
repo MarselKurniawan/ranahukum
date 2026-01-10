@@ -66,6 +66,7 @@ export type Database = {
       }
       lawyers: {
         Row: {
+          approval_status: string
           consultation_count: number | null
           created_at: string
           experience_years: number | null
@@ -80,10 +81,12 @@ export type Database = {
           rating: number | null
           review_count: number | null
           specialization: string[] | null
+          submitted_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          approval_status?: string
           consultation_count?: number | null
           created_at?: string
           experience_years?: number | null
@@ -98,10 +101,12 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           specialization?: string[] | null
+          submitted_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          approval_status?: string
           consultation_count?: number | null
           created_at?: string
           experience_years?: number | null
@@ -116,6 +121,7 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           specialization?: string[] | null
+          submitted_at?: string | null
           updated_at?: string
           user_id?: string
         }

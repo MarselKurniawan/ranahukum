@@ -17,6 +17,8 @@ export interface DbLawyer {
   is_available: boolean;
   pendampingan_price: number;
   created_at: string;
+  approval_status: string;
+  submitted_at: string | null;
 }
 
 export function useLawyers() {

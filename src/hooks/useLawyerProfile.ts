@@ -14,8 +14,8 @@ const REQUIRED_FIELDS = [
   { key: 'name', label: 'Nama Lengkap' },
   { key: 'specialization', label: 'Spesialisasi' },
   { key: 'location', label: 'Lokasi' },
-  { key: 'price', label: 'Tarif Konsultasi' },
   { key: 'experience_years', label: 'Pengalaman (Tahun)' },
+  { key: 'image_url', label: 'Foto Profil' },
 ] as const;
 
 export function useLawyerProfile() {
@@ -80,8 +80,14 @@ export function useLawyerProfileCompletion(): LawyerProfileCompletion | null {
       } else {
         missingFields.push(field.label);
       }
-    } else if (field.key === 'price' || field.key === 'experience_years') {
+    } else if (field.key === 'experience_years') {
       if (typeof value === 'number' && value > 0) {
+        completedFields++;
+      } else {
+        missingFields.push(field.label);
+      }
+    } else if (field.key === 'image_url') {
+      if (value && String(value).trim() !== '') {
         completedFields++;
       } else {
         missingFields.push(field.label);

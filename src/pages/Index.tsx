@@ -56,7 +56,7 @@ export default function Index() {
         <div className="flex items-center justify-between mb-6">
           <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-3 py-1">
             <Scale className="w-4 h-4 text-primary-foreground" />
-            <span className="text-xs text-primary-foreground font-medium">HukumKu</span>
+            <span className="text-xs text-primary-foreground font-medium">Legal Connect</span>
           </div>
           <Button
             variant="ghost"
