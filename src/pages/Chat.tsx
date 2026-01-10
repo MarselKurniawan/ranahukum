@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Mic, Paperclip, MoreVertical, Phone, Video, Play, Pause, FileText, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Send, Mic, Paperclip, Play, Pause, FileText, X, Clock, CheckCircle } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,6 +195,34 @@ export default function Chat() {
 
   const lawyer = consultation.lawyers;
   const lawyerUserId = (lawyer as { user_id?: string })?.user_id;
+  const isCompleted = consultation.status === 'completed';
+
+  // Calculate consultation duration
+  const [elapsedTime, setElapsedTime] = useState("00:00");
+  
+  useEffect(() => {
+    if (!consultation.started_at || isCompleted) return;
+    
+    const startTime = new Date(consultation.started_at).getTime();
+    
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = Math.floor((now - startTime) / 1000);
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+      
+      if (hours > 0) {
+        setElapsedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setElapsedTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [consultation.started_at, isCompleted]);
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -221,24 +249,24 @@ export default function Chat() {
                   alt={lawyer?.name || 'Lawyer'}
                   className="w-10 h-10 rounded-full object-cover"
                 />
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+                {!isCompleted && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+                )}
               </div>
               <div>
                 <h2 className="font-semibold text-sm">{lawyer?.name}</h2>
-                <p className="text-xs text-success">Online</p>
+                {isCompleted ? (
+                  <p className="text-xs text-muted-foreground">Konsultasi Selesai</p>
+                ) : (
+                  <p className="text-xs text-success">Online</p>
+                )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon">
-              <Phone className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Video className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
+          {/* Consultation Timer */}
+          <div className="flex items-center gap-2 bg-secondary px-3 py-1.5 rounded-full">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">{elapsedTime}</span>
           </div>
         </div>
       </div>
@@ -290,65 +318,77 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Input */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
-        {/* Recording indicator */}
-        {isRecording && (
-          <div className="flex items-center justify-center gap-2 mb-2 text-destructive">
-            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
-            <span className="text-sm">Merekam...</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={toggleRecording}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="shrink-0"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || isRecording}
-          >
-            <Paperclip className={cn("w-5 h-5", isUploading && "animate-pulse")} />
-          </Button>
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={isRecording ? "Rekaman aktif..." : "Ketik pesan..."}
-            className="flex-1 rounded-full bg-secondary border-0"
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            disabled={isRecording}
-          />
-          {inputValue.trim() ? (
-            <Button
-              variant="gradient"
-              size="icon"
-              className="shrink-0 rounded-full"
-              onClick={handleSend}
-              disabled={sendMessage.isPending || isUploading}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant={isRecording ? "destructive" : "secondary"}
-              size="icon"
-              className="shrink-0 rounded-full"
-              onClick={toggleRecording}
-              disabled={isUploading}
-            >
-              <Mic className={cn("w-4 h-4", isRecording && "animate-pulse")} />
-            </Button>
+      {/* Input - only show if consultation is active */}
+      {!isCompleted && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+          {/* Recording indicator */}
+          {isRecording && (
+            <div className="flex items-center justify-center gap-2 mb-2 text-destructive">
+              <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+              <span className="text-sm">Merekam...</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={toggleRecording}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           )}
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || isRecording}
+            >
+              <Paperclip className={cn("w-5 h-5", isUploading && "animate-pulse")} />
+            </Button>
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={isRecording ? "Rekaman aktif..." : "Ketik pesan..."}
+              className="flex-1 rounded-full bg-secondary border-0"
+              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              disabled={isRecording}
+            />
+            {inputValue.trim() ? (
+              <Button
+                variant="gradient"
+                size="icon"
+                className="shrink-0 rounded-full"
+                onClick={handleSend}
+                disabled={sendMessage.isPending || isUploading}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                variant={isRecording ? "destructive" : "secondary"}
+                size="icon"
+                className="shrink-0 rounded-full"
+                onClick={toggleRecording}
+                disabled={isUploading}
+              >
+                <Mic className={cn("w-4 h-4", isRecording && "animate-pulse")} />
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Completed notice */}
+      {isCompleted && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-muted/95 backdrop-blur-lg border-t border-border p-4 z-50">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <CheckCircle className="w-5 h-5 text-success" />
+            <p className="text-sm">Konsultasi ini sudah selesai</p>
+          </div>
+        </div>
+      )}
     </MobileLayout>
   );
 }

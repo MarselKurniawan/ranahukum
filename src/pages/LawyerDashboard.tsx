@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
+import { LawyerBottomNav } from "@/components/LawyerBottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -384,13 +385,8 @@ export default function LawyerDashboard() {
         </Tabs>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
-        <Button variant="gradient" className="w-full gap-2" onClick={() => navigate('/lawyer/profile')}>
-          <Settings className="w-4 h-4" />
-          Pengaturan Profil
-        </Button>
-      </div>
+      {/* Bottom Navigation */}
+      <LawyerBottomNav />
     </MobileLayout>
   );
 }
