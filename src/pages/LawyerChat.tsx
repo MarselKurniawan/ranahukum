@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Mic, Paperclip, MoreVertical, 
-  Phone, Video, XCircle, FileText, Lightbulb 
+  Phone, XCircle, FileText, Lightbulb, Play, Pause, X
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,56 +25,110 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConsultation, useUpdateConsultation } from "@/hooks/useConsultations";
+import { useMessages, useSendMessage, Message } from "@/hooks/useMessages";
+import { useAuth } from "@/hooks/useAuth";
+import { useChatUpload } from "@/hooks/useChatUpload";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
-interface Message {
-  id: string;
-  content: string;
-  sender: "lawyer" | "client";
-  timestamp: Date;
-  type: "text" | "voice" | "file";
-  fileName?: string;
+function VoicePlayer({ src }: { src: string }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full"
+        onClick={togglePlay}
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </Button>
+      <div className="flex-1">
+        <div className="h-1 bg-background/30 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-current rounded-full transition-all"
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-xs opacity-70">
+        {formatDuration(currentTime)} / {formatDuration(duration || 0)}
+      </span>
+    </div>
+  );
 }
-
-const mockClient = {
-  id: "1",
-  name: "Andi Pratama",
-  photo: "https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&h=100&fit=crop&crop=face",
-  topic: "Konsultasi perceraian dan hak asuh anak",
-};
-
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    content: "Selamat siang Pak, saya ingin berkonsultasi tentang proses perceraian dan hak asuh anak.",
-    sender: "client",
-    timestamp: new Date(Date.now() - 600000),
-    type: "text",
-  },
-  {
-    id: "2",
-    content: "Selamat siang Pak Andi. Baik, silakan ceritakan lebih detail tentang situasi Anda.",
-    sender: "lawyer",
-    timestamp: new Date(Date.now() - 540000),
-    type: "text",
-  },
-  {
-    id: "3",
-    content: "Saya sudah menikah 5 tahun dan memiliki 1 anak berusia 3 tahun. Istri saya ingin bercerai dan mengambil hak asuh anak sepenuhnya.",
-    sender: "client",
-    timestamp: new Date(Date.now() - 480000),
-    type: "text",
-  },
-];
 
 export default function LawyerChat() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const { user, role, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const { data: consultation, isLoading: loadingConsultation } = useConsultation(id || '');
+  const { data: messages = [], isLoading: loadingMessages } = useMessages(id || '');
+  const sendMessage = useSendMessage();
+  const updateConsultation = useUpdateConsultation();
+  const { isUploading, isRecording, sendFileMessage, toggleRecording } = useChatUpload({ 
+    consultationId: id || '' 
+  });
+  
   const [inputValue, setInputValue] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [advice, setAdvice] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!authLoading && (!user || role !== 'lawyer')) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Halaman ini hanya untuk lawyer",
+        variant: "destructive"
+      });
+      navigate('/auth');
+    }
+  }, [user, role, authLoading, navigate, toast]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,49 +138,131 @@ export default function LawyerChat() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || !id) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: "lawyer",
-      timestamp: new Date(),
-      type: "text",
-    };
-
-    setMessages([...messages, newMessage]);
+    const content = inputValue;
     setInputValue("");
+
+    await sendMessage.mutateAsync({
+      consultationId: id,
+      content,
+      messageType: 'text'
+    });
   };
 
-  const handleVoiceNote = () => {
-    setIsRecording(!isRecording);
-    if (isRecording) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        content: "Voice note (0:05)",
-        sender: "lawyer",
-        timestamp: new Date(),
-        type: "voice",
-      };
-      setMessages([...messages, newMessage]);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await sendFileMessage(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleEndConsultation = () => {
-    // Would save to database in real app
-    navigate("/lawyer/dashboard");
+  const handleEndConsultation = async () => {
+    if (!id) return;
+    
+    try {
+      await updateConsultation.mutateAsync({ 
+        id, 
+        status: 'completed',
+        lawyer_notes: advice || undefined
+      });
+      toast({ title: "Konsultasi selesai" });
+      setShowEndDialog(false);
+      navigate("/lawyer/dashboard");
+    } catch (error) {
+      toast({
+        title: "Gagal mengakhiri konsultasi",
+        variant: "destructive"
+      });
+    }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("id-ID", {
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
+  const renderMessageContent = (message: Message, isLawyer: boolean) => {
+    if (message.message_type === 'voice' && message.file_url) {
+      return <VoicePlayer src={message.file_url} />;
+    }
+
+    if (message.message_type === 'file' && message.file_url) {
+      const isImage = message.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      
+      if (isImage) {
+        return (
+          <div className="space-y-1">
+            <img 
+              src={message.file_url} 
+              alt="Uploaded image"
+              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => window.open(message.file_url!, '_blank')}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <a 
+          href={message.file_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 hover:underline"
+        >
+          <FileText className="w-4 h-4" />
+          <span className="text-sm">{message.content}</span>
+        </a>
+      );
+    }
+
+    return <p className="text-sm">{message.content}</p>;
+  };
+
+  if (loadingConsultation || loadingMessages || authLoading) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-20 w-3/4" />
+          <Skeleton className="h-20 w-3/4 ml-auto" />
+          <Skeleton className="h-20 w-3/4" />
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (!consultation) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="flex items-center justify-center h-screen">
+          <p>Konsultasi tidak ditemukan</p>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
+  const lawyerData = consultation.lawyers;
+  const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
+
   return (
     <MobileLayout showBottomNav={false}>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
@@ -136,12 +271,20 @@ export default function LawyerChat() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <Avatar className="w-10 h-10">
-              <AvatarImage src={mockClient.photo} alt={mockClient.name} />
-              <AvatarFallback>{mockClient.name[0]}</AvatarFallback>
+              <AvatarFallback>
+                {client?.full_name?.[0] || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-sm">{mockClient.name}</h2>
-              <Badge variant="success" className="text-[10px]">Konsultasi Aktif</Badge>
+              <h2 className="font-semibold text-sm">{client?.full_name || 'Pengguna Anonim'}</h2>
+              <Badge 
+                variant={consultation.status === 'active' ? 'success' : 'secondary'} 
+                className="text-[10px]"
+              >
+                {consultation.status === 'active' ? 'Konsultasi Aktif' : 
+                 consultation.status === 'completed' ? 'Selesai' : 
+                 consultation.status}
+              </Badge>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -155,10 +298,12 @@ export default function LawyerChat() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowEndDialog(true)} className="text-destructive">
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Akhiri Konsultasi
-                </DropdownMenuItem>
+                {consultation.status === 'active' && (
+                  <DropdownMenuItem onClick={() => setShowEndDialog(true)} className="text-destructive">
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Akhiri Konsultasi
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -166,7 +311,7 @@ export default function LawyerChat() {
 
         <div className="px-4 pb-3">
           <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
-            📋 Topik: {mockClient.topic}
+            📋 Topik: {consultation.topic}
           </p>
         </div>
       </div>
@@ -174,95 +319,118 @@ export default function LawyerChat() {
       {/* Messages */}
       <div className="flex-1 p-4 pb-24 overflow-y-auto">
         <div className="space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-2 animate-fade-in",
-                message.sender === "lawyer" ? "justify-end" : "justify-start"
-              )}
-            >
-              {message.sender === "client" && (
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={mockClient.photo} alt={mockClient.name} />
-                  <AvatarFallback>{mockClient.name[0]}</AvatarFallback>
-                </Avatar>
-              )}
+          {messages.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Belum ada pesan. Mulai percakapan!
+            </div>
+          )}
+          {messages.map((message) => {
+            const isCurrentUserMessage = message.sender_id === user?.id;
+            
+            return (
               <div
+                key={message.id}
                 className={cn(
-                  "max-w-[75%] rounded-2xl px-4 py-2.5",
-                  message.sender === "lawyer"
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  "flex gap-2 animate-fade-in",
+                  isCurrentUserMessage ? "justify-end" : "justify-start"
                 )}
               >
-                {message.type === "voice" && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                      <Mic className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="h-1 bg-primary-foreground/30 rounded-full w-20" />
-                    </div>
-                    <span className="text-xs">0:05</span>
-                  </div>
+                {!isCurrentUserMessage && (
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback>{client?.full_name?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
                 )}
-                {message.type === "file" && (
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    <span className="text-sm">{message.fileName}</span>
-                  </div>
-                )}
-                {message.type === "text" && (
-                  <p className="text-sm">{message.content}</p>
-                )}
-                <p className={cn(
-                  "text-[10px] mt-1",
-                  message.sender === "lawyer" ? "text-primary-foreground/60" : "text-muted-foreground"
-                )}>
-                  {formatTime(message.timestamp)}
-                </p>
+                <div
+                  className={cn(
+                    "max-w-[75%] rounded-2xl px-4 py-2.5",
+                    isCurrentUserMessage
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-secondary text-secondary-foreground rounded-bl-md"
+                  )}
+                >
+                  {renderMessageContent(message, isCurrentUserMessage)}
+                  <p className={cn(
+                    "text-[10px] mt-1",
+                    isCurrentUserMessage ? "text-primary-foreground/60" : "text-muted-foreground"
+                  )}>
+                    {formatTime(message.created_at)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <Paperclip className="w-5 h-5 text-muted-foreground" />
-          </Button>
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ketik pesan..."
-            className="flex-1 rounded-full bg-secondary border-0"
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-          />
-          {inputValue.trim() ? (
-            <Button
-              variant="gradient"
-              size="icon"
-              className="shrink-0 rounded-full"
-              onClick={handleSend}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant={isRecording ? "destructive" : "outline"}
-              size="icon"
-              className="shrink-0 rounded-full"
-              onClick={handleVoiceNote}
-            >
-              <Mic className={cn("w-4 h-4", isRecording && "animate-pulse")} />
-            </Button>
+      {/* Input - only show if consultation is active */}
+      {consultation.status === 'active' && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+          {/* Recording indicator */}
+          {isRecording && (
+            <div className="flex items-center justify-center gap-2 mb-2 text-destructive">
+              <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+              <span className="text-sm">Merekam...</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={toggleRecording}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           )}
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || isRecording}
+            >
+              <Paperclip className={cn("w-5 h-5 text-muted-foreground", isUploading && "animate-pulse")} />
+            </Button>
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={isRecording ? "Rekaman aktif..." : "Ketik pesan..."}
+              className="flex-1 rounded-full bg-secondary border-0"
+              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              disabled={isRecording}
+            />
+            {inputValue.trim() ? (
+              <Button
+                variant="gradient"
+                size="icon"
+                className="shrink-0 rounded-full"
+                onClick={handleSend}
+                disabled={sendMessage.isPending || isUploading}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                variant={isRecording ? "destructive" : "outline"}
+                size="icon"
+                className="shrink-0 rounded-full"
+                onClick={toggleRecording}
+                disabled={isUploading}
+              >
+                <Mic className={cn("w-4 h-4", isRecording && "animate-pulse")} />
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* View-only notice for completed consultations */}
+      {consultation.status === 'completed' && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-muted/95 backdrop-blur-lg border-t border-border p-4 z-50 text-center">
+          <p className="text-sm text-muted-foreground">Konsultasi ini sudah selesai</p>
+        </div>
+      )}
 
       {/* End Consultation Dialog */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
@@ -293,7 +461,11 @@ export default function LawyerChat() {
             <Button variant="outline" onClick={() => setShowEndDialog(false)}>
               Batal
             </Button>
-            <Button variant="gradient" onClick={handleEndConsultation}>
+            <Button 
+              variant="gradient" 
+              onClick={handleEndConsultation}
+              disabled={updateConsultation.isPending}
+            >
               Akhiri Konsultasi
             </Button>
           </DialogFooter>

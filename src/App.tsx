@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import LawyerDashboard from "./pages/LawyerDashboard";
 import LawyerChat from "./pages/LawyerChat";
+import LawyerProfile from "./pages/LawyerProfile";
 import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import DocumentTemplates from "./pages/DocumentTemplates";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/consultation/:id" element={<ConsultationHistory />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
+            <Route path="/lawyer/profile" element={<LawyerProfile />} />
             <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
             <Route path="/legal-assistance" element={<LegalAssistance />} />
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
