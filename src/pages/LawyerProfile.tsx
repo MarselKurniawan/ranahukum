@@ -13,7 +13,7 @@ import { useLawyerProfile, useUpdateLawyerProfile } from "@/hooks/useLawyerProfi
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { LawyerBottomNav } from "@/components/LawyerBottomNav";
+
 
 const SPECIALIZATION_OPTIONS = [
   "Hukum Keluarga",
@@ -290,7 +290,7 @@ export default function LawyerProfile() {
       </form>
 
       {/* Submit Button */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-40">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-40">
         <Button 
           type="submit" 
           variant="gradient" 
@@ -311,9 +311,6 @@ export default function LawyerProfile() {
           )}
         </Button>
       </div>
-
-      {/* Bottom Navigation */}
-      <LawyerBottomNav />
     </MobileLayout>
   );
 }
