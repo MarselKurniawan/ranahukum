@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Camera, LogOut, Upload } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyerProfile, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 const SPECIALIZATION_OPTIONS = [
   "Hukum Keluarga",
@@ -25,18 +27,19 @@ const SPECIALIZATION_OPTIONS = [
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
-  const { user, role, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading, signOut } = useAuth();
   const { data: profile, isLoading } = useLawyerProfile();
   const updateProfile = useUpdateLawyerProfile();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     location: "",
-    price: 0,
-    pendampingan_price: 0,
     experience_years: 0,
     specialization: [] as string[],
+    image_url: "" as string | null,
   });
 
   useEffect(() => {
@@ -50,10 +53,9 @@ export default function LawyerProfile() {
       setFormData({
         name: profile.name || "",
         location: profile.location || "",
-        price: profile.price || 0,
-        pendampingan_price: profile.pendampingan_price || 0,
         experience_years: profile.experience_years || 0,
         specialization: profile.specialization || [],
+        image_url: profile.image_url || null,
       });
     }
   }, [profile]);
@@ -67,11 +69,50 @@ export default function LawyerProfile() {
     }));
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `lawyer-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('chat-files')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, image_url: urlData.publicUrl }));
+      toast({
+        title: "Berhasil",
+        description: "Foto profil berhasil diunggah"
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Gagal mengunggah foto",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await updateProfile.mutateAsync(formData);
+      await updateProfile.mutateAsync({
+        ...formData,
+        submitted_at: new Date().toISOString()
+      });
       toast({
         title: "Berhasil",
         description: "Profil berhasil diperbarui"
@@ -84,6 +125,11 @@ export default function LawyerProfile() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
   };
 
   if (authLoading || isLoading) {
@@ -110,7 +156,46 @@ export default function LawyerProfile() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 pb-24 space-y-4">
+      <form onSubmit={handleSubmit} className="p-4 pb-32 space-y-4">
+        {/* Profile Photo */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Foto Profil *</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={formData.image_url || undefined} />
+                <AvatarFallback className="text-2xl">
+                  {formData.name?.[0] || 'L'}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <p className="text-xs text-muted-foreground text-center">
+              Foto profil wajib untuk verifikasi akun
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Basic Info */}
         <Card>
           <CardHeader className="pb-3">
@@ -176,73 +261,55 @@ export default function LawyerProfile() {
           </CardContent>
         </Card>
 
-        {/* Pricing */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Tarif Layanan</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="price">Tarif Konsultasi Chat *</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="1000"
-                  className="pl-10"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
-                  placeholder="50000"
-                  required
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Tarif per sesi konsultasi chat</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pendampingan_price">Tarif Pendampingan</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
-                <Input
-                  id="pendampingan_price"
-                  type="number"
-                  min="0"
-                  step="1000"
-                  className="pl-10"
-                  value={formData.pendampingan_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, pendampingan_price: parseInt(e.target.value) || 0 }))}
-                  placeholder="500000"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Tarif untuk layanan pendampingan hukum</p>
-            </div>
+        {/* Pricing Notice */}
+        <Card className="bg-muted/50">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium mb-1">Tentang Tarif Layanan</p>
+            <p className="text-xs text-muted-foreground">
+              Tarif konsultasi Anda akan diatur oleh Admin setelah profil diverifikasi. 
+              Tarif saat ini: <strong>Rp {(profile?.price || 0).toLocaleString('id-ID')}</strong>
+            </p>
           </CardContent>
         </Card>
 
-        {/* Submit */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
-          <Button 
-            type="submit" 
-            variant="gradient" 
-            className="w-full"
-            disabled={updateProfile.isPending}
-          >
-            {updateProfile.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Simpan Profil
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Logout Button */}
+        <Card className="border-destructive/30">
+          <CardContent className="p-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Keluar dari Akun
+            </Button>
+          </CardContent>
+        </Card>
       </form>
+
+      {/* Submit */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
+        <Button 
+          type="submit" 
+          variant="gradient" 
+          className="w-full"
+          disabled={updateProfile.isPending}
+          onClick={handleSubmit}
+        >
+          {updateProfile.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Menyimpan...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Simpan Profil
+            </>
+          )}
+        </Button>
+      </div>
     </MobileLayout>
   );
 }
