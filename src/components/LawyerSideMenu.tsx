@@ -22,7 +22,7 @@ const menuItems = [
   { icon: Home, label: "Dashboard", path: "/lawyer/dashboard" },
   { icon: User, label: "Profil Saya", path: "/lawyer/profile" },
   { icon: DollarSign, label: "Pengaturan Harga", path: "/lawyer/pricing" },
-  { icon: FileText, label: "Dokumen", path: "/lawyer/documents" },
+  { icon: FileText, label: "Dokumen Verifikasi", path: "/lawyer/documents" },
 ];
 
 export function LawyerSideMenu() {
