@@ -64,6 +64,97 @@ export type Database = {
           },
         ]
       }
+      lawyer_documents: {
+        Row: {
+          document_type: string
+          file_name: string
+          file_url: string
+          id: string
+          lawyer_id: string
+          notes: string | null
+          reviewed_at: string | null
+          status: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          document_type: string
+          file_name: string
+          file_url: string
+          id?: string
+          lawyer_id: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          document_type?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          lawyer_id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_documents_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lawyer_price_requests: {
+        Row: {
+          created_at: string
+          current_price: number
+          id: string
+          lawyer_id: string
+          notes: string | null
+          request_type: string
+          requested_price: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_price: number
+          id?: string
+          lawyer_id: string
+          notes?: string | null
+          request_type: string
+          requested_price: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_price?: number
+          id?: string
+          lawyer_id?: string
+          notes?: string | null
+          request_type?: string
+          requested_price?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_price_requests_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyers: {
         Row: {
           approval_status: string
@@ -241,6 +332,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      specialization_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

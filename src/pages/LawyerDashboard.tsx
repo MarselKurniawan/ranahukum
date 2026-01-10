@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
-  Bell, Settings, Calendar, Users, TrendingUp,
-  ChevronRight, Play, BadgeCheck
+  Calendar, Users, TrendingUp, Play, BadgeCheck
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,16 +14,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
-import { LawyerBottomNav } from "@/components/LawyerBottomNav";
+import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
 import { useLawyerProfile, useLawyerProfileCompletion, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronRight } from "lucide-react";
 
 export default function LawyerDashboard() {
   const navigate = useNavigate();
-  const { user, role, loading, signOut } = useAuth();
+  const { user, role, loading } = useAuth();
   const { toast } = useToast();
   const { data: consultations = [], isLoading: loadingConsultations } = useLawyerConsultations();
   const { data: lawyerProfile, isLoading: loadingProfile } = useLawyerProfile();
@@ -50,11 +50,6 @@ export default function LawyerDashboard() {
       setIsOnline(lawyerProfile.is_available);
     }
   }, [lawyerProfile]);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const handleToggleOnline = async (checked: boolean) => {
     // Block if profile is not complete
@@ -87,7 +82,7 @@ export default function LawyerDashboard() {
     );
   }
 
-  const userName = user?.user_metadata?.full_name || "Lawyer";
+  const userName = lawyerProfile?.name || user?.user_metadata?.full_name || "Lawyer";
   const pendingRequests = consultations.filter((r) => r.status === "pending");
   const acceptedRequests = consultations.filter((r) => r.status === "accepted");
   const activeRequests = consultations.filter((r) => r.status === "active");
@@ -230,28 +225,26 @@ export default function LawyerDashboard() {
       <div className="gradient-hero pb-20 px-4 pt-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-bold text-primary-foreground">Dashboard</h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </div>
+          <LawyerSideMenu />
         </div>
 
         <div className="flex items-center gap-4">
           <Avatar className="w-16 h-16 border-2 border-primary-foreground/20">
+            <AvatarImage src={lawyerProfile?.image_url || undefined} />
             <AvatarFallback>{userName[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-primary-foreground">{userName}</h2>
-              <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
+              {lawyerProfile?.is_verified && (
+                <BadgeCheck className="w-5 h-5 text-success fill-success/20" />
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Star className="w-4 h-4 fill-warning text-warning" />
-              <span className="text-primary-foreground/80 text-sm">-</span>
+              <span className="text-primary-foreground/80 text-sm">
+                {lawyerProfile?.rating || '-'}
+              </span>
               <span className="text-primary-foreground/60 text-sm">• {completedRequests.length} konsultasi</span>
             </div>
           </div>
@@ -273,7 +266,7 @@ export default function LawyerDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="px-4 -mt-14 relative z-10 pb-4">
+      <div className="px-4 -mt-14 relative z-10 pb-8">
         <div className="grid grid-cols-2 gap-3 mb-4">
           <Card className="shadow-elevated">
             <CardContent className="p-4 text-center">
@@ -380,13 +373,10 @@ export default function LawyerDashboard() {
           </TabsContent>
 
           <TabsContent value="earnings">
-            <EarningsDashboard />
+            <EarningsDashboard lawyerId={lawyerProfile?.id} />
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Bottom Navigation */}
-      <LawyerBottomNav />
     </MobileLayout>
   );
 }
