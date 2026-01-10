@@ -176,7 +176,19 @@ export function useConsultation(id: string) {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      if (!data) return null;
+
+      // Fetch client profile separately
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', data.client_id)
+        .maybeSingle();
+
+      return {
+        ...data,
+        profiles: profile
+      };
     },
     enabled: !!id
   });

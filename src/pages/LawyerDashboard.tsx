@@ -14,9 +14,11 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
+import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
+import { useLawyerProfile, useLawyerProfileCompletion, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LawyerDashboard() {
@@ -24,8 +26,11 @@ export default function LawyerDashboard() {
   const { user, role, loading, signOut } = useAuth();
   const { toast } = useToast();
   const { data: consultations = [], isLoading: loadingConsultations } = useLawyerConsultations();
+  const { data: lawyerProfile, isLoading: loadingProfile } = useLawyerProfile();
+  const profileCompletion = useLawyerProfileCompletion();
+  const updateProfile = useUpdateLawyerProfile();
   const updateConsultation = useUpdateConsultation();
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || role !== 'lawyer')) {
@@ -38,12 +43,38 @@ export default function LawyerDashboard() {
     }
   }, [user, role, loading, navigate, toast]);
 
+  // Set isOnline from profile
+  useEffect(() => {
+    if (lawyerProfile) {
+      setIsOnline(lawyerProfile.is_available);
+    }
+  }, [lawyerProfile]);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/');
   };
 
-  if (loading || loadingConsultations) {
+  const handleToggleOnline = async (checked: boolean) => {
+    // Block if profile is not complete
+    if (checked && profileCompletion && !profileCompletion.isComplete) {
+      toast({
+        title: "Profil Belum Lengkap",
+        description: "Lengkapi profil Anda terlebih dahulu sebelum mengaktifkan status online",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsOnline(checked);
+    try {
+      await updateProfile.mutateAsync({ is_available: checked });
+    } catch (error) {
+      setIsOnline(!checked); // Revert on error
+    }
+  };
+
+  if (loading || loadingConsultations || loadingProfile) {
     return (
       <MobileLayout showBottomNav={false}>
         <div className="p-4 space-y-4">
@@ -231,7 +262,11 @@ export default function LawyerDashboard() {
             <span className={`text-sm ${isOnline ? "text-success" : "text-primary-foreground/60"}`}>
               {isOnline ? "Aktif" : "Offline"}
             </span>
-            <Switch checked={isOnline} onCheckedChange={setIsOnline} />
+            <Switch 
+              checked={isOnline} 
+              onCheckedChange={handleToggleOnline}
+              disabled={updateProfile.isPending}
+            />
           </div>
         </div>
       </div>
@@ -253,6 +288,11 @@ export default function LawyerDashboard() {
               <p className="text-xs text-muted-foreground">Menunggu</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Profile Completion Alert */}
+        <div className="mb-4">
+          <LawyerProfileAlert onComplete={() => navigate('/lawyer/profile')} />
         </div>
 
         {/* Pending Alert */}
