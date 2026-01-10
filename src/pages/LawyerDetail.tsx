@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Phone, Shield, Clock, GraduationCap, Briefcase, Award, MapPin } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Shield, Briefcase, Award, MapPin } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -199,16 +199,14 @@ export default function LawyerDetail() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" className="rounded-xl">
-              <Phone className="w-4 h-4" />
-            </Button>
             <Button 
               variant="gradient" 
               className="rounded-xl gap-2"
               onClick={() => navigate(`/booking/${lawyer.id}`)}
+              disabled={!lawyer.is_available}
             >
               <MessageCircle className="w-4 h-4" />
-              Mulai Konsultasi
+              {lawyer.is_available ? "Mulai Konsultasi" : "Sedang Offline"}
             </Button>
           </div>
         </div>

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Send, Mic, Paperclip, MoreVertical, 
-  Phone, XCircle, FileText, Lightbulb, Play, Pause, X
+  ArrowLeft, Send, Mic, Paperclip, 
+  XCircle, FileText, Lightbulb, Play, Pause, X, Clock
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useConsultation, useUpdateConsultation } from "@/hooks/useConsultations";
 import { useMessages, useSendMessage, Message } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
@@ -251,6 +245,34 @@ export default function LawyerChat() {
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
+  const isCompleted = consultation.status === 'completed';
+
+  // Calculate consultation duration
+  const [elapsedTime, setElapsedTime] = useState("00:00");
+  
+  useEffect(() => {
+    if (!consultation.started_at || isCompleted) return;
+    
+    const startTime = new Date(consultation.started_at).getTime();
+    
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = Math.floor((now - startTime) / 1000);
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+      
+      if (hours > 0) {
+        setElapsedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setElapsedTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [consultation.started_at, isCompleted]);
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -287,25 +309,24 @@ export default function LawyerChat() {
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon">
-              <Phone className="w-5 h-5" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {consultation.status === 'active' && (
-                  <DropdownMenuItem onClick={() => setShowEndDialog(true)} className="text-destructive">
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Akhiri Konsultasi
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* Consultation Timer */}
+            <div className="flex items-center gap-2 bg-secondary px-3 py-1.5 rounded-full">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">{elapsedTime}</span>
+            </div>
+            {/* End Consultation Button */}
+            {consultation.status === 'active' && (
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => setShowEndDialog(true)}
+                className="text-xs"
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                Akhiri
+              </Button>
+            )}
           </div>
         </div>
 

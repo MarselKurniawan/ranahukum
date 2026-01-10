@@ -76,6 +76,9 @@ export default function Search() {
 
   const filteredLawyers = useMemo(() => {
     return (lawyers || []).filter((lawyer) => {
+      // Only show online lawyers (is_available = true)
+      if (!lawyer.is_available) return false;
+      
       // Search filter
       const matchesSearch =
         lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
