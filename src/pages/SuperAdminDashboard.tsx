@@ -4,9 +4,9 @@ import {
   Users, CheckCircle, Clock, MessageCircle, TrendingUp,
   LogOut, ChevronRight, DollarSign, UserCheck, UserX,
   Plus, FileText, AlertCircle, Briefcase, Eye, Search,
-  Filter, X, HelpCircle, Pencil, Trash2, GripVertical
+  Filter, X, HelpCircle, Pencil, Trash2, Video, Phone,
+  Calendar, Mail, ExternalLink, MoreHorizontal, Menu
 } from "lucide-react";
-import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,12 +18,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -50,6 +53,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -61,7 +71,7 @@ import {
 } from "@/hooks/useSuperAdmin";
 import { useAllPriceRequests, useApprovePriceRequest } from "@/hooks/useLawyerPriceRequests";
 import { useAllSpecializationTypes, useCreateSpecializationType, useUpdateSpecializationType } from "@/hooks/useSpecializationTypes";
-import { usePendingDocuments, useReviewDocument } from "@/hooks/useLawyerDocuments";
+import { usePendingDocuments, useReviewDocument, useLawyerDocuments } from "@/hooks/useLawyerDocuments";
 import { 
   useAllQuizQuestions, 
   useCreateQuizQuestion, 
@@ -99,8 +109,16 @@ export default function SuperAdminDashboard() {
   const [addSpecOpen, setAddSpecOpen] = useState(false);
   const [searchLawyer, setSearchLawyer] = useState("");
   const [searchClient, setSearchClient] = useState("");
+  const [searchConsultation, setSearchConsultation] = useState("");
+  const [searchPendingLawyer, setSearchPendingLawyer] = useState("");
   const [rejectNotes, setRejectNotes] = useState("");
   const [selectedDocForReject, setSelectedDocForReject] = useState<string | null>(null);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  
+  // Interview dialog state
+  const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
+  const [selectedLawyerForInterview, setSelectedLawyerForInterview] = useState<any>(null);
+  const [interviewNotes, setInterviewNotes] = useState("");
   
   // Quiz management state
   const [newQuizQuestion, setNewQuizQuestion] = useState("");
@@ -147,7 +165,7 @@ export default function SuperAdminDashboard() {
       toast({
         title: approve ? "Lawyer Disetujui" : "Lawyer Ditolak",
         description: approve 
-          ? "Lawyer berhasil diverifikasi"
+          ? "Lawyer berhasil diverifikasi dan sekarang online"
           : "Pendaftaran lawyer ditolak"
       });
     } catch (error) {
@@ -287,6 +305,12 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const openInterviewDialog = (lawyer: any) => {
+    setSelectedLawyerForInterview(lawyer);
+    setInterviewNotes("");
+    setInterviewDialogOpen(true);
+  };
+
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `Rp ${(value / 1000000).toFixed(1)}jt`;
@@ -306,13 +330,18 @@ export default function SuperAdminDashboard() {
 
   if (loading || checkingAdmin || loadingLawyers) {
     return (
-      <MobileLayout showBottomNav={false}>
-        <div className="p-4 space-y-4">
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-4">
           <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+          <Skeleton className="h-96 w-full" />
         </div>
-      </MobileLayout>
+      </div>
     );
   }
 
@@ -326,6 +355,11 @@ export default function SuperAdminDashboard() {
 
   const pendingRequestsCount = pendingLawyers.length + priceRequests.length + pendingDocuments.length;
 
+  const filteredPendingLawyers = pendingLawyers.filter(l => 
+    l.name.toLowerCase().includes(searchPendingLawyer.toLowerCase()) ||
+    l.location?.toLowerCase().includes(searchPendingLawyer.toLowerCase())
+  );
+
   const filteredLawyers = approvedLawyers.filter(l => 
     l.name.toLowerCase().includes(searchLawyer.toLowerCase()) ||
     l.location?.toLowerCase().includes(searchLawyer.toLowerCase())
@@ -336,62 +370,143 @@ export default function SuperAdminDashboard() {
     c.email?.toLowerCase().includes(searchClient.toLowerCase())
   );
 
+  const filteredConsultations = allConsultations.filter(c =>
+    c.topic?.toLowerCase().includes(searchConsultation.toLowerCase()) ||
+    c.client_profile?.full_name?.toLowerCase().includes(searchConsultation.toLowerCase()) ||
+    c.lawyer?.name?.toLowerCase().includes(searchConsultation.toLowerCase())
+  );
+
   return (
-    <MobileLayout showBottomNav={false}>
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="gradient-hero pb-8 px-4 pt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-lg font-bold text-primary-foreground">Super Admin</h1>
-            <p className="text-primary-foreground/70 text-xs">Legal Connect Dashboard</p>
+      <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => setSideMenuOpen(true)}
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-lg md:text-xl font-bold">Super Admin</h1>
+                <p className="text-primary-foreground/70 text-xs hidden md:block">Legal Connect Dashboard</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 md:gap-4">
+              {pendingRequestsCount > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {pendingRequestsCount} menunggu
+                </Badge>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Keluar</span>
+              </Button>
+            </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
         </div>
+      </header>
 
+      {/* Mobile Side Menu */}
+      <Sheet open={sideMenuOpen} onOpenChange={setSideMenuOpen}>
+        <SheetContent side="left" className="w-80 p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>Menu Admin</SheetTitle>
+          </SheetHeader>
+          <nav className="p-4 space-y-2">
+            <Button variant="ghost" className="w-full justify-start" onClick={() => { setSideMenuOpen(false); }}>
+              <Briefcase className="w-4 h-4 mr-3" />
+              Dashboard
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-3" />
+              Keluar
+            </Button>
+          </nav>
+        </SheetContent>
+      </Sheet>
+
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="bg-primary-foreground/10 rounded-lg p-3 text-center">
-            <Briefcase className="w-5 h-5 mx-auto text-primary-foreground/80 mb-1" />
-            <p className="text-lg font-bold text-primary-foreground">{approvedLawyers.length}</p>
-            <p className="text-[10px] text-primary-foreground/70">Lawyer</p>
-          </div>
-          <div className="bg-primary-foreground/10 rounded-lg p-3 text-center">
-            <Users className="w-5 h-5 mx-auto text-primary-foreground/80 mb-1" />
-            <p className="text-lg font-bold text-primary-foreground">{clients.length}</p>
-            <p className="text-[10px] text-primary-foreground/70">Client</p>
-          </div>
-          <div className="bg-primary-foreground/10 rounded-lg p-3 text-center">
-            <MessageCircle className="w-5 h-5 mx-auto text-primary-foreground/80 mb-1" />
-            <p className="text-lg font-bold text-primary-foreground">{allConsultations.length}</p>
-            <p className="text-[10px] text-primary-foreground/70">Konsultasi</p>
-          </div>
-          <div className="bg-primary-foreground/10 rounded-lg p-3 text-center">
-            <DollarSign className="w-5 h-5 mx-auto text-primary-foreground/80 mb-1" />
-            <p className="text-sm font-bold text-primary-foreground">{formatCurrency(totalRevenue)}</p>
-            <p className="text-[10px] text-primary-foreground/70">Revenue</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Lawyer Aktif</p>
+                  <p className="text-2xl md:text-3xl font-bold">{approvedLawyers.length}</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Client</p>
+                  <p className="text-2xl md:text-3xl font-bold">{clients.length}</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Konsultasi</p>
+                  <p className="text-2xl md:text-3xl font-bold">{allConsultations.length}</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
+                  <p className="text-lg md:text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      <div className="px-4 -mt-4 pb-8">
         {/* Pending Alert */}
         {pendingRequestsCount > 0 && (
-          <Card className="mb-4 border-warning/30 bg-warning/5 shadow-elevated">
-            <CardContent className="p-3 flex items-center gap-3">
+          <Card className="mb-6 border-warning/30 bg-warning/5">
+            <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5 text-warning" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{pendingRequestsCount} permintaan menunggu</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {pendingLawyers.length} lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} harga
+              <div className="flex-1">
+                <p className="font-medium">{pendingRequestsCount} permintaan menunggu persetujuan</p>
+                <p className="text-sm text-muted-foreground">
+                  {pendingLawyers.length} pendaftaran lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} perubahan harga
                 </p>
               </div>
             </CardContent>
@@ -400,280 +515,341 @@ export default function SuperAdminDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="requests" className="w-full">
-          <ScrollArea className="w-full">
-            <TabsList className="w-full mb-4 inline-flex h-auto p-1">
-              <TabsTrigger value="requests" className="text-xs px-3 py-2 relative">
+          <ScrollArea className="w-full pb-2">
+            <TabsList className="w-full md:w-auto inline-flex h-auto p-1 mb-4">
+              <TabsTrigger value="requests" className="text-xs md:text-sm px-3 md:px-4 py-2 relative">
                 Permintaan
                 {pendingRequestsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
                     {pendingRequestsCount}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="lawyers" className="text-xs px-3 py-2">
+              <TabsTrigger value="lawyers" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Lawyer
               </TabsTrigger>
-              <TabsTrigger value="clients" className="text-xs px-3 py-2">
+              <TabsTrigger value="clients" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Client
               </TabsTrigger>
-              <TabsTrigger value="consultations" className="text-xs px-3 py-2">
+              <TabsTrigger value="consultations" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Konsultasi
               </TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs px-3 py-2">
+              <TabsTrigger value="settings" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Pengaturan
               </TabsTrigger>
             </TabsList>
           </ScrollArea>
 
           {/* Requests Tab */}
-          <TabsContent value="requests" className="space-y-4 mt-0">
-            {/* Pending Lawyers */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  Pendaftaran Lawyer
-                  {pendingLawyers.length > 0 && (
-                    <Badge variant="warning" className="text-[10px]">{pendingLawyers.length}</Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loadingPending ? (
-                  <Skeleton className="h-20 w-full" />
-                ) : pendingLawyers.length > 0 ? (
-                  pendingLawyers.map((lawyer) => (
-                    <div key={lawyer.id} className="p-3 border rounded-lg">
-                      <div className="flex gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={lawyer.image_url || undefined} />
-                          <AvatarFallback>{lawyer.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{lawyer.name}</h4>
-                          <p className="text-xs text-muted-foreground">{lawyer.location}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {(lawyer.specialization || []).slice(0, 2).map((spec) => (
-                              <Badge key={spec} variant="secondary" className="text-[10px]">
-                                {spec}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-destructive"
-                              onClick={() => handleApprove(lawyer.id, false)}
-                            >
-                              <UserX className="w-3 h-3 mr-1" />
-                              Tolak
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="gradient"
-                              className="h-7 text-xs"
-                              onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              Review
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+          <TabsContent value="requests" className="space-y-6 mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Pending Lawyer Registrations */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <UserCheck className="w-5 h-5" />
+                      Pendaftaran Lawyer
+                      {pendingLawyers.length > 0 && (
+                        <Badge variant="warning">{pendingLawyers.length}</Badge>
+                      )}
+                    </CardTitle>
+                  </div>
+                  {pendingLawyers.length > 3 && (
+                    <div className="relative mt-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari lawyer..."
+                        value={searchPendingLawyer}
+                        onChange={(e) => setSearchPendingLawyer(e.target.value)}
+                        className="pl-9 h-9"
+                      />
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    ✓ Tidak ada pendaftaran menunggu
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Pending Documents */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Dokumen Verifikasi
-                  {pendingDocuments.length > 0 && (
-                    <Badge variant="warning" className="text-[10px]">{pendingDocuments.length}</Badge>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {pendingDocuments.length > 0 ? (
-                  pendingDocuments.map((doc) => (
-                    <div key={doc.id} className="p-3 border rounded-lg">
-                      <div className="flex gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={doc.lawyer?.image_url || undefined} />
-                          <AvatarFallback>{doc.lawyer?.name?.[0] || 'L'}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <div>
-                              <h4 className="font-medium text-sm">{doc.lawyer?.name}</h4>
-                              <p className="text-xs text-muted-foreground">{getDocTypeLabel(doc.document_type)}</p>
+                </CardHeader>
+                <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+                  {loadingPending ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : filteredPendingLawyers.length > 0 ? (
+                    filteredPendingLawyers.map((lawyer) => (
+                      <div key={lawyer.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex gap-3">
+                          <Avatar className="w-12 h-12">
+                            <AvatarImage src={lawyer.image_url || undefined} />
+                            <AvatarFallback>{lawyer.name[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h4 className="font-semibold truncate">{lawyer.name}</h4>
+                                <p className="text-sm text-muted-foreground">{lawyer.location}</p>
+                              </div>
+                              {lawyer.interview_consent && (
+                                <Badge variant="outline" className="text-[10px] shrink-0">
+                                  <Phone className="w-3 h-3 mr-1" />
+                                  Bersedia Interview
+                                </Badge>
+                              )}
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs shrink-0"
-                              onClick={() => window.open(doc.file_url, '_blank')}
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-1 truncate">{doc.file_name}</p>
-                          <div className="flex gap-2 mt-2">
-                            <Sheet>
-                              <SheetTrigger asChild>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {(lawyer.specialization || []).slice(0, 3).map((spec) => (
+                                <Badge key={spec} variant="secondary" className="text-xs">
+                                  {spec}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Detail
+                              </Button>
+                              {lawyer.interview_consent && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 text-xs text-destructive"
-                                  onClick={() => setSelectedDocForReject(doc.id)}
+                                  className="h-8 text-xs"
+                                  onClick={() => openInterviewDialog(lawyer)}
                                 >
-                                  <X className="w-3 h-3 mr-1" />
-                                  Tolak
+                                  <Video className="w-3 h-3 mr-1" />
+                                  Interview
                                 </Button>
-                              </SheetTrigger>
-                              <SheetContent side="bottom" className="rounded-t-2xl">
-                                <SheetHeader>
-                                  <SheetTitle>Tolak Dokumen</SheetTitle>
-                                </SheetHeader>
-                                <div className="py-4 space-y-4">
-                                  <div className="space-y-2">
-                                    <Label>Alasan Penolakan</Label>
-                                    <Textarea
-                                      value={rejectNotes}
-                                      onChange={(e) => setRejectNotes(e.target.value)}
-                                      placeholder="Contoh: Dokumen tidak jelas, perlu scan ulang"
-                                      rows={3}
-                                    />
-                                  </div>
-                                  <Button
-                                    variant="destructive"
-                                    className="w-full"
-                                    onClick={() => handleReviewDocument(doc.id, false, rejectNotes)}
-                                    disabled={reviewDocument.isPending}
-                                  >
-                                    Konfirmasi Tolak
-                                  </Button>
-                                </div>
-                              </SheetContent>
-                            </Sheet>
-                            <Button
-                              size="sm"
-                              variant="gradient"
-                              className="h-7 text-xs"
-                              onClick={() => handleReviewDocument(doc.id, true)}
-                              disabled={reviewDocument.isPending}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Setujui
-                            </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs text-destructive"
+                                onClick={() => handleApprove(lawyer.id, false)}
+                                disabled={approveLawyer.isPending}
+                              >
+                                <UserX className="w-3 h-3 mr-1" />
+                                Tolak
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 text-xs"
+                                onClick={() => handleApprove(lawyer.id, true)}
+                                disabled={approveLawyer.isPending}
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Setujui
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                      <p className="text-sm text-muted-foreground">Tidak ada pendaftaran menunggu</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    ✓ Tidak ada dokumen menunggu
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Price Requests */}
+              {/* Pending Documents - Separate Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Dokumen Verifikasi
+                    {pendingDocuments.length > 0 && (
+                      <Badge variant="warning">{pendingDocuments.length}</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+                  {pendingDocuments.length > 0 ? (
+                    pendingDocuments.map((doc) => (
+                      <div key={doc.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={doc.lawyer?.image_url || undefined} />
+                            <AvatarFallback>{doc.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <h4 className="font-medium">{doc.lawyer?.name}</h4>
+                                <p className="text-sm text-muted-foreground">{getDocTypeLabel(doc.document_type)}</p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs shrink-0"
+                                onClick={() => window.open(doc.file_url, '_blank')}
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                Lihat
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">{doc.file_name}</p>
+                            <div className="flex gap-2 mt-3">
+                              <Sheet>
+                                <SheetTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs text-destructive"
+                                    onClick={() => setSelectedDocForReject(doc.id)}
+                                  >
+                                    <X className="w-3 h-3 mr-1" />
+                                    Tolak
+                                  </Button>
+                                </SheetTrigger>
+                                <SheetContent side="bottom" className="rounded-t-2xl">
+                                  <SheetHeader>
+                                    <SheetTitle>Tolak Dokumen</SheetTitle>
+                                  </SheetHeader>
+                                  <div className="py-4 space-y-4">
+                                    <div className="space-y-2">
+                                      <Label>Alasan Penolakan</Label>
+                                      <Textarea
+                                        value={rejectNotes}
+                                        onChange={(e) => setRejectNotes(e.target.value)}
+                                        placeholder="Contoh: Dokumen tidak jelas, perlu scan ulang"
+                                        rows={3}
+                                      />
+                                    </div>
+                                    <Button
+                                      variant="destructive"
+                                      className="w-full"
+                                      onClick={() => handleReviewDocument(doc.id, false, rejectNotes)}
+                                      disabled={reviewDocument.isPending}
+                                    >
+                                      Konfirmasi Tolak
+                                    </Button>
+                                  </div>
+                                </SheetContent>
+                              </Sheet>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 text-xs"
+                                onClick={() => handleReviewDocument(doc.id, true)}
+                                disabled={reviewDocument.isPending}
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Setujui
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                      <p className="text-sm text-muted-foreground">Tidak ada dokumen menunggu</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Price Requests - Full Width */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  Permintaan Harga
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Permintaan Perubahan Harga
                   {priceRequests.length > 0 && (
-                    <Badge variant="warning" className="text-[10px]">{priceRequests.length}</Badge>
+                    <Badge variant="warning">{priceRequests.length}</Badge>
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent>
                 {priceRequests.length > 0 ? (
-                  priceRequests.map((request) => (
-                    <div key={request.id} className="p-3 border rounded-lg">
-                      <div className="flex gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={request.lawyer?.image_url || undefined} />
-                          <AvatarFallback>{request.lawyer?.name?.[0] || 'L'}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{request.lawyer?.name}</h4>
-                          <p className="text-xs text-muted-foreground">Pendampingan Hukum</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs line-through text-muted-foreground">
-                              {formatCurrency(request.current_price)}
-                            </span>
-                            <span className="text-xs">→</span>
-                            <span className="text-xs font-bold text-primary">
-                              {formatCurrency(request.requested_price)}
-                            </span>
-                          </div>
-                          {request.notes && (
-                            <p className="text-[10px] text-muted-foreground mt-1 italic">"{request.notes}"</p>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-destructive"
-                              onClick={() => handleApprovePriceRequest(request, false)}
-                            >
-                              Tolak
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="gradient"
-                              className="h-7 text-xs"
-                              onClick={() => handleApprovePriceRequest(request, true)}
-                            >
-                              Setujui
-                            </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {priceRequests.map((request) => (
+                      <div key={request.id} className="p-4 border rounded-lg">
+                        <div className="flex gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={request.lawyer?.image_url || undefined} />
+                            <AvatarFallback>{request.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{request.lawyer?.name}</h4>
+                            <p className="text-xs text-muted-foreground capitalize">{request.request_type}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-sm line-through text-muted-foreground">
+                                {formatCurrency(request.current_price)}
+                              </span>
+                              <span className="text-sm">→</span>
+                              <span className="text-sm font-bold text-primary">
+                                {formatCurrency(request.requested_price)}
+                              </span>
+                            </div>
+                            {request.notes && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">"{request.notes}"</p>
+                            )}
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs text-destructive flex-1"
+                                onClick={() => handleApprovePriceRequest(request, false)}
+                              >
+                                Tolak
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 text-xs flex-1"
+                                onClick={() => handleApprovePriceRequest(request, true)}
+                              >
+                                Setujui
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    ✓ Tidak ada permintaan harga
-                  </p>
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">Tidak ada permintaan harga</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Lawyers Tab */}
-          <TabsContent value="lawyers" className="space-y-3 mt-0">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari lawyer..."
-                value={searchLawyer}
-                onChange={(e) => setSearchLawyer(e.target.value)}
-                className="pl-9"
-              />
+          <TabsContent value="lawyers" className="space-y-4 mt-0">
+            <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari lawyer berdasarkan nama atau lokasi..."
+                  value={searchLawyer}
+                  onChange={(e) => setSearchLawyer(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredLawyers.length} dari {approvedLawyers.length} lawyer
+              </p>
             </div>
 
             <div className="overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Lawyer</TableHead>
-                    <TableHead className="text-xs text-center">Konsul</TableHead>
-                    <TableHead className="text-xs text-right">Revenue</TableHead>
+                    <TableHead>Lawyer</TableHead>
+                    <TableHead className="hidden md:table-cell">Lokasi</TableHead>
+                    <TableHead className="hidden lg:table-cell">Spesialisasi</TableHead>
+                    <TableHead className="text-center">Rating</TableHead>
+                    <TableHead className="text-center">Konsultasi</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Revenue</TableHead>
+                    <TableHead className="text-center w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -684,28 +860,68 @@ export default function SuperAdminDashboard() {
                     const revenue = lawyerConsultations.reduce((sum, c) => sum + c.price, 0);
                     
                     return (
-                      <TableRow 
-                        key={lawyer.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}
-                      >
-                        <TableCell className="py-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-8 h-8">
+                      <TableRow key={lawyer.id} className="cursor-pointer hover:bg-muted/50">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10">
                               <AvatarImage src={lawyer.image_url || undefined} />
-                              <AvatarFallback className="text-xs">{lawyer.name[0]}</AvatarFallback>
+                              <AvatarFallback>{lawyer.name[0]}</AvatarFallback>
                             </Avatar>
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium truncate max-w-[120px]">{lawyer.name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                                {lawyer.location}
-                              </p>
+                            <div>
+                              <p className="font-medium">{lawyer.name}</p>
+                              <p className="text-sm text-muted-foreground md:hidden">{lawyer.location}</p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-center">{lawyerConsultations.length}</TableCell>
-                        <TableCell className="text-xs text-right font-medium">
+                        <TableCell className="hidden md:table-cell">{lawyer.location}</TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {(lawyer.specialization || []).slice(0, 2).map((spec) => (
+                              <Badge key={spec} variant="secondary" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                            {(lawyer.specialization || []).length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{(lawyer.specialization || []).length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-medium">{lawyer.rating || 0}</span>
+                          <span className="text-muted-foreground text-sm"> ({lawyer.review_count || 0})</span>
+                        </TableCell>
+                        <TableCell className="text-center">{lawyerConsultations.length}</TableCell>
+                        <TableCell className="text-right hidden md:table-cell font-medium">
                           {formatCurrency(revenue)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Lihat Detail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openInterviewDialog(lawyer)}>
+                                <Video className="w-4 h-4 mr-2" />
+                                Interview
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleApprove(lawyer.id, false)}
+                              >
+                                <UserX className="w-4 h-4 mr-2" />
+                                Nonaktifkan
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -715,32 +931,38 @@ export default function SuperAdminDashboard() {
             </div>
 
             {filteredLawyers.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Tidak ada lawyer ditemukan
-              </p>
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">Tidak ada lawyer ditemukan</p>
+              </div>
             )}
           </TabsContent>
 
           {/* Clients Tab */}
-          <TabsContent value="clients" className="space-y-3 mt-0">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari client..."
-                value={searchClient}
-                onChange={(e) => setSearchClient(e.target.value)}
-                className="pl-9"
-              />
+          <TabsContent value="clients" className="space-y-4 mt-0">
+            <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari client berdasarkan nama atau email..."
+                  value={searchClient}
+                  onChange={(e) => setSearchClient(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredClients.length} dari {clients.length} client
+              </p>
             </div>
 
             <div className="overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Client</TableHead>
-                    <TableHead className="text-xs text-center">Konsul</TableHead>
-                    <TableHead className="text-xs text-right">Bergabung</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="text-center">Konsultasi</TableHead>
+                    <TableHead className="text-right">Bergabung</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -751,29 +973,27 @@ export default function SuperAdminDashboard() {
                     
                     return (
                       <TableRow key={client.id}>
-                        <TableCell className="py-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-8 h-8">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10">
                               <AvatarImage src={client.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs">
-                                {client.full_name?.[0] || 'U'}
-                              </AvatarFallback>
+                              <AvatarFallback>{client.full_name?.[0] || 'U'}</AvatarFallback>
                             </Avatar>
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium truncate max-w-[120px]">
-                                {client.full_name || 'Anonim'}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                                {client.email}
-                              </p>
+                            <div>
+                              <p className="font-medium">{client.full_name || 'Anonim'}</p>
+                              <p className="text-sm text-muted-foreground md:hidden">{client.email}</p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-center">{clientConsultations.length}</TableCell>
-                        <TableCell className="text-xs text-right">
+                        <TableCell className="hidden md:table-cell text-muted-foreground">
+                          {client.email}
+                        </TableCell>
+                        <TableCell className="text-center">{clientConsultations.length}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
                           {new Date(client.created_at).toLocaleDateString('id-ID', {
                             day: 'numeric',
-                            month: 'short'
+                            month: 'short',
+                            year: 'numeric'
                           })}
                         </TableCell>
                       </TableRow>
@@ -784,142 +1004,209 @@ export default function SuperAdminDashboard() {
             </div>
 
             {filteredClients.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Tidak ada client ditemukan
-              </p>
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">Tidak ada client ditemukan</p>
+              </div>
             )}
           </TabsContent>
 
           {/* Consultations Tab */}
-          <TabsContent value="consultations" className="space-y-3 mt-0">
+          <TabsContent value="consultations" className="space-y-4 mt-0">
+            <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari berdasarkan topik, client, atau lawyer..."
+                  value={searchConsultation}
+                  onChange={(e) => setSearchConsultation(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredConsultations.length} dari {allConsultations.length} konsultasi
+              </p>
+            </div>
+
             {loadingConsultations ? (
               <Skeleton className="h-24 w-full" />
-            ) : allConsultations.length > 0 ? (
-              allConsultations.slice(0, 30).map((consultation) => (
-                <Card 
-                  key={consultation.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/admin/consultation/${consultation.id}`)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">
-                          {consultation.client_profile?.full_name || 'Anonim'}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          → {consultation.lawyer?.name || 'Unknown'}
-                        </p>
+            ) : filteredConsultations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredConsultations.slice(0, 30).map((consultation) => (
+                  <Card 
+                    key={consultation.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/admin/consultation/${consultation.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">
+                            {consultation.client_profile?.full_name || 'Anonim'}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            → {consultation.lawyer?.name || 'Unknown'}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
+                            consultation.status === 'completed' ? 'success' :
+                            consultation.status === 'active' ? 'accent' :
+                            consultation.status === 'pending' ? 'warning' : 'secondary'
+                          }
+                          className="shrink-0"
+                        >
+                          {consultation.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant={
-                          consultation.status === 'completed' ? 'success' :
-                          consultation.status === 'active' ? 'accent' :
-                          consultation.status === 'pending' ? 'warning' : 'secondary'
-                        }
-                        className="text-[10px] shrink-0"
-                      >
-                        {consultation.status}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{consultation.topic}</p>
-                    <div className="flex justify-between items-center mt-2 text-[10px] text-muted-foreground">
-                      <span className="font-medium">{formatCurrency(consultation.price)}</span>
-                      <span>{new Date(consultation.created_at).toLocaleDateString('id-ID')}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                      <p className="text-sm text-muted-foreground line-clamp-2">{consultation.topic}</p>
+                      <Separator className="my-3" />
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium">{formatCurrency(consultation.price)}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(consultation.created_at).toLocaleDateString('id-ID')}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <div className="text-center py-12">
                 <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground text-sm">Belum ada konsultasi</p>
+                <p className="text-muted-foreground">Tidak ada konsultasi ditemukan</p>
               </div>
             )}
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-4 mt-0">
-            {/* Specialization Types */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Jenis Konsultasi</CardTitle>
-                  <Dialog open={addSpecOpen} onOpenChange={setAddSpecOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        <Plus className="w-3 h-3 mr-1" />
-                        Tambah
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Tambah Jenis Konsultasi</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label>Nama</Label>
-                          <Input
-                            value={newSpecName}
-                            onChange={(e) => setNewSpecName(e.target.value)}
-                            placeholder="Contoh: Hukum Konsumen"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Deskripsi (Opsional)</Label>
-                          <Input
-                            value={newSpecDesc}
-                            onChange={(e) => setNewSpecDesc(e.target.value)}
-                            placeholder="Deskripsi singkat"
-                          />
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={handleAddSpecialization}
-                          disabled={createSpecType.isPending}
-                        >
-                          Simpan
+          <TabsContent value="settings" className="space-y-6 mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Specialization Types */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Jenis Konsultasi</CardTitle>
+                    <Dialog open={addSpecOpen} onOpenChange={setAddSpecOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          <Plus className="w-4 h-4 mr-1" />
+                          Tambah
                         </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {specializationTypes.map((spec) => (
-                    <Badge 
-                      key={spec.id} 
-                      variant={spec.is_active ? "secondary" : "outline"}
-                      className="cursor-pointer transition-colors"
-                      onClick={() => {
-                        updateSpecType.mutate({ id: spec.id, is_active: !spec.is_active });
-                      }}
-                    >
-                      {spec.name}
-                      {!spec.is_active && <X className="w-3 h-3 ml-1" />}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-3">
-                  Klik badge untuk mengaktifkan/menonaktifkan jenis konsultasi
-                </p>
-              </CardContent>
-            </Card>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Tambah Jenis Konsultasi</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label>Nama</Label>
+                            <Input
+                              value={newSpecName}
+                              onChange={(e) => setNewSpecName(e.target.value)}
+                              placeholder="Contoh: Hukum Konsumen"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Deskripsi (Opsional)</Label>
+                            <Input
+                              value={newSpecDesc}
+                              onChange={(e) => setNewSpecDesc(e.target.value)}
+                              placeholder="Deskripsi singkat"
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={handleAddSpecialization}
+                            disabled={createSpecType.isPending}
+                          >
+                            Simpan
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {specializationTypes.map((spec) => (
+                      <Badge 
+                        key={spec.id} 
+                        variant={spec.is_active ? "secondary" : "outline"}
+                        className="cursor-pointer transition-colors hover:opacity-80"
+                        onClick={() => {
+                          updateSpecType.mutate({ id: spec.id, is_active: !spec.is_active });
+                        }}
+                      >
+                        {spec.name}
+                        {!spec.is_active && <X className="w-3 h-3 ml-1" />}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Klik badge untuk mengaktifkan/menonaktifkan jenis konsultasi
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Platform Stats */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Statistik Platform
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Lawyer</span>
+                    <span className="font-medium">{allLawyers.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Lawyer Aktif</span>
+                    <span className="font-medium">{approvedLawyers.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Menunggu Approval</span>
+                    <span className="font-medium">{pendingLawyers.length}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Client</span>
+                    <span className="font-medium">{clients.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Konsultasi</span>
+                    <span className="font-medium">{allConsultations.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Konsultasi Selesai</span>
+                    <span className="font-medium">
+                      {allConsultations.filter(c => c.status === 'completed').length}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between text-lg">
+                    <span className="font-medium">Total Revenue</span>
+                    <span className="font-bold text-primary">{formatCurrency(totalRevenue)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Quiz Questions Management */}
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4" />
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5" />
                     Pertanyaan Quiz Lawyer
-                    <Badge variant="secondary" className="text-[10px]">{quizQuestions.length}</Badge>
+                    <Badge variant="secondary">{quizQuestions.length}</Badge>
                   </CardTitle>
                   <Dialog open={addQuizOpen} onOpenChange={setAddQuizOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        <Plus className="w-3 h-3 mr-1" />
+                      <Button size="sm" variant="outline">
+                        <Plus className="w-4 h-4 mr-1" />
                         Tambah
                       </Button>
                     </DialogTrigger>
@@ -949,107 +1236,141 @@ export default function SuperAdminDashboard() {
                   </Dialog>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {quizQuestions.length > 0 ? (
-                  quizQuestions.map((q, index) => (
-                    <div 
-                      key={q.id} 
-                      className={`p-3 border rounded-lg ${!q.is_active ? 'opacity-50 bg-muted/50' : ''}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-xs font-medium text-primary">{index + 1}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm">{q.question}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={q.is_active}
-                                onCheckedChange={() => handleToggleQuizActive(q.id, q.is_active)}
-                                className="scale-75"
-                              />
-                              <span className="text-[10px] text-muted-foreground">
-                                {q.is_active ? 'Aktif' : 'Nonaktif'}
-                              </span>
-                            </div>
-                            <div className="flex gap-1 ml-auto">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => {
-                                  setEditingQuestion({ id: q.id, question: q.question });
-                                  setEditQuizOpen(true);
-                                }}
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-destructive"
-                                onClick={() => {
-                                  setDeletingQuestionId(q.id);
-                                  setDeleteQuizOpen(true);
-                                }}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {quizQuestions.length > 0 ? (
+                    quizQuestions.map((q, index) => (
+                      <div 
+                        key={q.id} 
+                        className={`p-4 border rounded-lg ${!q.is_active ? 'opacity-50 bg-muted/50' : ''}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-sm font-medium text-primary">{index + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">{q.question}</p>
+                            <div className="flex items-center gap-3 mt-3">
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={q.is_active}
+                                  onCheckedChange={() => handleToggleQuizActive(q.id, q.is_active)}
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                  {q.is_active ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 ml-auto">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingQuestion({ id: q.id, question: q.question });
+                                    setEditQuizOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => {
+                                    setDeletingQuestionId(q.id);
+                                    setDeleteQuizOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <HelpCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-2" />
+                      <p className="text-sm text-muted-foreground">Belum ada pertanyaan quiz</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Belum ada pertanyaan quiz
-                  </p>
-                )}
-                <p className="text-[10px] text-muted-foreground pt-2">
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
                   Pertanyaan quiz akan ditampilkan kepada lawyer saat mendaftar
                 </p>
               </CardContent>
             </Card>
-
-            {/* Platform Stats */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Statistik Platform</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Lawyer</span>
-                  <span className="font-medium">{allLawyers.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Lawyer Aktif</span>
-                  <span className="font-medium">{approvedLawyers.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Client</span>
-                  <span className="font-medium">{clients.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Konsultasi</span>
-                  <span className="font-medium">{allConsultations.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Konsultasi Selesai</span>
-                  <span className="font-medium">
-                    {allConsultations.filter(c => c.status === 'completed').length}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t">
-                  <span className="text-muted-foreground">Total Revenue</span>
-                  <span className="font-bold text-primary">{formatCurrency(totalRevenue)}</span>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
+
+      {/* Interview Dialog */}
+      <Dialog open={interviewDialogOpen} onOpenChange={setInterviewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              Interview Lawyer
+            </DialogTitle>
+            <DialogDescription>
+              Jadwalkan atau lakukan interview dengan calon lawyer
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLawyerForInterview && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={selectedLawyerForInterview.image_url || undefined} />
+                  <AvatarFallback>{selectedLawyerForInterview.name[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{selectedLawyerForInterview.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedLawyerForInterview.location}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <Label>Catatan Interview (Opsional)</Label>
+                <Textarea
+                  value={interviewNotes}
+                  onChange={(e) => setInterviewNotes(e.target.value)}
+                  placeholder="Catatan tentang interview, pertanyaan yang ingin ditanyakan, dll."
+                  rows={3}
+                />
+              </div>
+
+              <Separator />
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Pilih Metode Interview:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="h-auto py-3 flex-col gap-1">
+                    <Video className="w-5 h-5" />
+                    <span className="text-xs">Video Call</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 flex-col gap-1">
+                    <Phone className="w-5 h-5" />
+                    <span className="text-xs">Phone Call</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setInterviewDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button onClick={() => {
+              toast({ title: "Fitur interview sedang dalam pengembangan" });
+              setInterviewDialogOpen(false);
+            }}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Jadwalkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Quiz Question Dialog */}
       <Dialog open={editQuizOpen} onOpenChange={setEditQuizOpen}>
@@ -1100,6 +1421,6 @@ export default function SuperAdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MobileLayout>
+    </div>
   );
 }
