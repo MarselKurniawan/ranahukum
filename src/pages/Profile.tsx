@@ -1,13 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { 
   User, 
-  CreditCard, 
   Bell, 
   LogOut, 
   ChevronRight,
-  Shield,
-  FileText,
-  Star
+  FileText
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { icon: User, label: "Edit Profil", path: "/profile/edit" },
-  { icon: CreditCard, label: "Metode Pembayaran", path: "/profile/payment" },
   { icon: Bell, label: "Notifikasi", path: "/profile/notifications", badge: "3" },
   { icon: FileText, label: "Riwayat Transaksi", path: "/profile/transactions" },
-  { icon: Star, label: "Ulasan Saya", path: "/profile/reviews" },
-  { icon: Shield, label: "Keamanan", path: "/profile/security" },
 ];
 
 export default function Profile() {
