@@ -4,7 +4,7 @@ import {
   Users, CheckCircle, Clock, MessageCircle, TrendingUp,
   LogOut, ChevronRight, DollarSign, UserCheck, UserX,
   Plus, FileText, AlertCircle, Briefcase, Eye, Search,
-  Filter, X
+  Filter, X, HelpCircle, Pencil, Trash2, GripVertical
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -51,6 +62,12 @@ import {
 import { useAllPriceRequests, useApprovePriceRequest } from "@/hooks/useLawyerPriceRequests";
 import { useAllSpecializationTypes, useCreateSpecializationType, useUpdateSpecializationType } from "@/hooks/useSpecializationTypes";
 import { usePendingDocuments, useReviewDocument } from "@/hooks/useLawyerDocuments";
+import { 
+  useAllQuizQuestions, 
+  useCreateQuizQuestion, 
+  useUpdateQuizQuestion, 
+  useDeleteQuizQuestion 
+} from "@/hooks/useLawyerQuiz";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -71,6 +88,12 @@ export default function SuperAdminDashboard() {
   const createSpecType = useCreateSpecializationType();
   const updateSpecType = useUpdateSpecializationType();
 
+  // Quiz management hooks
+  const { data: quizQuestions = [] } = useAllQuizQuestions();
+  const createQuizQuestion = useCreateQuizQuestion();
+  const updateQuizQuestion = useUpdateQuizQuestion();
+  const deleteQuizQuestion = useDeleteQuizQuestion();
+
   const [newSpecName, setNewSpecName] = useState("");
   const [newSpecDesc, setNewSpecDesc] = useState("");
   const [addSpecOpen, setAddSpecOpen] = useState(false);
@@ -78,6 +101,14 @@ export default function SuperAdminDashboard() {
   const [searchClient, setSearchClient] = useState("");
   const [rejectNotes, setRejectNotes] = useState("");
   const [selectedDocForReject, setSelectedDocForReject] = useState<string | null>(null);
+  
+  // Quiz management state
+  const [newQuizQuestion, setNewQuizQuestion] = useState("");
+  const [addQuizOpen, setAddQuizOpen] = useState(false);
+  const [editQuizOpen, setEditQuizOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string } | null>(null);
+  const [deleteQuizOpen, setDeleteQuizOpen] = useState(false);
+  const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
 
   // Fetch all profiles (clients)
   const { data: allProfiles = [] } = useQuery({
@@ -184,6 +215,73 @@ export default function SuperAdminDashboard() {
       toast({
         title: "Gagal",
         description: "Jenis konsultasi sudah ada",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Quiz management handlers
+  const handleAddQuizQuestion = async () => {
+    if (!newQuizQuestion.trim()) return;
+    try {
+      await createQuizQuestion.mutateAsync({ question: newQuizQuestion });
+      toast({ title: "Pertanyaan quiz berhasil ditambahkan" });
+      setNewQuizQuestion("");
+      setAddQuizOpen(false);
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat menambahkan pertanyaan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateQuizQuestion = async () => {
+    if (!editingQuestion || !editingQuestion.question.trim()) return;
+    try {
+      await updateQuizQuestion.mutateAsync({
+        id: editingQuestion.id,
+        question: editingQuestion.question
+      });
+      toast({ title: "Pertanyaan berhasil diperbarui" });
+      setEditingQuestion(null);
+      setEditQuizOpen(false);
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat memperbarui pertanyaan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteQuizQuestion = async () => {
+    if (!deletingQuestionId) return;
+    try {
+      await deleteQuizQuestion.mutateAsync(deletingQuestionId);
+      toast({ title: "Pertanyaan berhasil dihapus" });
+      setDeletingQuestionId(null);
+      setDeleteQuizOpen(false);
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat menghapus pertanyaan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleToggleQuizActive = async (id: string, currentActive: boolean) => {
+    try {
+      await updateQuizQuestion.mutateAsync({ id, is_active: !currentActive });
+      toast({ 
+        title: currentActive ? "Pertanyaan dinonaktifkan" : "Pertanyaan diaktifkan" 
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan",
         variant: "destructive"
       });
     }
@@ -809,6 +907,112 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* Quiz Questions Management */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    Pertanyaan Quiz Lawyer
+                    <Badge variant="secondary" className="text-[10px]">{quizQuestions.length}</Badge>
+                  </CardTitle>
+                  <Dialog open={addQuizOpen} onOpenChange={setAddQuizOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-7 text-xs">
+                        <Plus className="w-3 h-3 mr-1" />
+                        Tambah
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Tambah Pertanyaan Quiz</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                          <Label>Pertanyaan</Label>
+                          <Textarea
+                            value={newQuizQuestion}
+                            onChange={(e) => setNewQuizQuestion(e.target.value)}
+                            placeholder="Masukkan pertanyaan untuk calon lawyer..."
+                            rows={3}
+                          />
+                        </div>
+                        <Button
+                          className="w-full"
+                          onClick={handleAddQuizQuestion}
+                          disabled={createQuizQuestion.isPending || !newQuizQuestion.trim()}
+                        >
+                          Simpan
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {quizQuestions.length > 0 ? (
+                  quizQuestions.map((q, index) => (
+                    <div 
+                      key={q.id} 
+                      className={`p-3 border rounded-lg ${!q.is_active ? 'opacity-50 bg-muted/50' : ''}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-xs font-medium text-primary">{index + 1}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm">{q.question}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={q.is_active}
+                                onCheckedChange={() => handleToggleQuizActive(q.id, q.is_active)}
+                                className="scale-75"
+                              />
+                              <span className="text-[10px] text-muted-foreground">
+                                {q.is_active ? 'Aktif' : 'Nonaktif'}
+                              </span>
+                            </div>
+                            <div className="flex gap-1 ml-auto">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  setEditingQuestion({ id: q.id, question: q.question });
+                                  setEditQuizOpen(true);
+                                }}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-destructive"
+                                onClick={() => {
+                                  setDeletingQuestionId(q.id);
+                                  setDeleteQuizOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Belum ada pertanyaan quiz
+                  </p>
+                )}
+                <p className="text-[10px] text-muted-foreground pt-2">
+                  Pertanyaan quiz akan ditampilkan kepada lawyer saat mendaftar
+                </p>
+              </CardContent>
+            </Card>
+
             {/* Platform Stats */}
             <Card>
               <CardHeader className="pb-2">
@@ -846,6 +1050,56 @@ export default function SuperAdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Quiz Question Dialog */}
+      <Dialog open={editQuizOpen} onOpenChange={setEditQuizOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Pertanyaan Quiz</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Pertanyaan</Label>
+              <Textarea
+                value={editingQuestion?.question || ''}
+                onChange={(e) => setEditingQuestion(prev => 
+                  prev ? { ...prev, question: e.target.value } : null
+                )}
+                placeholder="Masukkan pertanyaan..."
+                rows={3}
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleUpdateQuizQuestion}
+              disabled={updateQuizQuestion.isPending || !editingQuestion?.question.trim()}
+            >
+              Simpan Perubahan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Quiz Question Confirmation */}
+      <AlertDialog open={deleteQuizOpen} onOpenChange={setDeleteQuizOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Pertanyaan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pertanyaan ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteQuizQuestion}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MobileLayout>
   );
 }
