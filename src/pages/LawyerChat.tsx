@@ -23,6 +23,7 @@ import { useConsultation, useUpdateConsultation } from "@/hooks/useConsultations
 import { useMessages, useSendMessage, Message } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatUpload } from "@/hooks/useChatUpload";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -106,6 +107,7 @@ export default function LawyerChat() {
   const { isUploading, isRecording, sendFileMessage, toggleRecording } = useChatUpload({ 
     consultationId: id || '' 
   });
+  const { isOtherUserTyping, setTyping } = useTypingIndicator(id || '');
   
   const [inputValue, setInputValue] = useState("");
   const [showEndDialog, setShowEndDialog] = useState(false);
@@ -132,6 +134,17 @@ export default function LawyerChat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    if (value.length > 0) {
+      setTyping(true);
+    } else {
+      setTyping(false);
+    }
+  };
 
   // Timer effect - moved before early returns
   const isCompleted = consultation?.status === 'completed';
@@ -387,6 +400,18 @@ export default function LawyerChat() {
       {/* Input - only show if consultation is active */}
       {consultation.status === 'active' && (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+          {/* Typing indicator */}
+          {isOtherUserTyping && (
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-xs text-muted-foreground">Klien sedang mengetik...</span>
+            </div>
+          )}
+
           {/* Recording indicator */}
           {isRecording && (
             <div className="flex items-center justify-center gap-2 mb-2 text-destructive">
@@ -415,10 +440,15 @@ export default function LawyerChat() {
             </Button>
             <Input
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={handleInputChange}
               placeholder={isRecording ? "Rekaman aktif..." : "Ketik pesan..."}
               className="flex-1 rounded-full bg-secondary border-0"
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  setTyping(false);
+                  handleSend();
+                }
+              }}
               disabled={isRecording}
             />
             {inputValue.trim() ? (
@@ -426,7 +456,10 @@ export default function LawyerChat() {
                 variant="gradient"
                 size="icon"
                 className="shrink-0 rounded-full"
-                onClick={handleSend}
+                onClick={() => {
+                  setTyping(false);
+                  handleSend();
+                }}
                 disabled={sendMessage.isPending || isUploading}
               >
                 <Send className="w-4 h-4" />

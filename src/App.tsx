@@ -24,6 +24,7 @@ import LawyerProfile from "./pages/LawyerProfile";
 import LawyerPricing from "./pages/LawyerPricing";
 import LawyerDocuments from "./pages/LawyerDocuments";
 import LawyerQuiz from "./pages/LawyerQuiz";
+import LawyerConsultationDetail from "./pages/LawyerConsultationDetail";
 import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import DocumentTemplates from "./pages/DocumentTemplates";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/lawyer/documents" element={<LawyerDocuments />} />
             <Route path="/lawyer/quiz" element={<LawyerQuiz />} />
             <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
+            <Route path="/lawyer/consultation/:id" element={<LawyerConsultationDetail />} />
             <Route path="/legal-assistance" element={<LegalAssistance />} />
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
             <Route path="/document-templates" element={<DocumentTemplates />} />
