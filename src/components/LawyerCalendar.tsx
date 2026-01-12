@@ -141,7 +141,7 @@ export function LawyerCalendar() {
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-1 pointer-events-auto">
                 {days.map((date, idx) => {
                   if (!date) {
                     return <div key={idx} className="h-10" />;
@@ -154,11 +154,12 @@ export function LawyerCalendar() {
 
                   return (
                     <button
+                      type="button"
                       key={idx}
                       disabled={isPast}
                       onClick={() => setSelectedDate(date)}
                       className={cn(
-                        "h-10 rounded-lg text-sm relative transition-all",
+                        "h-10 rounded-lg text-sm relative transition-all cursor-pointer pointer-events-auto",
                         isPast && "opacity-30 cursor-not-allowed",
                         !isPast && "hover:bg-accent",
                         isToday && "ring-1 ring-primary",
@@ -168,7 +169,7 @@ export function LawyerCalendar() {
                       {date.getDate()}
                       {!isPast && availableCount > 0 && (
                         <span className={cn(
-                          "absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full",
+                          "absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none",
                           availableCount >= 8 ? "bg-success" : availableCount >= 4 ? "bg-warning" : "bg-destructive"
                         )} />
                       )}
@@ -217,15 +218,16 @@ export function LawyerCalendar() {
             <div className="grid grid-cols-5 gap-2">
               {selectedSlots.map((slot) => (
                 <button
+                  type="button"
                   key={slot.time}
                   onClick={() => toggleSlot(selectedDate, slot.time)}
                   disabled={updateSchedule.isPending}
                   className={cn(
-                    "py-2 px-1 rounded-lg text-xs font-medium transition-all",
+                    "py-2 px-1 rounded-lg text-xs font-medium transition-all cursor-pointer pointer-events-auto",
                     slot.available
                       ? "bg-success/20 text-success border border-success/30"
                       : "bg-muted text-muted-foreground",
-                    updateSchedule.isPending && "opacity-50"
+                    updateSchedule.isPending && "opacity-50 cursor-wait"
                   )}
                 >
                   {slot.time}
