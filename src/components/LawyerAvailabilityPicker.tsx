@@ -2,18 +2,24 @@ import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useMyLawyerSchedule, useUpdateSchedule, useBulkUpdateSchedule, getSlotsForDate, defaultTimeSlots } from "@/hooks/useLawyerSchedules";
-import { toast } from "@/hooks/use-toast";
+import { useLawyerSchedule, getSlotsForDate } from "@/hooks/useLawyerSchedules";
 
-export function LawyerCalendar() {
+interface LawyerAvailabilityPickerProps {
+  lawyerId: string;
+  selectedSlot: { date: string; time: string } | null;
+  onSelectSlot: (slot: { date: string; time: string } | null) => void;
+}
+
+export function LawyerAvailabilityPicker({ 
+  lawyerId, 
+  selectedSlot, 
+  onSelectSlot 
+}: LawyerAvailabilityPickerProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  const { data: schedules = [], isLoading } = useMyLawyerSchedule();
-  const updateSchedule = useUpdateSchedule();
-  const bulkUpdateSchedule = useBulkUpdateSchedule();
+  const { data: schedules = [], isLoading } = useLawyerSchedule(lawyerId);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -22,12 +28,10 @@ export function LawyerCalendar() {
     const lastDay = new Date(year, month + 1, 0);
     const days: (Date | null)[] = [];
 
-    // Add empty slots for days before the first day
     for (let i = 0; i < firstDay.getDay(); i++) {
       days.push(null);
     }
 
-    // Add all days in the month
     for (let i = 1; i <= lastDay.getDate(); i++) {
       days.push(new Date(year, month, i));
     }
@@ -44,43 +48,12 @@ export function LawyerCalendar() {
     return getSlotsForDate(schedules, key);
   };
 
-  const toggleSlot = async (date: Date, time: string) => {
-    const key = formatDateKey(date);
-    const currentSlots = getSlots(date);
-    const slot = currentSlots.find(s => s.time === time);
-    
-    try {
-      await updateSchedule.mutateAsync({
-        date: key,
-        timeSlot: time,
-        isAvailable: !slot?.available
-      });
-    } catch (error) {
-      toast({
-        title: "Gagal mengupdate jadwal",
-        description: "Silakan coba lagi",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const toggleAllSlots = async (date: Date, available: boolean) => {
-    const key = formatDateKey(date);
-    
-    try {
-      await bulkUpdateSchedule.mutateAsync({
-        date: key,
-        isAvailable: available
-      });
-      toast({
-        title: available ? "Semua slot diaktifkan" : "Semua slot dinonaktifkan",
-      });
-    } catch (error) {
-      toast({
-        title: "Gagal mengupdate jadwal",
-        description: "Silakan coba lagi",
-        variant: "destructive"
-      });
+  const handleSelectTime = (date: Date, time: string) => {
+    const dateKey = formatDateKey(date);
+    if (selectedSlot?.date === dateKey && selectedSlot?.time === time) {
+      onSelectSlot(null);
+    } else {
+      onSelectSlot({ date: dateKey, time });
     }
   };
 
@@ -94,15 +67,14 @@ export function LawyerCalendar() {
     return slots.filter(s => s.available).length;
   };
 
-  const selectedSlots = selectedDate ? getSlots(selectedDate) : [];
-  const allSlotsAvailable = selectedSlots.every(s => s.available);
+  const selectedSlots = selectedDate ? getSlots(selectedDate).filter(s => s.available) : [];
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Kalender Ketersediaan</CardTitle>
+            <CardTitle className="text-sm">Pilih Jadwal Konsultasi</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -151,16 +123,17 @@ export function LawyerCalendar() {
                   const isPast = date < today;
                   const isSelected = selectedDate?.toDateString() === date.toDateString();
                   const availableCount = getAvailableCount(date);
+                  const hasNoSlots = availableCount === 0;
 
                   return (
                     <button
                       key={idx}
-                      disabled={isPast}
+                      disabled={isPast || hasNoSlots}
                       onClick={() => setSelectedDate(date)}
                       className={cn(
                         "h-10 rounded-lg text-sm relative transition-all",
-                        isPast && "opacity-30 cursor-not-allowed",
-                        !isPast && "hover:bg-accent",
+                        (isPast || hasNoSlots) && "opacity-30 cursor-not-allowed",
+                        !isPast && !hasNoSlots && "hover:bg-accent",
                         isToday && "ring-1 ring-primary",
                         isSelected && "bg-primary text-primary-foreground"
                       )}
@@ -195,45 +168,48 @@ export function LawyerCalendar() {
       </Card>
 
       {/* Time Slots for Selected Date */}
-      {selectedDate && (
+      {selectedDate && selectedSlots.length > 0 && (
         <Card className="animate-fade-in">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {selectedDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Semua</span>
-                <Switch
-                  checked={allSlotsAvailable}
-                  onCheckedChange={(checked) => toggleAllSlots(selectedDate, checked)}
-                  disabled={bulkUpdateSchedule.isPending}
-                />
-              </div>
-            </div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              {selectedDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-5 gap-2">
-              {selectedSlots.map((slot) => (
-                <button
-                  key={slot.time}
-                  onClick={() => toggleSlot(selectedDate, slot.time)}
-                  disabled={updateSchedule.isPending}
-                  className={cn(
-                    "py-2 px-1 rounded-lg text-xs font-medium transition-all",
-                    slot.available
-                      ? "bg-success/20 text-success border border-success/30"
-                      : "bg-muted text-muted-foreground",
-                    updateSchedule.isPending && "opacity-50"
-                  )}
-                >
-                  {slot.time}
-                </button>
-              ))}
+              {selectedSlots.map((slot) => {
+                const dateKey = formatDateKey(selectedDate);
+                const isSelected = selectedSlot?.date === dateKey && selectedSlot?.time === slot.time;
+                
+                return (
+                  <button
+                    key={slot.time}
+                    onClick={() => handleSelectTime(selectedDate, slot.time)}
+                    className={cn(
+                      "py-2 px-1 rounded-lg text-xs font-medium transition-all",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-success/20 text-success border border-success/30 hover:bg-success/30"
+                    )}
+                  >
+                    {slot.time}
+                  </button>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Klik slot waktu untuk mengaktifkan/menonaktifkan
+              Pilih waktu yang tersedia untuk konsultasi
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedDate && selectedSlots.length === 0 && (
+        <Card>
+          <CardContent className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Tidak ada slot tersedia untuk tanggal ini
             </p>
           </CardContent>
         </Card>
