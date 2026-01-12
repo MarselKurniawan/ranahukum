@@ -206,7 +206,7 @@ export default function LawyerDashboard() {
                   size="sm"
                   variant="outline"
                   className="h-8 text-xs"
-                  onClick={() => navigate(`/lawyer/chat/${request.id}`)}
+                  onClick={() => navigate(`/lawyer/consultation/${request.id}`)}
                 >
                   Lihat Detail
                   <ChevronRight className="w-3 h-3 ml-1" />
