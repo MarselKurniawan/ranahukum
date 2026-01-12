@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type AppRole = 'admin' | 'lawyer' | 'user';
+type AppRole = 'admin' | 'lawyer' | 'user' | 'superadmin';
 
 interface AuthContextType {
   user: User | null;
@@ -56,19 +56,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      // Fetch all roles for user (might have multiple)
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error fetching role:', error);
         return;
       }
 
-      if (data) {
-        setRole(data.role as AppRole);
+      if (data && data.length > 0) {
+        // Priority: superadmin > admin > lawyer > user
+        const rolePriority: AppRole[] = ['superadmin', 'admin', 'lawyer', 'user'];
+        const userRoles = data.map(r => r.role as AppRole);
+        
+        for (const priorityRole of rolePriority) {
+          if (userRoles.includes(priorityRole)) {
+            setRole(priorityRole);
+            return;
+          }
+        }
+        
+        // Default to first role if no priority match
+        setRole(data[0].role as AppRole);
       }
     } catch (error) {
       console.error('Error fetching role:', error);

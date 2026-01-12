@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Scale, Mail, Lock, User, MapPin, Eye, EyeOff, Phone, GraduationCap, Upload, FileText, X, Loader2 } from "lucide-react";
+import { Scale, Mail, Lock, User, MapPin, Eye, EyeOff, Phone, GraduationCap, Upload, FileText, X, Loader2, Briefcase, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -18,7 +18,13 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password minimal 6 karakter")
 });
 
-const signupSchema = z.object({
+const userSignupSchema = z.object({
+  fullName: z.string().min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(6, "Password minimal 6 karakter")
+});
+
+const lawyerSignupSchema = z.object({
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
   email: z.string().email("Email tidak valid"),
   password: z.string().min(6, "Password minimal 6 karakter"),
@@ -35,13 +41,23 @@ interface DocumentUpload {
   uploading: boolean;
 }
 
+type RegisterType = 'user' | 'lawyer';
+
 export default function Auth() {
   const navigate = useNavigate();
   const { user, role, signIn, signUp } = useAuth();
   const { toast } = useToast();
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [signupData, setSignupData] = useState({
+  const [registerType, setRegisterType] = useState<RegisterType>('user');
+  
+  const [userSignupData, setUserSignupData] = useState({
+    fullName: "",
+    email: "",
+    password: ""
+  });
+  
+  const [lawyerSignupData, setLawyerSignupData] = useState({
     fullName: "",
     email: "",
     password: "",
@@ -66,7 +82,7 @@ export default function Auth() {
     if (user && role) {
       if (role === 'lawyer') {
         navigate('/lawyer/dashboard');
-      } else if (role === 'admin') {
+      } else if (role === 'admin' || role === 'superadmin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/');
@@ -122,11 +138,62 @@ export default function Auth() {
     setDocuments(newDocs);
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleUserSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    const result = signupSchema.safeParse(signupData);
+    const result = userSignupSchema.safeParse(userSignupData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setIsLoading(true);
+    
+    const { error: signUpError } = await signUp(
+      userSignupData.email,
+      userSignupData.password,
+      userSignupData.fullName,
+      "user"
+    );
+
+    if (signUpError) {
+      if (signUpError.message.includes("already registered")) {
+        toast({
+          title: "Email Sudah Terdaftar",
+          description: "Silakan gunakan email lain atau login",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Registrasi Gagal",
+          description: signUpError.message,
+          variant: "destructive"
+        });
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    toast({
+      title: "Registrasi Berhasil",
+      description: "Selamat datang di Legal Connect!"
+    });
+    
+    setIsLoading(false);
+  };
+
+  const handleLawyerSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const result = lawyerSignupSchema.safeParse(lawyerSignupData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach(err => {
@@ -155,11 +222,11 @@ export default function Auth() {
     try {
       // 1. Register user
       const { error: signUpError } = await signUp(
-        signupData.email,
-        signupData.password,
-        signupData.fullName,
+        lawyerSignupData.email,
+        lawyerSignupData.password,
+        lawyerSignupData.fullName,
         "lawyer",
-        signupData.location
+        lawyerSignupData.location
       );
 
       if (signUpError) {
@@ -205,15 +272,15 @@ export default function Auth() {
         await supabase
           .from('lawyers')
           .update({
-            education: signupData.education,
-            interview_consent: signupData.interviewConsent
+            education: lawyerSignupData.education,
+            interview_consent: lawyerSignupData.interviewConsent
           })
           .eq('id', lawyerData.id);
 
         // Update profile with whatsapp
         await supabase
           .from('profiles')
-          .update({ whatsapp: signupData.whatsapp })
+          .update({ whatsapp: lawyerSignupData.whatsapp })
           .eq('user_id', session.user.id);
 
         // 5. Upload documents
@@ -283,7 +350,7 @@ export default function Auth() {
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">Masuk</TabsTrigger>
-                  <TabsTrigger value="signup">Daftar Lawyer</TabsTrigger>
+                  <TabsTrigger value="signup">Daftar</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="login">
@@ -335,52 +402,94 @@ export default function Auth() {
                 </TabsContent>
 
                 <TabsContent value="signup">
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    {/* Basic Info */}
-                    <div className="space-y-3">
+                  {/* Register Type Selection */}
+                  <div className="mb-6">
+                    <Label className="text-sm font-medium mb-3 block">Daftar sebagai</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRegisterType('user')}
+                        className={`p-4 rounded-xl border-2 transition-all ${
+                          registerType === 'user'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Users className={`w-8 h-8 mx-auto mb-2 ${
+                          registerType === 'user' ? 'text-primary' : 'text-muted-foreground'
+                        }`} />
+                        <p className={`text-sm font-medium ${
+                          registerType === 'user' ? 'text-primary' : 'text-foreground'
+                        }`}>Pengguna</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Cari bantuan hukum</p>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setRegisterType('lawyer')}
+                        className={`p-4 rounded-xl border-2 transition-all ${
+                          registerType === 'lawyer'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Briefcase className={`w-8 h-8 mx-auto mb-2 ${
+                          registerType === 'lawyer' ? 'text-primary' : 'text-muted-foreground'
+                        }`} />
+                        <p className={`text-sm font-medium ${
+                          registerType === 'lawyer' ? 'text-primary' : 'text-foreground'
+                        }`}>Lawyer</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Tawarkan jasa hukum</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* User Registration Form */}
+                  {registerType === 'user' && (
+                    <form onSubmit={handleUserSignup} className="space-y-4">
                       <div>
-                        <Label htmlFor="signup-name">Nama Lengkap</Label>
+                        <Label htmlFor="user-name">Nama Lengkap</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            id="signup-name"
+                            id="user-name"
                             type="text"
-                            placeholder="Nama lengkap sesuai ijazah"
+                            placeholder="Nama lengkap Anda"
                             className="pl-10"
-                            value={signupData.fullName}
-                            onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                            value={userSignupData.fullName}
+                            onChange={(e) => setUserSignupData({ ...userSignupData, fullName: e.target.value })}
                           />
                         </div>
                         {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
                       </div>
 
                       <div>
-                        <Label htmlFor="signup-email">Email</Label>
+                        <Label htmlFor="user-email">Email</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            id="signup-email"
+                            id="user-email"
                             type="email"
                             placeholder="email@example.com"
                             className="pl-10"
-                            value={signupData.email}
-                            onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                            value={userSignupData.email}
+                            onChange={(e) => setUserSignupData({ ...userSignupData, email: e.target.value })}
                           />
                         </div>
                         {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
                       </div>
 
                       <div>
-                        <Label htmlFor="signup-password">Password</Label>
+                        <Label htmlFor="user-password">Password</Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            id="signup-password"
+                            id="user-password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Minimal 6 karakter"
                             className="pl-10 pr-10"
-                            value={signupData.password}
-                            onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                            value={userSignupData.password}
+                            onChange={(e) => setUserSignupData({ ...userSignupData, password: e.target.value })}
                           />
                           <button
                             type="button"
@@ -393,144 +502,212 @@ export default function Auth() {
                         {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
                       </div>
 
-                      <div>
-                        <Label htmlFor="signup-whatsapp">Nomor WhatsApp Aktif</Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="signup-whatsapp"
-                            type="tel"
-                            placeholder="08123456789"
-                            className="pl-10"
-                            value={signupData.whatsapp}
-                            onChange={(e) => setSignupData({ ...signupData, whatsapp: e.target.value })}
-                          />
-                        </div>
-                        {errors.whatsapp && <p className="text-xs text-destructive mt-1">{errors.whatsapp}</p>}
-                      </div>
+                      <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        {isLoading ? "Mendaftar..." : "Daftar"}
+                      </Button>
+                    </form>
+                  )}
 
-                      <div>
-                        <Label htmlFor="signup-location">Lokasi Praktik</Label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="signup-location"
-                            type="text"
-                            placeholder="Contoh: Jakarta, Semarang"
-                            className="pl-10"
-                            value={signupData.location}
-                            onChange={(e) => setSignupData({ ...signupData, location: e.target.value })}
-                          />
-                        </div>
-                        {errors.location && <p className="text-xs text-destructive mt-1">{errors.location}</p>}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="signup-education">Pendidikan Terakhir</Label>
-                        <div className="relative">
-                          <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="signup-education"
-                            type="text"
-                            placeholder="Contoh: S1 Hukum Universitas Indonesia"
-                            className="pl-10"
-                            value={signupData.education}
-                            onChange={(e) => setSignupData({ ...signupData, education: e.target.value })}
-                          />
-                        </div>
-                        {errors.education && <p className="text-xs text-destructive mt-1">{errors.education}</p>}
-                      </div>
-                    </div>
-
-                    {/* Document Uploads */}
-                    <div className="space-y-3 pt-2">
-                      <Label className="text-sm font-medium">Upload Dokumen</Label>
-                      <p className="text-xs text-muted-foreground -mt-2">
-                        Format: PDF, JPG, PNG (Max 5MB)
-                      </p>
-                      
-                      {documents.map((doc, index) => (
-                        <div key={doc.type} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-xs font-medium truncate">{doc.label}</p>
-                                {doc.file && (
-                                  <p className="text-[10px] text-muted-foreground truncate">
-                                    {doc.file.name}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {doc.file ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0 shrink-0"
-                                onClick={() => handleFileChange(index, null)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            ) : (
-                              <label className="shrink-0">
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      if (file.size > 5 * 1024 * 1024) {
-                                        toast({
-                                          title: "File Terlalu Besar",
-                                          description: "Maksimal 5MB",
-                                          variant: "destructive"
-                                        });
-                                        return;
-                                      }
-                                      handleFileChange(index, file);
-                                    }
-                                  }}
-                                />
-                                <div className="h-7 px-2 bg-secondary text-secondary-foreground rounded-md flex items-center gap-1 cursor-pointer hover:bg-secondary/80 text-xs">
-                                  <Upload className="w-3 h-3" />
-                                  Upload
-                                </div>
-                              </label>
-                            )}
+                  {/* Lawyer Registration Form */}
+                  {registerType === 'lawyer' && (
+                    <form onSubmit={handleLawyerSignup} className="space-y-4">
+                      {/* Basic Info */}
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="lawyer-name">Nama Lengkap</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-name"
+                              type="text"
+                              placeholder="Nama lengkap sesuai ijazah"
+                              className="pl-10"
+                              value={lawyerSignupData.fullName}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, fullName: e.target.value })}
+                            />
                           </div>
+                          {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
                         </div>
-                      ))}
-                    </div>
 
-                    {/* Interview Consent */}
-                    <div className="flex items-start space-x-3 pt-2">
-                      <Checkbox
-                        id="interview-consent"
-                        checked={signupData.interviewConsent}
-                        onCheckedChange={(checked) => 
-                          setSignupData({ ...signupData, interviewConsent: checked === true })
-                        }
-                      />
-                      <label
-                        htmlFor="interview-consent"
-                        className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
-                      >
-                        Saya bersedia untuk menjalani proses verifikasi dan wawancara untuk memastikan kualifikasi sebagai konsultan hukum di Legal Connect
-                      </label>
-                    </div>
-                    {errors.interviewConsent && (
-                      <p className="text-xs text-destructive">{errors.interviewConsent}</p>
-                    )}
+                        <div>
+                          <Label htmlFor="lawyer-email">Email</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-email"
+                              type="email"
+                              placeholder="email@example.com"
+                              className="pl-10"
+                              value={lawyerSignupData.email}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, email: e.target.value })}
+                            />
+                          </div>
+                          {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+                        </div>
 
-                    <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      {isLoading ? "Mendaftar..." : "Daftar"}
-                    </Button>
-                  </form>
+                        <div>
+                          <Label htmlFor="lawyer-password">Password</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-password"
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Minimal 6 karakter"
+                              className="pl-10 pr-10"
+                              value={lawyerSignupData.password}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, password: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="lawyer-whatsapp">Nomor WhatsApp Aktif</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-whatsapp"
+                              type="tel"
+                              placeholder="08123456789"
+                              className="pl-10"
+                              value={lawyerSignupData.whatsapp}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, whatsapp: e.target.value })}
+                            />
+                          </div>
+                          {errors.whatsapp && <p className="text-xs text-destructive mt-1">{errors.whatsapp}</p>}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="lawyer-location">Lokasi Praktik</Label>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-location"
+                              type="text"
+                              placeholder="Contoh: Jakarta, Semarang"
+                              className="pl-10"
+                              value={lawyerSignupData.location}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, location: e.target.value })}
+                            />
+                          </div>
+                          {errors.location && <p className="text-xs text-destructive mt-1">{errors.location}</p>}
+                        </div>
+
+                        <div>
+                          <Label htmlFor="lawyer-education">Pendidikan Terakhir</Label>
+                          <div className="relative">
+                            <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="lawyer-education"
+                              type="text"
+                              placeholder="Contoh: S1 Hukum Universitas Indonesia"
+                              className="pl-10"
+                              value={lawyerSignupData.education}
+                              onChange={(e) => setLawyerSignupData({ ...lawyerSignupData, education: e.target.value })}
+                            />
+                          </div>
+                          {errors.education && <p className="text-xs text-destructive mt-1">{errors.education}</p>}
+                        </div>
+                      </div>
+
+                      {/* Document Uploads */}
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-sm font-medium">Upload Dokumen</Label>
+                        <p className="text-xs text-muted-foreground -mt-2">
+                          Format: PDF, JPG, PNG (Max 5MB)
+                        </p>
+                        
+                        {documents.map((doc, index) => (
+                          <div key={doc.type} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium truncate">{doc.label}</p>
+                                  {doc.file && (
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                      {doc.file.name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {doc.file ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 shrink-0"
+                                  onClick={() => handleFileChange(index, null)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              ) : (
+                                <label className="shrink-0">
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        if (file.size > 5 * 1024 * 1024) {
+                                          toast({
+                                            title: "File Terlalu Besar",
+                                            description: "Maksimal 5MB",
+                                            variant: "destructive"
+                                          });
+                                          return;
+                                        }
+                                        handleFileChange(index, file);
+                                      }
+                                    }}
+                                  />
+                                  <div className="h-7 px-2 bg-secondary text-secondary-foreground rounded-md flex items-center gap-1 cursor-pointer hover:bg-secondary/80 text-xs">
+                                    <Upload className="w-3 h-3" />
+                                    Upload
+                                  </div>
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Interview Consent */}
+                      <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox
+                          id="interview-consent"
+                          checked={lawyerSignupData.interviewConsent}
+                          onCheckedChange={(checked) => 
+                            setLawyerSignupData({ ...lawyerSignupData, interviewConsent: checked === true })
+                          }
+                        />
+                        <label
+                          htmlFor="interview-consent"
+                          className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                        >
+                          Saya bersedia untuk menjalani proses verifikasi dan wawancara untuk memastikan kualifikasi sebagai konsultan hukum di Legal Connect
+                        </label>
+                      </div>
+                      {errors.interviewConsent && (
+                        <p className="text-xs text-destructive">{errors.interviewConsent}</p>
+                      )}
+
+                      <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        {isLoading ? "Mendaftar..." : "Daftar"}
+                      </Button>
+                    </form>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
