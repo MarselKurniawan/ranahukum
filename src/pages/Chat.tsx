@@ -91,6 +91,7 @@ export default function Chat() {
   });
   
   const [inputValue, setInputValue] = useState("");
+  const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +102,33 @@ export default function Chat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Timer effect - moved before early returns
+  const isCompleted = consultation?.status === 'completed';
+  
+  useEffect(() => {
+    if (!consultation?.started_at || isCompleted) return;
+    
+    const startTime = new Date(consultation.started_at).getTime();
+    
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = Math.floor((now - startTime) / 1000);
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+      
+      if (hours > 0) {
+        setElapsedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setElapsedTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [consultation?.started_at, isCompleted]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || !id) return;
@@ -195,34 +223,6 @@ export default function Chat() {
 
   const lawyer = consultation.lawyers;
   const lawyerUserId = (lawyer as { user_id?: string })?.user_id;
-  const isCompleted = consultation.status === 'completed';
-
-  // Calculate consultation duration
-  const [elapsedTime, setElapsedTime] = useState("00:00");
-  
-  useEffect(() => {
-    if (!consultation.started_at || isCompleted) return;
-    
-    const startTime = new Date(consultation.started_at).getTime();
-    
-    const updateTimer = () => {
-      const now = Date.now();
-      const diff = Math.floor((now - startTime) / 1000);
-      const hours = Math.floor(diff / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = diff % 60;
-      
-      if (hours > 0) {
-        setElapsedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-      } else {
-        setElapsedTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-      }
-    };
-    
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [consultation.started_at, isCompleted]);
 
   return (
     <MobileLayout showBottomNav={false}>
