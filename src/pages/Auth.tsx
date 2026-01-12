@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Scale, Mail, Lock, User, MapPin, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Scale, Mail, Lock, User, MapPin, Eye, EyeOff, Phone, GraduationCap, Upload, FileText, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("Email tidak valid"),
@@ -21,13 +22,22 @@ const signupSchema = z.object({
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
   email: z.string().email("Email tidak valid"),
   password: z.string().min(6, "Password minimal 6 karakter"),
-  role: z.enum(["user", "lawyer"]),
-  location: z.string().optional()
+  whatsapp: z.string().min(10, "Nomor WhatsApp minimal 10 digit").max(15, "Nomor WhatsApp maksimal 15 digit"),
+  location: z.string().min(2, "Lokasi wajib diisi"),
+  education: z.string().min(2, "Pendidikan wajib diisi"),
+  interviewConsent: z.literal(true, { errorMap: () => ({ message: "Anda harus bersedia untuk proses verifikasi" }) })
 });
+
+interface DocumentUpload {
+  type: string;
+  label: string;
+  file: File | null;
+  uploading: boolean;
+}
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, role, signIn, signUp, signInAnonymously } = useAuth();
+  const { user, role, signIn, signUp } = useAuth();
   const { toast } = useToast();
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -35,17 +45,29 @@ export default function Auth() {
     fullName: "",
     email: "",
     password: "",
-    role: "user" as "user" | "lawyer",
-    location: ""
+    whatsapp: "",
+    location: "",
+    education: "",
+    interviewConsent: false
   });
+  
+  const [documents, setDocuments] = useState<DocumentUpload[]>([
+    { type: "ijazah", label: "Ijazah S1 Hukum", file: null, uploading: false },
+    { type: "surat_izin", label: "Surat Izin Praktik Advokat", file: null, uploading: false },
+    { type: "ktp", label: "KTP", file: null, uploading: false },
+    { type: "sertifikat", label: "Sertifikat Profesi (opsional)", file: null, uploading: false }
+  ]);
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (user) {
+    if (user && role) {
       if (role === 'lawyer') {
         navigate('/lawyer/dashboard');
+      } else if (role === 'admin') {
+        navigate('/admin/dashboard');
       } else {
         navigate('/');
       }
@@ -94,6 +116,12 @@ export default function Auth() {
     }
   };
 
+  const handleFileChange = (index: number, file: File | null) => {
+    const newDocs = [...documents];
+    newDocs[index].file = file;
+    setDocuments(newDocs);
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -110,57 +138,128 @@ export default function Auth() {
       return;
     }
 
-    if (signupData.role === "lawyer" && !signupData.location) {
-      setErrors({ location: "Lokasi wajib diisi untuk lawyer" });
+    // Check required documents
+    const requiredDocs = documents.filter(d => d.type !== 'sertifikat');
+    const missingDocs = requiredDocs.filter(d => !d.file);
+    if (missingDocs.length > 0) {
+      toast({
+        title: "Dokumen Belum Lengkap",
+        description: `Mohon upload: ${missingDocs.map(d => d.label).join(', ')}`,
+        variant: "destructive"
+      });
       return;
     }
 
     setIsLoading(true);
-    const { error } = await signUp(
-      signupData.email,
-      signupData.password,
-      signupData.fullName,
-      signupData.role,
-      signupData.location
-    );
-    setIsLoading(false);
+    
+    try {
+      // 1. Register user
+      const { error: signUpError } = await signUp(
+        signupData.email,
+        signupData.password,
+        signupData.fullName,
+        "lawyer",
+        signupData.location
+      );
 
-    if (error) {
-      if (error.message.includes("already registered")) {
-        toast({
-          title: "Email Sudah Terdaftar",
-          description: "Silakan gunakan email lain atau login",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registrasi Gagal",
-          description: error.message,
-          variant: "destructive"
-        });
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
+          toast({
+            title: "Email Sudah Terdaftar",
+            description: "Silakan gunakan email lain atau login",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Registrasi Gagal",
+            description: signUpError.message,
+            variant: "destructive"
+          });
+        }
+        setIsLoading(false);
+        return;
       }
-    } else {
-      toast({
-        title: "Registrasi Berhasil",
-        description: "Akun berhasil dibuat!"
-      });
-    }
-  };
 
-  const handleAnonymous = async () => {
-    setIsLoading(true);
-    const { error } = await signInAnonymously();
-    setIsLoading(false);
+      // 2. Wait for user session to be established
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 3. Get the new lawyer profile
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Registrasi Berhasil",
+          description: "Silakan login untuk melanjutkan proses pendaftaran"
+        });
+        setIsLoading(false);
+        return;
+      }
 
-    if (error) {
+      // 4. Update lawyer profile with additional info
+      const { data: lawyerData } = await supabase
+        .from('lawyers')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (lawyerData) {
+        await supabase
+          .from('lawyers')
+          .update({
+            education: signupData.education,
+            interview_consent: signupData.interviewConsent
+          })
+          .eq('id', lawyerData.id);
+
+        // Update profile with whatsapp
+        await supabase
+          .from('profiles')
+          .update({ whatsapp: signupData.whatsapp })
+          .eq('user_id', session.user.id);
+
+        // 5. Upload documents
+        for (const doc of documents) {
+          if (doc.file) {
+            const fileExt = doc.file.name.split('.').pop();
+            const fileName = `${lawyerData.id}/${doc.type}-${Date.now()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('chat-files')
+              .upload(`lawyer-documents/${fileName}`, doc.file);
+
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage
+                .from('chat-files')
+                .getPublicUrl(`lawyer-documents/${fileName}`);
+
+              await supabase
+                .from('lawyer_documents')
+                .insert({
+                  lawyer_id: lawyerData.id,
+                  document_type: doc.type,
+                  file_url: urlData.publicUrl,
+                  file_name: doc.file.name,
+                  status: 'pending'
+                });
+            }
+          }
+        }
+
+        // 6. Navigate to quiz
+        toast({
+          title: "Dokumen Berhasil Diupload",
+          description: "Silakan lanjutkan ke tahap pertanyaan"
+        });
+        navigate('/lawyer/quiz');
+      }
+    } catch (error) {
       toast({
-        title: "Gagal",
-        description: error.message,
+        title: "Terjadi Kesalahan",
+        description: "Silakan coba lagi",
         variant: "destructive"
       });
-    } else {
-      navigate('/');
     }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -171,8 +270,10 @@ export default function Auth() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-card/20 backdrop-blur-sm flex items-center justify-center">
             <Scale className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-primary-foreground">HukumKu</h1>
-          <p className="text-primary-foreground/80 mt-1">Konsultasi Hukum Online</p>
+          <h1 className="text-2xl font-bold text-primary-foreground">Legal Connect</h1>
+          <p className="text-primary-foreground/80 mt-1 text-sm">
+            Konsultasi Hukum Online & Pendampingan Hukum Professional
+          </p>
         </div>
 
         {/* Auth Form */}
@@ -182,7 +283,7 @@ export default function Auth() {
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">Masuk</TabsTrigger>
-                  <TabsTrigger value="signup">Daftar</TabsTrigger>
+                  <TabsTrigger value="signup">Daftar Lawyer</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="login">
@@ -227,6 +328,7 @@ export default function Auth() {
                     </div>
 
                     <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       {isLoading ? "Loading..." : "Masuk"}
                     </Button>
                   </form>
@@ -234,81 +336,80 @@ export default function Auth() {
 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignup} className="space-y-4">
-                    <div>
-                      <Label htmlFor="signup-name">Nama Lengkap</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-name"
-                          type="text"
-                          placeholder="Nama lengkap"
-                          className="pl-10"
-                          value={signupData.fullName}
-                          onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                        />
-                      </div>
-                      {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="signup-email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="email@example.com"
-                          className="pl-10"
-                          value={signupData.email}
-                          onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        />
-                      </div>
-                      {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="signup-password">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Minimal 6 karakter"
-                          className="pl-10 pr-10"
-                          value={signupData.password}
-                          onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
-                    </div>
-
-                    <div>
-                      <Label>Daftar Sebagai</Label>
-                      <RadioGroup
-                        value={signupData.role}
-                        onValueChange={(value) => setSignupData({ ...signupData, role: value as "user" | "lawyer" })}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="user" id="role-user" />
-                          <Label htmlFor="role-user" className="font-normal cursor-pointer">Pengguna</Label>
+                    {/* Basic Info */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="signup-name">Nama Lengkap</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-name"
+                            type="text"
+                            placeholder="Nama lengkap sesuai ijazah"
+                            className="pl-10"
+                            value={signupData.fullName}
+                            onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                          />
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="lawyer" id="role-lawyer" />
-                          <Label htmlFor="role-lawyer" className="font-normal cursor-pointer">Lawyer</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+                        {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
+                      </div>
 
-                    {signupData.role === "lawyer" && (
-                      <div className="animate-fade-in">
+                      <div>
+                        <Label htmlFor="signup-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-email"
+                            type="email"
+                            placeholder="email@example.com"
+                            className="pl-10"
+                            value={signupData.email}
+                            onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                          />
+                        </div>
+                        {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="signup-password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Minimal 6 karakter"
+                            className="pl-10 pr-10"
+                            value={signupData.password}
+                            onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="signup-whatsapp">Nomor WhatsApp Aktif</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-whatsapp"
+                            type="tel"
+                            placeholder="08123456789"
+                            className="pl-10"
+                            value={signupData.whatsapp}
+                            onChange={(e) => setSignupData({ ...signupData, whatsapp: e.target.value })}
+                          />
+                        </div>
+                        {errors.whatsapp && <p className="text-xs text-destructive mt-1">{errors.whatsapp}</p>}
+                      </div>
+
+                      <div>
                         <Label htmlFor="signup-location">Lokasi Praktik</Label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -323,29 +424,115 @@ export default function Auth() {
                         </div>
                         {errors.location && <p className="text-xs text-destructive mt-1">{errors.location}</p>}
                       </div>
+
+                      <div>
+                        <Label htmlFor="signup-education">Pendidikan Terakhir</Label>
+                        <div className="relative">
+                          <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-education"
+                            type="text"
+                            placeholder="Contoh: S1 Hukum Universitas Indonesia"
+                            className="pl-10"
+                            value={signupData.education}
+                            onChange={(e) => setSignupData({ ...signupData, education: e.target.value })}
+                          />
+                        </div>
+                        {errors.education && <p className="text-xs text-destructive mt-1">{errors.education}</p>}
+                      </div>
+                    </div>
+
+                    {/* Document Uploads */}
+                    <div className="space-y-3 pt-2">
+                      <Label className="text-sm font-medium">Upload Dokumen</Label>
+                      <p className="text-xs text-muted-foreground -mt-2">
+                        Format: PDF, JPG, PNG (Max 5MB)
+                      </p>
+                      
+                      {documents.map((doc, index) => (
+                        <div key={doc.type} className="border rounded-lg p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium truncate">{doc.label}</p>
+                                {doc.file && (
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {doc.file.name}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {doc.file ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 shrink-0"
+                                onClick={() => handleFileChange(index, null)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            ) : (
+                              <label className="shrink-0">
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 5 * 1024 * 1024) {
+                                        toast({
+                                          title: "File Terlalu Besar",
+                                          description: "Maksimal 5MB",
+                                          variant: "destructive"
+                                        });
+                                        return;
+                                      }
+                                      handleFileChange(index, file);
+                                    }
+                                  }}
+                                />
+                                <div className="h-7 px-2 bg-secondary text-secondary-foreground rounded-md flex items-center gap-1 cursor-pointer hover:bg-secondary/80 text-xs">
+                                  <Upload className="w-3 h-3" />
+                                  Upload
+                                </div>
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Interview Consent */}
+                    <div className="flex items-start space-x-3 pt-2">
+                      <Checkbox
+                        id="interview-consent"
+                        checked={signupData.interviewConsent}
+                        onCheckedChange={(checked) => 
+                          setSignupData({ ...signupData, interviewConsent: checked === true })
+                        }
+                      />
+                      <label
+                        htmlFor="interview-consent"
+                        className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                      >
+                        Saya bersedia untuk menjalani proses verifikasi dan wawancara untuk memastikan kualifikasi sebagai konsultan hukum di Legal Connect
+                      </label>
+                    </div>
+                    {errors.interviewConsent && (
+                      <p className="text-xs text-destructive">{errors.interviewConsent}</p>
                     )}
 
                     <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Loading..." : "Daftar"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isLoading ? "Mendaftar..." : "Daftar"}
                     </Button>
                   </form>
                 </TabsContent>
               </Tabs>
-
-              {/* Anonymous Option */}
-              <div className="mt-6 pt-4 border-t border-border">
-                <p className="text-center text-sm text-muted-foreground mb-3">
-                  Atau lanjutkan tanpa akun
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleAnonymous}
-                  disabled={isLoading}
-                >
-                  Lanjutkan sebagai Anonim
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

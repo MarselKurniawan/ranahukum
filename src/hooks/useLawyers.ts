@@ -19,6 +19,9 @@ export interface DbLawyer {
   created_at: string;
   approval_status: string;
   submitted_at: string | null;
+  education?: string | null;
+  interview_consent?: boolean;
+  quiz_completed?: boolean;
 }
 
 export function useLawyers() {

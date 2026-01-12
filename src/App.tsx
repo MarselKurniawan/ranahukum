@@ -23,6 +23,7 @@ import LawyerChat from "./pages/LawyerChat";
 import LawyerProfile from "./pages/LawyerProfile";
 import LawyerPricing from "./pages/LawyerPricing";
 import LawyerDocuments from "./pages/LawyerDocuments";
+import LawyerQuiz from "./pages/LawyerQuiz";
 import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import DocumentTemplates from "./pages/DocumentTemplates";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/lawyer/profile" element={<LawyerProfile />} />
             <Route path="/lawyer/pricing" element={<LawyerPricing />} />
             <Route path="/lawyer/documents" element={<LawyerDocuments />} />
+            <Route path="/lawyer/quiz" element={<LawyerQuiz />} />
             <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
             <Route path="/legal-assistance" element={<LegalAssistance />} />
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />

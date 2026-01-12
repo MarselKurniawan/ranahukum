@@ -155,20 +155,89 @@ export type Database = {
           },
         ]
       }
+      lawyer_quiz_answers: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          lawyer_id: string
+          question_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          lawyer_id: string
+          question_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          lawyer_id?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_quiz_answers_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lawyer_quiz_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "lawyer_quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lawyer_quiz_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          question_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          question_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          question_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lawyers: {
         Row: {
           approval_status: string
           consultation_count: number | null
           created_at: string
+          education: string | null
           experience_years: number | null
           id: string
           image_url: string | null
+          interview_consent: boolean | null
           is_available: boolean | null
           is_verified: boolean | null
           location: string | null
           name: string
           pendampingan_price: number | null
           price: number | null
+          quiz_completed: boolean | null
           rating: number | null
           review_count: number | null
           specialization: string[] | null
@@ -180,15 +249,18 @@ export type Database = {
           approval_status?: string
           consultation_count?: number | null
           created_at?: string
+          education?: string | null
           experience_years?: number | null
           id?: string
           image_url?: string | null
+          interview_consent?: boolean | null
           is_available?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           name: string
           pendampingan_price?: number | null
           price?: number | null
+          quiz_completed?: boolean | null
           rating?: number | null
           review_count?: number | null
           specialization?: string[] | null
@@ -200,15 +272,18 @@ export type Database = {
           approval_status?: string
           consultation_count?: number | null
           created_at?: string
+          education?: string | null
           experience_years?: number | null
           id?: string
           image_url?: string | null
+          interview_consent?: boolean | null
           is_available?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           name?: string
           pendampingan_price?: number | null
           price?: number | null
+          quiz_completed?: boolean | null
           rating?: number | null
           review_count?: number | null
           specialization?: string[] | null
@@ -269,6 +344,7 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -279,6 +355,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -289,6 +366,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
