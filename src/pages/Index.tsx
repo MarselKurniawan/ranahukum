@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Shield, MessageCircle, Clock, ChevronRight, Bot, User } from "lucide-react";
+import { Scale, Shield, MessageCircle, Clock, User, Bot } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { SearchBar } from "@/components/SearchBar";
 import { TagFilter } from "@/components/TagFilter";
@@ -104,28 +104,6 @@ export default function Index() {
         </div>
       </div>
 
-      {/* AI Assistant Banner */}
-      <div className="px-4 mt-4">
-        <Card 
-          className="gradient-accent cursor-pointer hover:shadow-elevated transition-all"
-          onClick={() => navigate("/ai-assistant")}
-        >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent-foreground/10 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-accent-foreground text-sm">
-                Tanya AI Dulu
-              </h3>
-              <p className="text-accent-foreground/80 text-xs">
-                Dapatkan jawaban cepat untuk pertanyaan hukum umum
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-accent-foreground/60" />
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Categories */}
       <div className="px-4 mt-6">
@@ -187,6 +165,15 @@ export default function Index() {
           )}
         </div>
       </div>
+
+      {/* Legal Bot Floating Button */}
+      <button
+        onClick={() => navigate("/ai-assistant")}
+        className="fixed bottom-24 right-4 md:right-[calc(50%-215px+16px)] w-14 h-14 rounded-full bg-primary shadow-lg flex items-center justify-center z-40 hover:scale-110 transition-transform"
+        aria-label="Legal Bot"
+      >
+        <Bot className="w-6 h-6 text-primary-foreground" />
+      </button>
     </MobileLayout>
   );
 }

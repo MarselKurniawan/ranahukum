@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { useCreateConsultation } from "@/hooks/useConsultations";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,19 @@ export default function Booking() {
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Login Diperlukan",
+        description: "Silakan login terlebih dahulu untuk melakukan konsultasi",
+        variant: "destructive",
+      });
+      navigate('/auth', { state: { returnTo: `/booking/${id}` } });
+    }
+  }, [user, navigate, id]);
 
   if (isLoading) {
     return (
@@ -60,12 +74,7 @@ export default function Booking() {
 
   const handlePayment = async () => {
     if (!user) {
-      toast({
-        title: "Login Diperlukan",
-        description: "Silakan login terlebih dahulu",
-        variant: "destructive",
-      });
-      navigate('/auth');
+      navigate('/auth', { state: { returnTo: `/booking/${id}` } });
       return;
     }
 
@@ -149,6 +158,25 @@ export default function Booking() {
                 <span className="text-xs">Konsultasi ~30 menit</span>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Anonymous Toggle */}
+        <Card className="mb-4 border-muted">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                <UserX className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Konsultasi Anonim</p>
+                <p className="text-xs text-muted-foreground">Sembunyikan identitas Anda dari pengacara</p>
+              </div>
+            </div>
+            <Switch
+              checked={isAnonymous}
+              onCheckedChange={setIsAnonymous}
+            />
           </CardContent>
         </Card>
 

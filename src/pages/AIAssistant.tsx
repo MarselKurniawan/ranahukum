@@ -116,7 +116,7 @@ Apakah Anda ingin dihubungkan dengan pengacara yang sesuai?`;
               <Bot className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm">Asisten Hukum AI</h2>
+              <h2 className="font-semibold text-sm">Legal Bot</h2>
               <p className="text-xs text-muted-foreground">
                 {selectedCategory ? lawCategories.find(c => c.id === selectedCategory)?.name : "Pilih kategori hukum"}
               </p>
@@ -134,7 +134,7 @@ Apakah Anda ingin dihubungkan dengan pengacara yang sesuai?`;
               <div className="w-16 h-16 rounded-2xl gradient-accent flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-8 h-8 text-accent-foreground" />
               </div>
-              <h2 className="font-semibold text-lg mb-2">Halo! Saya Asisten Hukum AI</h2>
+              <h2 className="font-semibold text-lg mb-2">Halo! Saya Legal Bot</h2>
               <p className="text-muted-foreground text-sm">
                 Pilih kategori hukum yang ingin Anda tanyakan
               </p>

@@ -14,6 +14,9 @@ import AIAssistant from "./pages/AIAssistant";
 import Consultations from "./pages/Consultations";
 import ConsultationHistory from "./pages/ConsultationHistory";
 import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
+import Notifications from "./pages/Notifications";
+import TransactionHistory from "./pages/TransactionHistory";
 import Auth from "./pages/Auth";
 import LawyerDashboard from "./pages/LawyerDashboard";
 import LawyerChat from "./pages/LawyerChat";
@@ -50,6 +53,9 @@ const App = () => (
             <Route path="/consultations" element={<Consultations />} />
             <Route path="/consultation/:id" element={<ConsultationHistory />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/edit" element={<ProfileEdit />} />
+            <Route path="/profile/notifications" element={<Notifications />} />
+            <Route path="/profile/transactions" element={<TransactionHistory />} />
             <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
             <Route path="/lawyer/profile" element={<LawyerProfile />} />
             <Route path="/lawyer/pricing" element={<LawyerPricing />} />
