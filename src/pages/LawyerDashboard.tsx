@@ -52,6 +52,16 @@ export default function LawyerDashboard() {
   }, [lawyerProfile]);
 
   const handleToggleOnline = async (checked: boolean) => {
+    // Block if not approved yet
+    if (checked && lawyerProfile?.approval_status !== 'approved') {
+      toast({
+        title: "Akun Belum Disetujui",
+        description: "Akun Anda masih menunggu persetujuan dari admin. Anda belum bisa mengaktifkan status online.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Block if profile is not complete
     if (checked && profileCompletion && !profileCompletion.isComplete) {
       toast({
@@ -69,6 +79,9 @@ export default function LawyerDashboard() {
       setIsOnline(!checked); // Revert on error
     }
   };
+
+  // Check if lawyer can go online
+  const canGoOnline = lawyerProfile?.approval_status === 'approved' && profileCompletion?.isComplete;
 
   if (loading || loadingConsultations || loadingProfile) {
     return (
@@ -259,10 +272,29 @@ export default function LawyerDashboard() {
             <Switch 
               checked={isOnline} 
               onCheckedChange={handleToggleOnline}
-              disabled={updateProfile.isPending}
+              disabled={updateProfile.isPending || !canGoOnline}
             />
           </div>
         </div>
+
+        {/* Approval Status Alert */}
+        {lawyerProfile?.approval_status !== 'approved' && (
+          <div className="mt-3 bg-warning/20 border border-warning/30 rounded-xl p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-warning" />
+              <span className="text-sm text-primary-foreground font-medium">
+                {lawyerProfile?.approval_status === 'pending' ? 'Menunggu Persetujuan Admin' :
+                 lawyerProfile?.approval_status === 'rejected' ? 'Pendaftaran Ditolak' :
+                 'Status Tidak Diketahui'}
+              </span>
+            </div>
+            <p className="text-xs text-primary-foreground/70 mt-1">
+              {lawyerProfile?.approval_status === 'pending' 
+                ? 'Akun Anda sedang dalam proses review. Anda tidak dapat online sampai disetujui.'
+                : 'Silakan hubungi admin untuk informasi lebih lanjut.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
