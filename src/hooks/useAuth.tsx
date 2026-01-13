@@ -12,7 +12,6 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, role: AppRole, location?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null; suspended?: boolean }>;
   signOut: () => Promise<void>;
-  signInAnonymously: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -159,11 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
-  const signInAnonymously = async () => {
-    const { error } = await supabase.auth.signInAnonymously();
-    return { error: error as Error | null };
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -172,8 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signUp,
       signIn,
-      signOut,
-      signInAnonymously
+      signOut
     }}>
       {children}
     </AuthContext.Provider>

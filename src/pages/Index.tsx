@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scale, Shield, MessageCircle, Clock, User, Bot } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -7,9 +7,9 @@ import { TagFilter } from "@/components/TagFilter";
 import { LawyerCard } from "@/components/LawyerCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { specializations } from "@/data/mockLawyers";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyers } from "@/hooks/useLawyers";
+import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const features = [
@@ -22,8 +22,14 @@ export default function Index() {
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const { data: lawyers, isLoading } = useLawyers();
+  const { data: specializationTypes = [] } = useSpecializationTypes();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
+
+  // Build specializations from database
+  const specializations = useMemo(() => {
+    return ["Semua", ...specializationTypes.map(s => s.name)];
+  }, [specializationTypes]);
 
   const handleTagClick = (tag: string) => {
     if (tag === "Semua") {
@@ -65,7 +71,7 @@ export default function Index() {
             onClick={() => navigate(user ? '/profile' : '/auth')}
           >
             <User className="w-4 h-4 mr-1" />
-            {user ? (user.is_anonymous ? 'Anonim' : 'Profil') : 'Masuk'}
+            {user ? 'Profil' : 'Masuk'}
           </Button>
         </div>
 
