@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       consultations: {
         Row: {
           client_id: string
@@ -330,6 +357,141 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      legal_assistance_messages: {
+        Row: {
+          content: string
+          created_at: string
+          file_url: string | null
+          id: string
+          is_price_offer: boolean | null
+          message_type: string
+          offered_price: number | null
+          request_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_price_offer?: boolean | null
+          message_type?: string
+          offered_price?: number | null
+          request_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_price_offer?: boolean | null
+          message_type?: string
+          offered_price?: number | null
+          request_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_assistance_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_assistance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_assistance_requests: {
+        Row: {
+          agreed_price: number | null
+          case_description: string
+          client_id: string
+          created_at: string
+          current_stage: string | null
+          id: string
+          lawyer_id: string
+          payment_status: string
+          proposed_price: number | null
+          stage_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agreed_price?: number | null
+          case_description: string
+          client_id: string
+          created_at?: string
+          current_stage?: string | null
+          id?: string
+          lawyer_id: string
+          payment_status?: string
+          proposed_price?: number | null
+          stage_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agreed_price?: number | null
+          case_description?: string
+          client_id?: string
+          created_at?: string
+          current_stage?: string | null
+          id?: string
+          lawyer_id?: string
+          payment_status?: string
+          proposed_price?: number | null
+          stage_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_assistance_requests_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_assistance_status_history: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          request_id: string
+          stage: string | null
+          status: string
+          updated_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id: string
+          stage?: string | null
+          status: string
+          updated_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+          stage?: string | null
+          status?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_assistance_status_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_assistance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
