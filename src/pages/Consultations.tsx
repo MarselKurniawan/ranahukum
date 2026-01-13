@@ -14,6 +14,23 @@ export default function Consultations() {
   const { user } = useAuth();
   const { data: consultations = [], isLoading } = useConsultations();
 
+  // Debug logs untuk melihat data yang dimuat
+  console.log("=== DEBUG CONSULTATIONS ===");
+  console.log("Current User:", user?.id, user?.email);
+  console.log("Is Loading:", isLoading);
+  console.log("All Consultations:", consultations);
+  console.log("Consultations Count:", consultations.length);
+  consultations.forEach((c, i) => {
+    console.log(`Consultation ${i + 1}:`, {
+      id: c.id,
+      topic: c.topic,
+      status: c.status,
+      lawyer: c.lawyers?.name,
+      created_at: c.created_at
+    });
+  });
+  console.log("=== END DEBUG ===");
+
   const activeConsultations = consultations.filter((c) => 
     c.status === "active" || c.status === "pending" || c.status === "accepted"
   );
