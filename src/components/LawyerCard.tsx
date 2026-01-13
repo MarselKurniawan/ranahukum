@@ -1,6 +1,7 @@
 import { Star, Clock, CheckCircle, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAppSetting } from "@/hooks/useLegalAssistance";
 
 interface LawyerCardProps {
   id: string;
@@ -23,13 +24,19 @@ export function LawyerCard({
   specializations,
   rating,
   consultationCount,
-  price,
   isOnline = false,
   responseTime = "< 5 menit",
   location,
   isVerified = false,
   onClick,
 }: LawyerCardProps) {
+  const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
+  
+  // Get consultation price from global settings
+  const consultationPrice = chatPriceSetting 
+    ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
+    : 50000;
+
   return (
     <Card 
       className="hover:shadow-elevated cursor-pointer transition-all duration-300 hover:-translate-y-0.5 animate-fade-in"
@@ -91,7 +98,7 @@ export function LawyerCard({
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Mulai dari</p>
-            <p className="font-semibold text-primary">Rp {price.toLocaleString("id-ID")}</p>
+            <p className="font-semibold text-primary">Rp {consultationPrice.toLocaleString("id-ID")}</p>
           </div>
         </div>
       </CardContent>
