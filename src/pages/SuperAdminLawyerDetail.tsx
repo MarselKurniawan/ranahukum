@@ -313,30 +313,17 @@ export default function SuperAdminLawyerDetail() {
             </TabsList>
           </ScrollArea>
 
-          {/* Pricing Tab */}
+          {/* Pricing Tab - Only for Pendampingan */}
           {!isPending && (
             <TabsContent value="pricing">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Atur Tarif Layanan</CardTitle>
+                  <CardTitle className="text-sm">Atur Tarif Pendampingan</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Tarif konsultasi chat diatur secara global di Pengaturan
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Tarif Konsultasi Chat</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
-                      <Input
-                        id="price"
-                        type="number"
-                        min="0"
-                        step="1000"
-                        className="pl-10"
-                        value={priceForm.price}
-                        onChange={(e) => setPriceForm(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
-                      />
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="pendampingan_price">Tarif Pendampingan</Label>
                     <div className="relative">

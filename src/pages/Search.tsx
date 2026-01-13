@@ -4,12 +4,13 @@ import { MobileLayout } from "@/components/MobileLayout";
 import { SearchBar } from "@/components/SearchBar";
 import { TagFilter } from "@/components/TagFilter";
 import { LawyerCard } from "@/components/LawyerCard";
-import { specializations } from "@/data/mockLawyers";
 import { useLawyers } from "@/hooks/useLawyers";
+import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Banknote, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, SlidersHorizontal, X, Search as SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -18,30 +19,34 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-
-const PRICE_RANGES = [
-  { label: "Semua Harga", min: 0, max: Infinity },
-  { label: "< Rp 100.000", min: 0, max: 100000 },
-  { label: "Rp 100.000 - Rp 200.000", min: 100000, max: 200000 },
-  { label: "Rp 200.000 - Rp 500.000", min: 200000, max: 500000 },
-  { label: "> Rp 500.000", min: 500000, max: Infinity },
-];
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function Search() {
   const navigate = useNavigate();
   const { data: lawyers, isLoading } = useLawyers();
+  const { data: specializationTypes = [] } = useSpecializationTypes();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [selectedPriceRange, setSelectedPriceRange] = useState<number>(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+
+  // Build specializations from database
+  const specializations = useMemo(() => {
+    return ["Semua", ...specializationTypes.map(s => s.name)];
+  }, [specializationTypes]);
 
   // Get unique locations from lawyers
   const locations = useMemo(() => {
@@ -51,6 +56,14 @@ export default function Search() {
       .filter((loc): loc is string => !!loc);
     return [...new Set(locs)].sort();
   }, [lawyers]);
+
+  // Filter locations based on search
+  const filteredLocations = useMemo(() => {
+    if (!locationSearch) return locations;
+    return locations.filter(loc => 
+      loc.toLowerCase().includes(locationSearch.toLowerCase())
+    );
+  }, [locations, locationSearch]);
 
   const handleTagClick = (tag: string) => {
     if (tag === "Semua") {
@@ -65,13 +78,11 @@ export default function Search() {
 
   const clearFilters = () => {
     setSelectedLocation("all");
-    setSelectedPriceRange(0);
     setSelectedTags(["Semua"]);
   };
 
   const activeFiltersCount = 
     (selectedLocation !== "all" ? 1 : 0) + 
-    (selectedPriceRange !== 0 ? 1 : 0) +
     (selectedTags.length > 0 && !selectedTags.includes("Semua") ? 1 : 0);
 
   const filteredLawyers = useMemo(() => {
@@ -91,20 +102,14 @@ export default function Search() {
         selectedTags.includes("Semua") ||
         lawyer.specialization.some((s) => selectedTags.includes(s));
       
-      // Location filter
+      // Location filter - "all" means Seluruh Indonesia
       const matchesLocation =
         selectedLocation === "all" ||
         lawyer.location === selectedLocation;
-      
-      // Price filter
-      const priceRange = PRICE_RANGES[selectedPriceRange];
-      const matchesPrice =
-        (lawyer.price || 0) >= priceRange.min &&
-        (lawyer.price || 0) < priceRange.max;
 
-      return matchesSearch && matchesTags && matchesLocation && matchesPrice;
+      return matchesSearch && matchesTags && matchesLocation;
     });
-  }, [lawyers, searchQuery, selectedTags, selectedLocation, selectedPriceRange]);
+  }, [lawyers, searchQuery, selectedTags, selectedLocation]);
 
   return (
     <MobileLayout>
@@ -144,49 +149,64 @@ export default function Search() {
               </SheetHeader>
               
               <div className="py-6 space-y-6">
-                {/* Location Filter */}
+                {/* Location Filter - Searchable */}
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-sm font-medium">
                     <MapPin className="w-4 h-4 text-muted-foreground" />
                     Lokasi
                   </label>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih lokasi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Lokasi</SelectItem>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Price Filter */}
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 text-sm font-medium">
-                    <Banknote className="w-4 h-4 text-muted-foreground" />
-                    Rentang Harga
-                  </label>
-                  <div className="space-y-3">
-                    <Slider
-                      value={[selectedPriceRange]}
-                      onValueChange={(v) => setSelectedPriceRange(v[0])}
-                      max={PRICE_RANGES.length - 1}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between">
-                      <span className="text-xs text-muted-foreground">Murah</span>
-                      <span className="text-sm font-medium text-primary">
-                        {PRICE_RANGES[selectedPriceRange].label}
-                      </span>
-                      <span className="text-xs text-muted-foreground">Mahal</span>
-                    </div>
-                  </div>
+                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={locationOpen}
+                        className="w-full justify-between"
+                      >
+                        {selectedLocation === "all" 
+                          ? "Seluruh Indonesia" 
+                          : selectedLocation}
+                        <MapPin className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Cari lokasi..." 
+                          value={locationSearch}
+                          onValueChange={setLocationSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Lokasi tidak ditemukan</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="all"
+                              onSelect={() => {
+                                setSelectedLocation("all");
+                                setLocationOpen(false);
+                                setLocationSearch("");
+                              }}
+                            >
+                              Seluruh Indonesia
+                            </CommandItem>
+                            {filteredLocations.map((loc) => (
+                              <CommandItem
+                                key={loc}
+                                value={loc}
+                                onSelect={() => {
+                                  setSelectedLocation(loc);
+                                  setLocationOpen(false);
+                                  setLocationSearch("");
+                                }}
+                              >
+                                {loc}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <Button 
@@ -209,15 +229,6 @@ export default function Search() {
                 <MapPin className="w-3 h-3" />
                 {selectedLocation}
                 <button onClick={() => setSelectedLocation("all")}>
-                  <X className="w-3 h-3 ml-1" />
-                </button>
-              </Badge>
-            )}
-            {selectedPriceRange !== 0 && (
-              <Badge variant="secondary" className="gap-1">
-                <Banknote className="w-3 h-3" />
-                {PRICE_RANGES[selectedPriceRange].label}
-                <button onClick={() => setSelectedPriceRange(0)}>
                   <X className="w-3 h-3 ml-1" />
                 </button>
               </Badge>

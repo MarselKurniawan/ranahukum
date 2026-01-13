@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, MapPin, Star, Briefcase, Shield, 
-  MessageCircle, Filter, Search, ChevronRight
+  MessageCircle, Filter, Search, ChevronRight, Banknote, X
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLawyers } from "@/hooks/useLawyers";
+import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
+import { Slider } from "@/components/ui/slider";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -27,36 +35,71 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-const provinces = [
-  "Semua Provinsi",
-  "DKI Jakarta",
-  "Jawa Barat",
-  "Jawa Tengah",
-  "Jawa Timur",
-  "DI Yogyakarta",
-  "Bali",
+const PRICE_RANGES = [
+  { label: "Semua Harga", min: 0, max: Infinity },
+  { label: "< Rp 5.000.000", min: 0, max: 5000000 },
+  { label: "Rp 5.000.000 - Rp 10.000.000", min: 5000000, max: 10000000 },
+  { label: "Rp 10.000.000 - Rp 25.000.000", min: 10000000, max: 25000000 },
+  { label: "> Rp 25.000.000", min: 25000000, max: Infinity },
 ];
 
 export default function LegalAssistance() {
   const navigate = useNavigate();
   const { data: lawyers, isLoading } = useLawyers();
+  const { data: specializationTypes = [] } = useSpecializationTypes();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("Semua Provinsi");
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedSpec, setSelectedSpec] = useState("Semua");
+  const [selectedPriceRange, setSelectedPriceRange] = useState(0);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+
+  // Build specializations from database
+  const specializations = useMemo(() => {
+    return ["Semua", ...specializationTypes.map(s => s.name)];
+  }, [specializationTypes]);
+
+  // Get unique locations from lawyers
+  const locations = useMemo(() => {
+    if (!lawyers) return [];
+    const locs = lawyers
+      .map((l) => l.location)
+      .filter((loc): loc is string => !!loc);
+    return [...new Set(locs)].sort();
+  }, [lawyers]);
+
+  // Filter locations based on search
+  const filteredLocations = useMemo(() => {
+    if (!locationSearch) return locations;
+    return locations.filter(loc => 
+      loc.toLowerCase().includes(locationSearch.toLowerCase())
+    );
+  }, [locations, locationSearch]);
 
   const filteredLawyers = (lawyers || []).filter((lawyer) => {
     const matchesSearch = lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lawyer.specialization.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (lawyer.location || '').toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesProvince = selectedProvince === "Semua Provinsi" || 
-      (lawyer.location || '').includes(selectedProvince.replace('DKI ', '').replace('DI ', ''));
+    const matchesLocation = selectedLocation === "all" || 
+      lawyer.location === selectedLocation;
 
     const matchesSpec = selectedSpec === "Semua" ||
       lawyer.specialization.some(s => s.toLowerCase().includes(selectedSpec.toLowerCase()));
 
-    return matchesSearch && matchesProvince && matchesSpec && lawyer.pendampingan_price;
+    // Price filter for pendampingan
+    const priceRange = PRICE_RANGES[selectedPriceRange];
+    const matchesPrice =
+      (lawyer.pendampingan_price || 0) >= priceRange.min &&
+      (lawyer.pendampingan_price || 0) < priceRange.max;
+
+    return matchesSearch && matchesLocation && matchesSpec && matchesPrice && lawyer.pendampingan_price;
   });
+
+  const activeFiltersCount = 
+    (selectedLocation !== "all" ? 1 : 0) + 
+    (selectedPriceRange !== 0 ? 1 : 0) +
+    (selectedSpec !== "Semua" ? 1 : 0);
 
   return (
     <MobileLayout>
@@ -85,25 +128,72 @@ export default function LegalAssistance() {
           </div>
 
           <div className="flex gap-2">
-            <Select value={selectedProvince} onValueChange={setSelectedProvince}>
-              <SelectTrigger className="flex-1 h-9 text-xs rounded-full">
-                <MapPin className="w-3 h-3 mr-1" />
-                <SelectValue placeholder="Provinsi" />
-              </SelectTrigger>
-              <SelectContent>
-                {provinces.map((province) => (
-                  <SelectItem key={province} value={province}>
-                    {province}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Searchable Location Dropdown */}
+            <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={locationOpen}
+                  className="flex-1 h-9 text-xs rounded-full justify-between"
+                >
+                  <div className="flex items-center gap-1 truncate">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="truncate">
+                      {selectedLocation === "all" ? "Seluruh Indonesia" : selectedLocation}
+                    </span>
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0" align="start">
+                <Command>
+                  <CommandInput 
+                    placeholder="Cari lokasi..." 
+                    value={locationSearch}
+                    onValueChange={setLocationSearch}
+                  />
+                  <CommandList>
+                    <CommandEmpty>Lokasi tidak ditemukan</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setSelectedLocation("all");
+                          setLocationOpen(false);
+                          setLocationSearch("");
+                        }}
+                      >
+                        Seluruh Indonesia
+                      </CommandItem>
+                      {filteredLocations.map((loc) => (
+                        <CommandItem
+                          key={loc}
+                          value={loc}
+                          onSelect={() => {
+                            setSelectedLocation(loc);
+                            setLocationOpen(false);
+                            setLocationSearch("");
+                          }}
+                        >
+                          {loc}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 rounded-full gap-1">
+                <Button variant="outline" size="sm" className="h-9 rounded-full gap-1 relative">
                   <Filter className="w-3 h-3" />
                   Filter
+                  {activeFiltersCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="rounded-t-2xl">
@@ -114,10 +204,11 @@ export default function LegalAssistance() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="py-4 space-y-4">
+                  {/* Specialization Filter */}
                   <div>
                     <label className="text-sm font-medium mb-2 block">Spesialisasi</label>
                     <div className="flex flex-wrap gap-2">
-                      {["Semua", "Perceraian", "Pertanahan", "Pidana", "Perdata", "Bisnis"].map((spec) => (
+                      {specializations.map((spec) => (
                         <Badge
                           key={spec}
                           variant={selectedSpec === spec ? "default" : "outline"}
@@ -129,10 +220,66 @@ export default function LegalAssistance() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Price Filter for Pendampingan */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Banknote className="w-4 h-4 text-muted-foreground" />
+                      Rentang Harga Pendampingan
+                    </label>
+                    <div className="space-y-3">
+                      <Slider
+                        value={[selectedPriceRange]}
+                        onValueChange={(v) => setSelectedPriceRange(v[0])}
+                        max={PRICE_RANGES.length - 1}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Murah</span>
+                        <span className="text-sm font-medium text-primary">
+                          {PRICE_RANGES[selectedPriceRange].label}
+                        </span>
+                        <span className="text-xs text-muted-foreground">Mahal</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
+
+          {/* Active Filters Display */}
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedLocation !== "all" && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  <MapPin className="w-3 h-3" />
+                  {selectedLocation}
+                  <button onClick={() => setSelectedLocation("all")}>
+                    <X className="w-3 h-3 ml-1" />
+                  </button>
+                </Badge>
+              )}
+              {selectedSpec !== "Semua" && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  {selectedSpec}
+                  <button onClick={() => setSelectedSpec("Semua")}>
+                    <X className="w-3 h-3 ml-1" />
+                  </button>
+                </Badge>
+              )}
+              {selectedPriceRange !== 0 && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  <Banknote className="w-3 h-3" />
+                  {PRICE_RANGES[selectedPriceRange].label}
+                  <button onClick={() => setSelectedPriceRange(0)}>
+                    <X className="w-3 h-3 ml-1" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
