@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Clock, Check } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Clock, Check, FileText, DollarSign } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsultations } from "@/hooks/useConsultations";
+import { useClientAssistanceRequests } from "@/hooks/useLegalAssistance";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +21,8 @@ import { id as localeId } from "date-fns/locale";
 export default function TransactionHistory() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: consultations, isLoading, refetch } = useConsultations();
+  const { data: consultations, isLoading: consultLoading, refetch } = useConsultations();
+  const { data: assistanceRequests = [], isLoading: assistanceLoading } = useClientAssistanceRequests();
   const { toast } = useToast();
 
   const [selectedRating, setSelectedRating] = useState(0);
@@ -44,12 +47,20 @@ export default function TransactionHistory() {
   };
 
   // Fetch on mount
-  useState(() => {
+  useEffect(() => {
     fetchReviewedLawyers();
-  });
+  }, [user]);
 
   const completedConsultations = consultations?.filter(c => c.status === 'completed') || [];
   const activeConsultations = consultations?.filter(c => c.status !== 'completed' && c.status !== 'cancelled') || [];
+
+  // Assistance requests filtering
+  const activeAssistance = assistanceRequests.filter(r => 
+    ['pending', 'negotiating', 'agreed', 'in_progress'].includes(r.status)
+  );
+  const completedAssistance = assistanceRequests.filter(r => 
+    ['completed', 'cancelled', 'rejected'].includes(r.status)
+  );
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "d MMM yyyy, HH:mm", { locale: localeId });
@@ -65,6 +76,36 @@ export default function TransactionHistory() {
     };
     const config = variants[status] || { label: status, variant: "secondary" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getAssistanceStatusBadge = (status: string) => {
+    const variants: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "warning" | "success" | "accent" }> = {
+      pending: { label: "Menunggu", variant: "warning" },
+      negotiating: { label: "Negosiasi", variant: "accent" },
+      agreed: { label: "Deal", variant: "success" },
+      in_progress: { label: "Berlangsung", variant: "default" },
+      completed: { label: "Selesai", variant: "secondary" },
+      cancelled: { label: "Dibatalkan", variant: "destructive" },
+      rejected: { label: "Ditolak", variant: "destructive" },
+    };
+    const config = variants[status] || { label: status, variant: "secondary" as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getStageLabel = (stage: string | null) => {
+    if (!stage) return null;
+    const stages: Record<string, string> = {
+      initial_consultation: "Konsultasi Awal",
+      document_collection: "Pengumpulan Berkas",
+      document_review: "Review Dokumen",
+      legal_drafting: "Penyusunan Dokumen",
+      negotiation: "Negosiasi",
+      court_preparation: "Persiapan Pengadilan",
+      court_session: "Sidang Pengadilan",
+      awaiting_verdict: "Menunggu Putusan",
+      completed: "Selesai",
+    };
+    return stages[stage] || stage;
   };
 
   const handleOpenReview = (consultation: any) => {
@@ -213,6 +254,101 @@ export default function TransactionHistory() {
     </Card>
   );
 
+  const AssistanceCard = ({ request, showActions = false }: { request: any; showActions?: boolean }) => (
+    <Card 
+      className="mb-3 cursor-pointer hover:shadow-elevated transition-all"
+      onClick={() => navigate(`/legal-assistance/chat/${request.id}`)}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={request.lawyer?.image_url} />
+            <AvatarFallback>{request.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-sm truncate">{request.lawyer?.name}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">{request.case_description}</p>
+              </div>
+              {getAssistanceStatusBadge(request.status)}
+            </div>
+            
+            {request.current_stage && ['agreed', 'in_progress'].includes(request.status) && (
+              <div className="mt-2 p-2 bg-primary/5 rounded-lg">
+                <div className="flex items-center gap-2 text-xs">
+                  <FileText className="w-3 h-3 text-primary" />
+                  <span className="font-medium">Tahap: {getStageLabel(request.current_stage)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{formatDate(request.created_at)}</span>
+              </div>
+              {request.agreed_price && (
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
+                  <span className="font-medium text-foreground">
+                    Rp {request.agreed_price?.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {showActions && request.status === 'completed' && (
+              <div className="mt-3 pt-3 border-t border-border flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/legal-assistance/chat/${request.id}`);
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  Lihat Detail
+                </Button>
+                {hasReviewed(request.lawyer_id) ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    disabled
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Check className="w-4 h-4 mr-1" />
+                    Sudah Diulas
+                  </Button>
+                ) : (
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenReview({
+                        lawyer_id: request.lawyer_id,
+                        lawyers: request.lawyer,
+                        topic: request.case_description
+                      });
+                    }}
+                  >
+                    <Star className="w-4 h-4 mr-1" />
+                    Beri Ulasan
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <MobileLayout showBottomNav={false}>
       {/* Header */}
@@ -226,75 +362,162 @@ export default function TransactionHistory() {
       </div>
 
       <div className="p-4">
-        <Tabs defaultValue="active">
+        <Tabs defaultValue="consultation">
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="active">
-              Aktif {activeConsultations.length > 0 && `(${activeConsultations.length})`}
+            <TabsTrigger value="consultation">
+              Konsultasi
             </TabsTrigger>
-            <TabsTrigger value="completed">
-              Selesai {completedConsultations.length > 0 && `(${completedConsultations.length})`}
+            <TabsTrigger value="assistance">
+              Pendampingan
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="active">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="mb-3">
-                  <CardContent className="p-4">
-                    <div className="flex gap-3">
-                      <Skeleton className="w-12 h-12 rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : activeConsultations.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Tidak ada konsultasi aktif</p>
-                <Button 
-                  variant="gradient" 
-                  className="mt-4"
-                  onClick={() => navigate('/search')}
-                >
-                  Cari Pengacara
-                </Button>
-              </div>
-            ) : (
-              activeConsultations.map((consultation) => (
-                <ConsultationCard key={consultation.id} consultation={consultation} />
-              ))
-            )}
+          <TabsContent value="consultation">
+            <Tabs defaultValue="active">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="active">
+                  Aktif {activeConsultations.length > 0 && `(${activeConsultations.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Selesai {completedConsultations.length > 0 && `(${completedConsultations.length})`}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active">
+                {consultLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="mb-3">
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <Skeleton className="w-12 h-12 rounded-lg" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : activeConsultations.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Tidak ada konsultasi aktif</p>
+                    <Button 
+                      variant="gradient" 
+                      className="mt-4"
+                      onClick={() => navigate('/search')}
+                    >
+                      Cari Pengacara
+                    </Button>
+                  </div>
+                ) : (
+                  activeConsultations.map((consultation) => (
+                    <ConsultationCard key={consultation.id} consultation={consultation} />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed">
+                {consultLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="mb-3">
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <Skeleton className="w-12 h-12 rounded-lg" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : completedConsultations.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Belum ada konsultasi selesai</p>
+                  </div>
+                ) : (
+                  completedConsultations.map((consultation) => (
+                    <ConsultationCard key={consultation.id} consultation={consultation} showReviewButton />
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="completed">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="mb-3">
-                  <CardContent className="p-4">
-                    <div className="flex gap-3">
-                      <Skeleton className="w-12 h-12 rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : completedConsultations.length === 0 ? (
-              <div className="text-center py-12">
-                <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Belum ada konsultasi selesai</p>
-              </div>
-            ) : (
-              completedConsultations.map((consultation) => (
-                <ConsultationCard key={consultation.id} consultation={consultation} showReviewButton />
-              ))
-            )}
+          <TabsContent value="assistance">
+            <Tabs defaultValue="active">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="active">
+                  Aktif {activeAssistance.length > 0 && `(${activeAssistance.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Selesai {completedAssistance.length > 0 && `(${completedAssistance.length})`}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active">
+                {assistanceLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="mb-3">
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <Skeleton className="w-12 h-12 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : activeAssistance.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Tidak ada pendampingan aktif</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => navigate('/legal-assistance')}
+                    >
+                      Cari Pengacara
+                    </Button>
+                  </div>
+                ) : (
+                  activeAssistance.map((request) => (
+                    <AssistanceCard key={request.id} request={request} />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed">
+                {assistanceLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="mb-3">
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <Skeleton className="w-12 h-12 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : completedAssistance.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Belum ada pendampingan selesai</p>
+                  </div>
+                ) : (
+                  completedAssistance.map((request) => (
+                    <AssistanceCard key={request.id} request={request} showActions />
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>

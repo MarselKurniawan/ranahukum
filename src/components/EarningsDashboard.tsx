@@ -17,10 +17,10 @@ interface EarningsDashboardProps {
   lawyerId?: string;
 }
 
-interface ConsultationData {
+interface TransactionData {
   id: string;
   price: number;
-  status: string;
+  type: 'consultation' | 'assistance';
   created_at: string;
   ended_at: string | null;
   topic: string;
@@ -32,23 +32,34 @@ interface ConsultationData {
 export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
   const [period, setPeriod] = useState("6months");
 
-  const { data: consultations = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['lawyer-earnings', lawyerId],
     queryFn: async () => {
       if (!lawyerId) return [];
       
-      const { data, error } = await supabase
+      // Fetch completed consultations
+      const { data: consultations, error: consultError } = await supabase
         .from('consultations')
         .select('id, price, status, created_at, ended_at, topic, client_id')
         .eq('lawyer_id', lawyerId)
         .eq('status', 'completed')
         .order('ended_at', { ascending: false });
 
-      if (error) throw error;
+      if (consultError) throw consultError;
 
-      // Fetch client profiles
-      const enrichedData = await Promise.all(
-        (data || []).map(async (consultation) => {
+      // Fetch completed legal assistance requests
+      const { data: assistanceRequests, error: assistError } = await supabase
+        .from('legal_assistance_requests')
+        .select('id, agreed_price, status, created_at, updated_at, case_description, client_id')
+        .eq('lawyer_id', lawyerId)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false });
+
+      if (assistError) throw assistError;
+
+      // Enrich consultations with client profiles
+      const enrichedConsultations = await Promise.all(
+        (consultations || []).map(async (consultation) => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name')
@@ -56,13 +67,47 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
             .maybeSingle();
 
           return {
-            ...consultation,
+            id: consultation.id,
+            price: consultation.price,
+            type: 'consultation' as const,
+            created_at: consultation.created_at,
+            ended_at: consultation.ended_at,
+            topic: consultation.topic,
             profiles: profile || undefined
           };
         })
       );
 
-      return enrichedData as ConsultationData[];
+      // Enrich assistance requests with client profiles
+      const enrichedAssistance = await Promise.all(
+        (assistanceRequests || []).map(async (request) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', request.client_id)
+            .maybeSingle();
+
+          return {
+            id: request.id,
+            price: request.agreed_price || 0,
+            type: 'assistance' as const,
+            created_at: request.created_at,
+            ended_at: request.updated_at,
+            topic: request.case_description,
+            profiles: profile || undefined
+          };
+        })
+      );
+
+      // Combine and sort by date
+      const allTransactions = [...enrichedConsultations, ...enrichedAssistance]
+        .sort((a, b) => {
+          const dateA = new Date(a.ended_at || a.created_at).getTime();
+          const dateB = new Date(b.ended_at || b.created_at).getTime();
+          return dateB - dateA;
+        });
+
+      return allTransactions as TransactionData[];
     },
     enabled: !!lawyerId
   });
@@ -92,20 +137,20 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
     const periodDiff = now.getTime() - startDate.getTime();
     previousStartDate.setTime(startDate.getTime() - periodDiff);
 
-    const filteredConsultations = consultations.filter(c => {
-      const endDate = c.ended_at ? new Date(c.ended_at) : new Date(c.created_at);
+    const filteredTransactions = transactions.filter(t => {
+      const endDate = t.ended_at ? new Date(t.ended_at) : new Date(t.created_at);
       return endDate >= startDate;
     });
 
-    const previousConsultations = consultations.filter(c => {
-      const endDate = c.ended_at ? new Date(c.ended_at) : new Date(c.created_at);
+    const previousTransactions = transactions.filter(t => {
+      const endDate = t.ended_at ? new Date(t.ended_at) : new Date(t.created_at);
       return endDate >= previousStartDate && endDate < startDate;
     });
 
-    const totalEarnings = filteredConsultations.reduce((sum, c) => sum + c.price, 0);
-    const previousEarnings = previousConsultations.reduce((sum, c) => sum + c.price, 0);
-    const totalConsultations = filteredConsultations.length;
-    const averagePerConsultation = totalConsultations > 0 ? totalEarnings / totalConsultations : 0;
+    const totalEarnings = filteredTransactions.reduce((sum, t) => sum + t.price, 0);
+    const previousEarnings = previousTransactions.reduce((sum, t) => sum + t.price, 0);
+    const totalTransactions = filteredTransactions.length;
+    const averagePerTransaction = totalTransactions > 0 ? totalEarnings / totalTransactions : 0;
 
     // Generate monthly data
     const monthlyData: { month: string; amount: number }[] = [];
@@ -115,12 +160,12 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       
-      const monthEarnings = consultations
-        .filter(c => {
-          const endDate = c.ended_at ? new Date(c.ended_at) : new Date(c.created_at);
+      const monthEarnings = transactions
+        .filter(t => {
+          const endDate = t.ended_at ? new Date(t.ended_at) : new Date(t.created_at);
           return endDate >= monthDate && endDate <= monthEnd;
         })
-        .reduce((sum, c) => sum + c.price, 0);
+        .reduce((sum, t) => sum + t.price, 0);
 
       monthlyData.push({
         month: monthDate.toLocaleDateString('id-ID', { month: 'short' }),
@@ -131,12 +176,12 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
     return {
       totalEarnings,
       previousEarnings,
-      totalConsultations,
-      averagePerConsultation,
+      totalTransactions,
+      averagePerTransaction,
       monthlyData,
-      recentTransactions: filteredConsultations.slice(0, 5)
+      recentTransactions: filteredTransactions.slice(0, 5)
     };
-  }, [consultations, period]);
+  }, [transactions, period]);
 
   const growthPercentage = stats.previousEarnings > 0 
     ? ((stats.totalEarnings - stats.previousEarnings) / stats.previousEarnings) * 100
@@ -225,14 +270,14 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
         <Card>
           <CardContent className="p-3 text-center">
             <Users className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">{stats.totalConsultations}</p>
-            <p className="text-[10px] text-muted-foreground">Konsultasi Selesai</p>
+            <p className="text-lg font-bold">{stats.totalTransactions}</p>
+            <p className="text-[10px] text-muted-foreground">Transaksi Selesai</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
             <BarChart3 className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">{formatCurrency(stats.averagePerConsultation)}</p>
+            <p className="text-lg font-bold">{formatCurrency(stats.averagePerTransaction)}</p>
             <p className="text-[10px] text-muted-foreground">Rata-rata</p>
           </CardContent>
         </Card>
@@ -280,7 +325,9 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
                 <div>
                   <p className="text-sm font-medium">{tx.profiles?.full_name || 'Anonim'}</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="tag" className="text-[10px]">Konsultasi</Badge>
+                    <Badge variant={tx.type === 'assistance' ? 'accent' : 'tag'} className="text-[10px]">
+                      {tx.type === 'assistance' ? 'Pendampingan' : 'Konsultasi'}
+                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(tx.ended_at || tx.created_at)}
                     </span>
