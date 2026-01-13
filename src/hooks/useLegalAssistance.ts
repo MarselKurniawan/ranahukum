@@ -568,10 +568,12 @@ export function useAppSetting(key: string) {
 // Update or create app setting (superadmin only)
 export function useUpdateAppSetting() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ key, value, description }: { key: string; value: { amount: number }; description?: string }) => {
+      // Get current user from supabase auth directly
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Try to update first
       const { data: existing } = await supabase
         .from('app_settings')
