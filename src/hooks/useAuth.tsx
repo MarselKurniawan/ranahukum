@@ -10,7 +10,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string, role: AppRole, location?: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; suspended?: boolean }>;
   signOut: () => Promise<void>;
   signInAnonymously: () => Promise<{ error: Error | null }>;
 }
@@ -107,12 +107,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    return { error: error as Error | null };
+    if (error) {
+      return { error: error as Error | null, suspended: false };
+    }
+
+    // Check if user is suspended
+    if (data?.user) {
+      // Check profile suspension
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_suspended')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (profile?.is_suspended) {
+        await supabase.auth.signOut();
+        return { 
+          error: new Error('Akun Anda telah dinonaktifkan sementara. Hubungi admin untuk informasi lebih lanjut.') as Error,
+          suspended: true 
+        };
+      }
+
+      // Check lawyer suspension if user is a lawyer
+      const { data: lawyer } = await supabase
+        .from('lawyers')
+        .select('is_suspended')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (lawyer?.is_suspended) {
+        await supabase.auth.signOut();
+        return { 
+          error: new Error('Akun Lawyer Anda telah dinonaktifkan sementara. Hubungi admin untuk informasi lebih lanjut.') as Error,
+          suspended: true 
+        };
+      }
+    }
+
+    return { error: null, suspended: false };
   };
 
   const signOut = async () => {

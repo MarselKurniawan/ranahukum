@@ -1112,6 +1112,17 @@ export default function SuperAdminDashboard() {
                         <TableCell className="text-right hidden md:table-cell font-medium">
                           {formatCurrency(revenue)}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {lawyer.is_suspended ? (
+                            <Badge variant="destructive" className="text-xs">
+                              Suspended
+                            </Badge>
+                          ) : (
+                            <Badge variant="success" className="text-xs">
+                              Aktif
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1129,13 +1140,23 @@ export default function SuperAdminDashboard() {
                                 Interview
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => handleApprove(lawyer.id, false)}
-                              >
-                                <UserX className="w-4 h-4 mr-2" />
-                                Nonaktifkan
-                              </DropdownMenuItem>
+                              {lawyer.is_suspended ? (
+                                <DropdownMenuItem 
+                                  className="text-success"
+                                  onClick={() => handleSuspendLawyer(lawyer.id, false)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Aktifkan Kembali
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleSuspendLawyer(lawyer.id, true)}
+                                >
+                                  <UserX className="w-4 h-4 mr-2" />
+                                  Suspend Akun
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1178,7 +1199,9 @@ export default function SuperAdminDashboard() {
                     <TableHead>Client</TableHead>
                     <TableHead className="hidden md:table-cell">Email</TableHead>
                     <TableHead className="text-center">Konsultasi</TableHead>
+                    <TableHead className="text-center">Akun</TableHead>
                     <TableHead className="text-right">Bergabung</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1205,12 +1228,51 @@ export default function SuperAdminDashboard() {
                           {client.email}
                         </TableCell>
                         <TableCell className="text-center">{clientConsultations.length}</TableCell>
+                        <TableCell className="text-center">
+                          {client.is_suspended ? (
+                            <Badge variant="destructive" className="text-xs">
+                              Suspended
+                            </Badge>
+                          ) : (
+                            <Badge variant="success" className="text-xs">
+                              Aktif
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right text-muted-foreground">
                           {new Date(client.created_at).toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
                           })}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {client.is_suspended ? (
+                                <DropdownMenuItem 
+                                  className="text-success"
+                                  onClick={() => handleSuspendClient(client.id, false)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Aktifkan Kembali
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleSuspendClient(client.id, true)}
+                                >
+                                  <UserX className="w-4 h-4 mr-2" />
+                                  Suspend Akun
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -1536,6 +1598,7 @@ export default function SuperAdminDashboard() {
                         <TableHead>Client</TableHead>
                         <TableHead>Lawyer</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-center">Akun</TableHead>
                         <TableHead>Tahap</TableHead>
                         <TableHead>Harga</TableHead>
                         <TableHead>Tanggal</TableHead>
