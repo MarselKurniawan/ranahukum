@@ -107,11 +107,18 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signIn(loginData.email, loginData.password);
+    const { error, suspended } = await signIn(loginData.email, loginData.password);
     setIsLoading(false);
 
     if (error) {
-      if (error.message.includes("Invalid login credentials")) {
+      if (suspended) {
+        toast({
+          title: "Akun Dinonaktifkan",
+          description: error.message,
+          variant: "destructive",
+          duration: 10000
+        });
+      } else if (error.message.includes("Invalid login credentials")) {
         toast({
           title: "Login Gagal",
           description: "Email atau password salah",
