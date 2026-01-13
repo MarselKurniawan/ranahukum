@@ -11,14 +11,21 @@ import { ReviewList } from "@/components/ReviewList";
 import { ReviewForm } from "@/components/ReviewForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
+import { useAppSetting } from "@/hooks/useLegalAssistance";
 
 export default function LawyerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
+  const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [refreshReviews, setRefreshReviews] = useState(0);
+
+  // Get consultation price from global settings
+  const consultationPrice = chatPriceSetting 
+    ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
+    : 50000;
 
   if (isLoading) {
     return (
@@ -192,7 +199,7 @@ export default function LawyerDetail() {
           <div>
             <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
             <p className="text-lg font-bold text-primary">
-              Rp {(lawyer.price || 0).toLocaleString("id-ID")}
+              Rp {consultationPrice.toLocaleString("id-ID")}
               <span className="text-xs text-muted-foreground font-normal">
                 /sesi
               </span>
