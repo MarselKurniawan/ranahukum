@@ -24,14 +24,33 @@ export interface DbLawyer {
   quiz_completed?: boolean;
 }
 
+// Hook for public lawyer listing - only approved & available lawyers
 export function useLawyers() {
   return useQuery({
-    queryKey: ['lawyers'],
+    queryKey: ['lawyers', 'public'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lawyers')
         .select('*')
+        .eq('approval_status', 'approved')
+        .eq('is_available', true)
         .order('rating', { ascending: false });
+
+      if (error) throw error;
+      return data as DbLawyer[];
+    }
+  });
+}
+
+// Hook for admin - all lawyers including pending
+export function useAllLawyers() {
+  return useQuery({
+    queryKey: ['lawyers', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lawyers')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as DbLawyer[];

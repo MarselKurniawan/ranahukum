@@ -98,7 +98,9 @@ export function useApproveLawyer() {
         .from('lawyers')
         .update({ 
           approval_status: approve ? 'approved' : 'rejected',
-          is_verified: approve
+          is_verified: approve,
+          // Keep is_available as false - lawyer must manually go online after completing profile
+          is_available: false
         })
         .eq('id', lawyerId)
         .select()
@@ -110,6 +112,7 @@ export function useApproveLawyer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-lawyers'] });
       queryClient.invalidateQueries({ queryKey: ['pending-lawyers'] });
+      queryClient.invalidateQueries({ queryKey: ['lawyers'] });
     }
   });
 }
