@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCreateConsultation } from "@/hooks/useConsultations";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
+import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const paymentMethods = [
@@ -25,7 +26,13 @@ export default function Booking() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
+  const { data: chatPriceSetting, isLoading: isPriceLoading } = useAppSetting('chat_consultation_price');
   const createConsultation = useCreateConsultation();
+  
+  // Get consultation price from global settings
+  const consultationPrice = chatPriceSetting 
+    ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
+    : 50000;
   
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -44,7 +51,7 @@ export default function Booking() {
     }
   }, [user, navigate, id]);
 
-  if (isLoading) {
+  if (isLoading || isPriceLoading) {
     return (
       <MobileLayout showBottomNav={false}>
         <div className="p-4 space-y-4">
@@ -70,7 +77,7 @@ export default function Booking() {
     );
   }
 
-  const lawyerPrice = lawyer.price || 150000;
+  const platformFee = 5000;
 
   const handlePayment = async () => {
     if (!user) {
@@ -102,7 +109,7 @@ export default function Booking() {
       const consultation = await createConsultation.mutateAsync({
         lawyerId: lawyer.id,
         topic: topic.trim(),
-        price: lawyerPrice + 5000
+        price: consultationPrice + platformFee
       });
 
       toast({
@@ -226,16 +233,16 @@ export default function Booking() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Biaya Konsultasi</span>
-                <span>Rp {lawyerPrice.toLocaleString("id-ID")}</span>
+                <span>Rp {consultationPrice.toLocaleString("id-ID")}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Biaya Platform</span>
-                <span>Rp 5.000</span>
+                <span>Rp {platformFee.toLocaleString("id-ID")}</span>
               </div>
               <div className="border-t border-border pt-2 flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="text-primary">
-                  Rp {(lawyerPrice + 5000).toLocaleString("id-ID")}
+                  Rp {(consultationPrice + platformFee).toLocaleString("id-ID")}
                 </span>
               </div>
             </div>
