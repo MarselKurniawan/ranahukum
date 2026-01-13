@@ -201,7 +201,6 @@ export default function LegalAssistanceDetail() {
             <p className="text-xs text-muted-foreground">Biaya Pendampingan</p>
             <p className="text-lg font-bold text-primary">
               Mulai dari Rp {(lawyer.pendampingan_price || 0).toLocaleString("id-ID")}
-              </span>
             </p>
           </div>
           <Button 
