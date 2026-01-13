@@ -425,7 +425,13 @@ export function useUpdateAssistanceStatus() {
 
       const updateData: Record<string, unknown> = {};
       if (status) updateData.status = status;
-      if (currentStage !== undefined) updateData.current_stage = currentStage;
+      if (currentStage !== undefined) {
+        updateData.current_stage = currentStage;
+        // Jika stage adalah "completed", otomatis ubah status menjadi "completed"
+        if (currentStage === 'completed') {
+          updateData.status = 'completed';
+        }
+      }
       if (stageNotes !== undefined) updateData.stage_notes = stageNotes;
       if (agreedPrice !== undefined) updateData.agreed_price = agreedPrice;
 
