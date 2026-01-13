@@ -372,6 +372,48 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          promo_code: string | null
+          target_audience: string
+          title: string
+          type: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          promo_code?: string | null
+          target_audience?: string
+          title: string
+          type?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          promo_code?: string | null
+          target_audience?: string
+          title?: string
+          type?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -472,6 +514,35 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      user_notification_reads: {
+        Row: {
+          id: string
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

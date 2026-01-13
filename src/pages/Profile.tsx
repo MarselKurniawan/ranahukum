@@ -12,17 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
-const menuItems = [
-  { icon: User, label: "Edit Profil", path: "/profile/edit" },
-  { icon: Bell, label: "Notifikasi", path: "/profile/notifications", badge: "3" },
-  { icon: FileText, label: "Riwayat Transaksi", path: "/profile/transactions" },
-];
+import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, role, signOut, loading } = useAuth();
   const { toast } = useToast();
+  const unreadCount = useUnreadNotificationCount();
+
+  const menuItems = [
+    { icon: User, label: "Edit Profil", path: "/profile/edit" },
+    { icon: Bell, label: "Notifikasi", path: "/profile/notifications", badge: unreadCount > 0 ? String(unreadCount) : undefined },
+    { icon: FileText, label: "Riwayat Transaksi", path: "/profile/transactions" },
+  ];
 
   const handleLogout = async () => {
     await signOut();
