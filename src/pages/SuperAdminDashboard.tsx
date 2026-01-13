@@ -6,7 +6,7 @@ import {
   Plus, FileText, AlertCircle, Briefcase, Eye, Search,
   Filter, X, HelpCircle, Pencil, Trash2, Video, Phone,
   Calendar, Mail, ExternalLink, MoreHorizontal, Menu,
-  Bell, Gift, Megaphone, Info, Image
+  Bell, Gift, Megaphone, Info, Image, Gavel
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,7 @@ import {
   useUpdateQuizQuestion, 
   useDeleteQuizQuestion 
 } from "@/hooks/useLawyerQuiz";
+import { useAllAssistanceRequests } from "@/hooks/useLegalAssistance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -95,6 +96,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PriceSettingsCard } from "@/components/PriceSettingsCard";
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -118,6 +120,9 @@ export default function SuperAdminDashboard() {
   const createQuizQuestion = useCreateQuizQuestion();
   const updateQuizQuestion = useUpdateQuizQuestion();
   const deleteQuizQuestion = useDeleteQuizQuestion();
+
+  // Legal assistance requests
+  const { data: allAssistanceRequests = [] } = useAllAssistanceRequests();
 
   // Notification management hooks
   const { data: allNotifications = [] } = useAllNotifications();
@@ -676,6 +681,10 @@ export default function SuperAdminDashboard() {
               </TabsTrigger>
               <TabsTrigger value="consultations" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Konsultasi
+              </TabsTrigger>
+              <TabsTrigger value="assistance" className="text-xs md:text-sm px-3 md:px-4 py-2">
+                <Gavel className="w-3 h-3 mr-1" />
+                Pendampingan
               </TabsTrigger>
               <TabsTrigger value="notifications" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 <Bell className="w-3 h-3 mr-1" />
@@ -1447,9 +1456,92 @@ export default function SuperAdminDashboard() {
             )}
           </TabsContent>
 
+          {/* Assistance Tab */}
+          <TabsContent value="assistance" className="space-y-6 mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Gavel className="w-5 h-5" />
+                    Pendampingan Hukum
+                    <Badge variant="secondary">{allAssistanceRequests.length}</Badge>
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {allAssistanceRequests.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Lawyer</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tahap</TableHead>
+                        <TableHead>Harga</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allAssistanceRequests.map((req) => (
+                        <TableRow key={req.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={req.client?.avatar_url || undefined} />
+                                <AvatarFallback>{req.client?.full_name?.[0] || 'C'}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{req.client?.full_name || 'Client'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={req.lawyer?.image_url || undefined} />
+                                <AvatarFallback>{req.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{req.lawyer?.name || 'Lawyer'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              req.status === 'completed' ? 'secondary' :
+                              req.status === 'in_progress' ? 'default' :
+                              req.status === 'agreed' ? 'success' :
+                              req.status === 'negotiating' ? 'accent' :
+                              req.status === 'cancelled' || req.status === 'rejected' ? 'destructive' : 'warning'
+                            }>
+                              {req.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {req.current_stage || '-'}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium">
+                            {req.agreed_price ? `Rp ${req.agreed_price.toLocaleString('id-ID')}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(req.created_at).toLocaleDateString('id-ID')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8">
+                    <Gavel className="w-12 h-12 mx-auto text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">Belum ada pendampingan hukum</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Price Settings */}
+              <PriceSettingsCard />
+              
               {/* Specialization Types */}
               <Card>
                 <CardHeader className="pb-3">

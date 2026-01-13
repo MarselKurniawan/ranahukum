@@ -15,6 +15,7 @@ import { LawyerCalendar } from "@/components/LawyerCalendar";
 import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
 import { LawyerSideMenu } from "@/components/LawyerSideMenu";
+import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -338,8 +339,9 @@ export default function LawyerDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="w-full mb-4 grid grid-cols-3">
+          <TabsList className="w-full mb-4 grid grid-cols-4">
             <TabsTrigger value="requests" className="text-xs">Konsultasi</TabsTrigger>
+            <TabsTrigger value="assistance" className="text-xs">Pendampingan</TabsTrigger>
             <TabsTrigger value="calendar" className="text-xs">Jadwal</TabsTrigger>
             <TabsTrigger value="earnings" className="text-xs">Pendapatan</TabsTrigger>
           </TabsList>
@@ -398,6 +400,10 @@ export default function LawyerDashboard() {
             )}
             </TabsContent>
           </Tabs>
+          </TabsContent>
+
+          <TabsContent value="assistance">
+            <LawyerAssistanceList />
           </TabsContent>
 
           <TabsContent value="calendar">

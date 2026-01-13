@@ -537,29 +537,75 @@ export function useAppSettings() {
   });
 }
 
-// Update app setting (superadmin only)
+// Hook for single app setting
+export function useAppSetting(key: string) {
+  return useQuery({
+    queryKey: ['app-setting', key],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('*')
+        .eq('key', key)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!key
+  });
+}
+
+// Update or create app setting (superadmin only)
 export function useUpdateAppSetting() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: { amount: number } }) => {
-      const { data, error } = await supabase
+    mutationFn: async ({ key, value, description }: { key: string; value: { amount: number }; description?: string }) => {
+      // Try to update first
+      const { data: existing } = await supabase
         .from('app_settings')
-        .update({ 
-          value: value as unknown as Record<string, never>,
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id
-        })
+        .select('id')
         .eq('key', key)
-        .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (existing) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('app_settings')
+          .update({ 
+            value: value as unknown as Record<string, never>,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id,
+            description: description
+          })
+          .eq('key', key)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('app_settings')
+          .insert({ 
+            key,
+            value: value as unknown as Record<string, never>,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id,
+            description: description
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['app-setting'] });
     }
   });
 }

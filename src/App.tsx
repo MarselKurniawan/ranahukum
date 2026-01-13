@@ -29,6 +29,7 @@ import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import LegalAssistanceChat from "./pages/LegalAssistanceChat";
 import LawyerAssistanceChat from "./pages/LawyerAssistanceChat";
+import ClientAssistanceRequests from "./pages/ClientAssistanceRequests";
 import DocumentTemplates from "./pages/DocumentTemplates";
 import LegalCalculator from "./pages/LegalCalculator";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
             <Route path="/lawyer/consultation/:id" element={<LawyerConsultationDetail />} />
             <Route path="/legal-assistance" element={<LegalAssistance />} />
+            <Route path="/legal-assistance/my-requests" element={<ClientAssistanceRequests />} />
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
             <Route path="/legal-assistance/chat/:id" element={<LegalAssistanceChat />} />
             <Route path="/lawyer/assistance/:id" element={<LawyerAssistanceChat />} />
