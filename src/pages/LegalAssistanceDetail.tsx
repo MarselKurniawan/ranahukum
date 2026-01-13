@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Star, MapPin, Shield, Clock, GraduationCap, 
-  Briefcase, Award, MessageCircle, FileText, Send
+  Briefcase, Award, MessageCircle, FileText, Send, AlertTriangle
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLawyer } from "@/hooks/useLawyers";
+import { useAuth } from "@/hooks/useAuth";
+import { useCreateAssistanceRequest } from "@/hooks/useLegalAssistance";
 import {
   Dialog,
   DialogContent,
@@ -25,10 +26,11 @@ import { toast } from "sonner";
 export default function LegalAssistanceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
+  const createRequest = useCreateAssistanceRequest();
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [caseDescription, setCaseDescription] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
 
   if (isLoading) {
     return (
@@ -52,15 +54,30 @@ export default function LegalAssistanceDetail() {
     );
   }
 
-  const handleSubmitRequest = () => {
-    if (!caseDescription.trim() || !phoneNumber.trim()) {
-      toast.error("Mohon lengkapi semua field");
+  const handleSubmitRequest = async () => {
+    if (!caseDescription.trim()) {
+      toast.error("Mohon isi deskripsi kasus");
       return;
     }
-    toast.success("Permintaan pendampingan berhasil dikirim! Pengacara akan menghubungi Anda.");
-    setShowRequestDialog(false);
-    setCaseDescription("");
-    setPhoneNumber("");
+
+    if (!user) {
+      toast.error("Silakan login terlebih dahulu");
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const result = await createRequest.mutateAsync({
+        lawyerId: lawyer.id,
+        caseDescription: caseDescription.trim()
+      });
+      toast.success("Permintaan berhasil dikirim! Anda akan diarahkan ke chat.");
+      setShowRequestDialog(false);
+      setCaseDescription("");
+      navigate(`/legal-assistance/chat/${result.id}`);
+    } catch (error) {
+      toast.error("Gagal mengirim permintaan");
+    }
   };
 
   return (
@@ -183,9 +200,7 @@ export default function LegalAssistanceDetail() {
           <div>
             <p className="text-xs text-muted-foreground">Biaya Pendampingan</p>
             <p className="text-lg font-bold text-primary">
-              Rp {(lawyer.pendampingan_price || 0).toLocaleString("id-ID")}
-              <span className="text-xs text-muted-foreground font-normal">
-                /kasus
+              Mulai dari Rp {(lawyer.pendampingan_price || 0).toLocaleString("id-ID")}
               </span>
             </p>
           </div>
@@ -206,10 +221,20 @@ export default function LegalAssistanceDetail() {
           <DialogHeader>
             <DialogTitle>Request Pendampingan Hukum</DialogTitle>
             <DialogDescription>
-              Ceritakan kasus Anda secara singkat. Pengacara akan menghubungi Anda untuk diskusi lebih lanjut.
+              Ceritakan kasus Anda. Anda akan diarahkan ke chat untuk negosiasi harga dengan pengacara.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          
+          {/* Warning Banner */}
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex gap-2">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+            <p className="text-xs text-destructive">
+              Semua negosiasi dan pembayaran WAJIB melalui aplikasi. 
+              Transaksi di luar aplikasi akan mengakibatkan <strong>banned permanen</strong>.
+            </p>
+          </div>
+
+          <div className="space-y-4 py-2">
             <div>
               <label className="text-sm font-medium mb-2 block">
                 Deskripsi Kasus *
@@ -221,25 +246,14 @@ export default function LegalAssistanceDetail() {
                 className="min-h-[120px]"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Nomor WhatsApp *
-              </label>
-              <Input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="08123456789"
-                type="tel"
-              />
-            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowRequestDialog(false)}>
               Batal
             </Button>
-            <Button variant="gradient" onClick={handleSubmitRequest}>
+            <Button variant="gradient" onClick={handleSubmitRequest} disabled={createRequest.isPending}>
               <Send className="w-4 h-4 mr-2" />
-              Kirim Request
+              {createRequest.isPending ? 'Mengirim...' : 'Mulai Chat'}
             </Button>
           </DialogFooter>
         </DialogContent>
