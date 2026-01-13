@@ -35,6 +35,8 @@ import LegalCalculator from "./pages/LegalCalculator";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminLawyerDetail from "./pages/SuperAdminLawyerDetail";
 import SuperAdminConsultationDetail from "./pages/SuperAdminConsultationDetail";
+import SuperAdminAssistanceDetail from "./pages/SuperAdminAssistanceDetail";
+import LawyerAssistanceHistory from "./pages/LawyerAssistanceHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,12 +75,14 @@ const App = () => (
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
             <Route path="/legal-assistance/chat/:id" element={<LegalAssistanceChat />} />
             <Route path="/lawyer/assistance/:id" element={<LawyerAssistanceChat />} />
+            <Route path="/lawyer/assistance" element={<LawyerAssistanceHistory />} />
             <Route path="/document-templates" element={<DocumentTemplates />} />
             <Route path="/legal-calculator" element={<LegalCalculator />} />
             {/* Super Admin Routes */}
             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
             <Route path="/admin/lawyer/:id" element={<SuperAdminLawyerDetail />} />
             <Route path="/admin/consultation/:id" element={<SuperAdminConsultationDetail />} />
+            <Route path="/admin/assistance/:id" element={<SuperAdminAssistanceDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

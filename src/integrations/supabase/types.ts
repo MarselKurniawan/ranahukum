@@ -297,6 +297,7 @@ export type Database = {
           image_url: string | null
           interview_consent: boolean | null
           is_available: boolean | null
+          is_suspended: boolean | null
           is_verified: boolean | null
           location: string | null
           name: string
@@ -320,6 +321,7 @@ export type Database = {
           image_url?: string | null
           interview_consent?: boolean | null
           is_available?: boolean | null
+          is_suspended?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           name: string
@@ -343,6 +345,7 @@ export type Database = {
           image_url?: string | null
           interview_consent?: boolean | null
           is_available?: boolean | null
+          is_suspended?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           name?: string
@@ -583,6 +586,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_suspended: boolean | null
           phone: string | null
           updated_at: string
           user_id: string
@@ -594,6 +598,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -605,6 +610,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           phone?: string | null
           updated_at?: string
           user_id?: string

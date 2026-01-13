@@ -163,6 +163,17 @@ export function LawyerAssistanceList() {
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         )}
+
+        {requests.length > 0 && requests.length <= 5 && (
+          <Button 
+            variant="outline" 
+            className="w-full text-sm"
+            onClick={() => navigate('/lawyer/assistance')}
+          >
+            Lihat Riwayat Pendampingan
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

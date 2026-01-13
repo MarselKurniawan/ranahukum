@@ -18,13 +18,17 @@ export interface LegalAssistanceRequest {
   updated_at: string;
   lawyer?: {
     id: string;
+    user_id?: string;
     name: string;
     image_url: string | null;
     pendampingan_price: number | null;
+    location?: string | null;
   };
   client?: {
     id: string;
+    user_id?: string;
     full_name: string | null;
+    email?: string | null;
     avatar_url: string | null;
   };
 }
@@ -218,14 +222,14 @@ export function useAssistanceRequest(requestId: string) {
       // Fetch lawyer
       const { data: lawyer } = await supabase
         .from('lawyers')
-        .select('id, name, image_url, pendampingan_price')
+        .select('id, user_id, name, image_url, pendampingan_price, location')
         .eq('id', data.lawyer_id)
         .single();
 
       // Fetch client
       const { data: client } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url')
+        .select('id, user_id, full_name, email, avatar_url')
         .eq('user_id', data.client_id)
         .single();
 
