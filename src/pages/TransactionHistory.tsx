@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, ChevronRight, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Clock, Check } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsultations } from "@/hooks/useConsultations";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,26 @@ export default function TransactionHistory() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
+  const [reviewedLawyers, setReviewedLawyers] = useState<Set<string>>(new Set());
+
+  // Fetch which lawyers user has already reviewed
+  const fetchReviewedLawyers = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('reviews')
+      .select('lawyer_id')
+      .eq('user_id', user.id);
+    
+    if (data) {
+      setReviewedLawyers(new Set(data.map(r => r.lawyer_id)));
+    }
+  };
+
+  // Fetch on mount
+  useState(() => {
+    fetchReviewedLawyers();
+  });
 
   const completedConsultations = consultations?.filter(c => c.status === 'completed') || [];
   const activeConsultations = consultations?.filter(c => c.status !== 'completed' && c.status !== 'cancelled') || [];
@@ -74,6 +94,8 @@ export default function TransactionHistory() {
         description: "Terima kasih atas ulasan Anda"
       });
 
+      // Update local state
+      setReviewedLawyers(prev => new Set(prev).add(selectedConsultation.lawyer_id));
       setReviewDialogOpen(false);
       refetch();
     } catch (error: any) {
@@ -87,6 +109,8 @@ export default function TransactionHistory() {
       setIsSubmitting(false);
     }
   };
+
+  const hasReviewed = (lawyerId: string) => reviewedLawyers.has(lawyerId);
 
   if (!user) {
     navigate('/auth');
@@ -113,7 +137,7 @@ export default function TransactionHistory() {
             
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
+                <Clock className="w-3 h-3" />
                 <span>{formatDate(consultation.created_at)}</span>
               </div>
               <div className="flex items-center gap-1">
@@ -134,29 +158,53 @@ export default function TransactionHistory() {
                   <MessageCircle className="w-4 h-4 mr-1" />
                   Lihat Detail
                 </Button>
-                <Button
-                  variant="gradient"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleOpenReview(consultation)}
-                >
-                  <Star className="w-4 h-4 mr-1" />
-                  Beri Ulasan
-                </Button>
+                {hasReviewed(consultation.lawyer_id) ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    disabled
+                  >
+                    <Check className="w-4 h-4 mr-1" />
+                    Sudah Diulas
+                  </Button>
+                ) : (
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleOpenReview(consultation)}
+                  >
+                    <Star className="w-4 h-4 mr-1" />
+                    Beri Ulasan
+                  </Button>
+                )}
               </div>
             )}
 
             {!showReviewButton && consultation.status !== 'completed' && consultation.status !== 'cancelled' && (
               <div className="mt-3 pt-3 border-t border-border">
-                <Button
-                  variant="gradient"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => navigate(`/chat/${consultation.id}`)}
-                >
-                  <MessageCircle className="w-4 h-4 mr-1" />
-                  {consultation.status === 'pending' ? 'Menunggu Konfirmasi' : 'Lanjut Chat'}
-                </Button>
+                {consultation.status === 'pending' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate(`/waiting/${consultation.id}`)}
+                  >
+                    <Clock className="w-4 h-4 mr-1" />
+                    Menunggu Konfirmasi
+                  </Button>
+                ) : (
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate(`/chat/${consultation.id}`)}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1" />
+                    Lanjut Chat
+                  </Button>
+                )}
               </div>
             )}
           </div>

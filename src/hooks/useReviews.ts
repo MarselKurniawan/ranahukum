@@ -72,6 +72,30 @@ export function useConsultationReview(consultationId?: string, clientId?: string
   });
 }
 
+// Hook untuk mengecek apakah user sudah memberi review untuk lawyer tertentu
+export function useHasReviewedLawyer(lawyerId?: string) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['has-reviewed', lawyerId, user?.id],
+    queryFn: async () => {
+      if (!user || !lawyerId) return false;
+      
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('lawyer_id', lawyerId)
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!user && !!lawyerId
+  });
+}
+
 export function useCreateReview() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
