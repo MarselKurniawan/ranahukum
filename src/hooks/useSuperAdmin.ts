@@ -244,3 +244,49 @@ export function useConsultationMessages(consultationId: string) {
     enabled: !!isSuperAdmin && !!consultationId
   });
 }
+
+export function useSuspendLawyer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ lawyerId, suspend }: { lawyerId: string; suspend: boolean }) => {
+      const { data, error } = await supabase
+        .from('lawyers')
+        .update({ 
+          is_suspended: suspend,
+          is_available: suspend ? false : undefined // Force offline when suspended
+        })
+        .eq('id', lawyerId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-lawyers'] });
+      queryClient.invalidateQueries({ queryKey: ['lawyers'] });
+    }
+  });
+}
+
+export function useSuspendClient() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ profileId, suspend }: { profileId: string; suspend: boolean }) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ is_suspended: suspend })
+        .eq('id', profileId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-profiles'] });
+    }
+  });
+}

@@ -68,10 +68,12 @@ import {
   useAllLawyers, 
   usePendingLawyers, 
   useAllConsultations,
-  useApproveLawyer 
+  useApproveLawyer,
+  useSuspendLawyer,
+  useSuspendClient
 } from "@/hooks/useSuperAdmin";
 import { useAllPriceRequests, useApprovePriceRequest } from "@/hooks/useLawyerPriceRequests";
-import { useAllSpecializationTypes, useCreateSpecializationType, useUpdateSpecializationType } from "@/hooks/useSpecializationTypes";
+import { useAllSpecializationTypes, useCreateSpecializationType, useUpdateSpecializationType, useDeleteSpecializationType } from "@/hooks/useSpecializationTypes";
 import { usePendingDocuments, useReviewDocument, useLawyerDocuments } from "@/hooks/useLawyerDocuments";
 import { 
   useAllQuizQuestions, 
@@ -114,6 +116,9 @@ export default function SuperAdminDashboard() {
   const reviewDocument = useReviewDocument();
   const createSpecType = useCreateSpecializationType();
   const updateSpecType = useUpdateSpecializationType();
+  const deleteSpecType = useDeleteSpecializationType();
+  const suspendLawyer = useSuspendLawyer();
+  const suspendClient = useSuspendClient();
 
   // Quiz management hooks
   const { data: quizQuestions = [] } = useAllQuizQuestions();
@@ -160,6 +165,11 @@ export default function SuperAdminDashboard() {
   const [deleteNotifOpen, setDeleteNotifOpen] = useState(false);
   const [editingNotif, setEditingNotif] = useState<Notification | null>(null);
   const [deletingNotifId, setDeletingNotifId] = useState<string | null>(null);
+  
+  // Specialization delete state
+  const [deleteSpecOpen, setDeleteSpecOpen] = useState(false);
+  const [deletingSpecId, setDeletingSpecId] = useState<string | null>(null);
+  
   const [newNotif, setNewNotif] = useState({
     title: "",
     description: "",
@@ -351,6 +361,56 @@ export default function SuperAdminDashboard() {
     setSelectedLawyerForInterview(lawyer);
     setInterviewNotes("");
     setInterviewDialogOpen(true);
+  };
+
+  // Specialization delete handler
+  const handleDeleteSpecialization = async () => {
+    if (!deletingSpecId) return;
+    try {
+      await deleteSpecType.mutateAsync(deletingSpecId);
+      toast({ title: "Jenis konsultasi berhasil dihapus" });
+      setDeletingSpecId(null);
+      setDeleteSpecOpen(false);
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat menghapus",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Suspend handlers
+  const handleSuspendLawyer = async (lawyerId: string, suspend: boolean) => {
+    try {
+      await suspendLawyer.mutateAsync({ lawyerId, suspend });
+      toast({ 
+        title: suspend ? "Lawyer Dinonaktifkan" : "Lawyer Diaktifkan",
+        description: suspend ? "Akun lawyer telah dinonaktifkan sementara" : "Akun lawyer telah diaktifkan kembali"
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSuspendClient = async (profileId: string, suspend: boolean) => {
+    try {
+      await suspendClient.mutateAsync({ profileId, suspend });
+      toast({ 
+        title: suspend ? "Client Dinonaktifkan" : "Client Diaktifkan",
+        description: suspend ? "Akun client telah dinonaktifkan sementara" : "Akun client telah diaktifkan kembali"
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan",
+        variant: "destructive"
+      });
+    }
   };
 
   // Notification handlers
@@ -1483,7 +1543,11 @@ export default function SuperAdminDashboard() {
                     </TableHeader>
                     <TableBody>
                       {allAssistanceRequests.map((req) => (
-                        <TableRow key={req.id}>
+                        <TableRow 
+                          key={req.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/admin/assistance/${req.id}`)}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Avatar className="w-8 h-8">
@@ -1588,23 +1652,42 @@ export default function SuperAdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {specializationTypes.map((spec) => (
-                      <Badge 
+                      <div 
                         key={spec.id} 
-                        variant={spec.is_active ? "secondary" : "outline"}
-                        className="cursor-pointer transition-colors hover:opacity-80"
-                        onClick={() => {
-                          updateSpecType.mutate({ id: spec.id, is_active: !spec.is_active });
-                        }}
+                        className="flex items-center justify-between p-2 border rounded-lg"
                       >
-                        {spec.name}
-                        {!spec.is_active && <X className="w-3 h-3 ml-1" />}
-                      </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={spec.is_active ? "secondary" : "outline"}>
+                            {spec.name}
+                          </Badge>
+                          {spec.description && (
+                            <span className="text-xs text-muted-foreground">{spec.description}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={spec.is_active}
+                            onCheckedChange={() => updateSpecType.mutate({ id: spec.id, is_active: !spec.is_active })}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => {
+                              setDeletingSpecId(spec.id);
+                              setDeleteSpecOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Klik badge untuk mengaktifkan/menonaktifkan jenis konsultasi
+                    Toggle untuk aktifkan/nonaktifkan. Hapus untuk menghapus permanen.
                   </p>
                 </CardContent>
               </Card>
@@ -1998,6 +2081,27 @@ export default function SuperAdminDashboard() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteNotification}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Specialization Confirmation */}
+      <AlertDialog open={deleteSpecOpen} onOpenChange={setDeleteSpecOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Jenis Konsultasi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Jenis konsultasi ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSpecialization}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Hapus
