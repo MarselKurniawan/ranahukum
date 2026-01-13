@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX, CalendarDays } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import { useCreateConsultation } from "@/hooks/useConsultations";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LawyerAvailabilityPicker } from "@/components/LawyerAvailabilityPicker";
 
 const paymentMethods = [
   { id: "gopay", name: "GoPay", icon: "💚" },
@@ -32,7 +31,6 @@ export default function Booking() {
   const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -181,24 +179,6 @@ export default function Booking() {
             />
           </CardContent>
         </Card>
-
-        {/* Schedule Picker */}
-        <div className="mb-4">
-          <Label className="flex items-center gap-2 mb-2">
-            <CalendarDays className="w-4 h-4" />
-            Pilih Jadwal
-          </Label>
-          <LawyerAvailabilityPicker
-            lawyerId={lawyer.id}
-            selectedSlot={selectedSlot}
-            onSelectSlot={setSelectedSlot}
-          />
-          {selectedSlot && (
-            <p className="text-sm text-primary mt-2 font-medium">
-              Dipilih: {new Date(selectedSlot.date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })} pukul {selectedSlot.time}
-            </p>
-          )}
-        </div>
 
         {/* Topic */}
         <div className="mb-4">

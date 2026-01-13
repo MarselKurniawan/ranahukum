@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Clock, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Loader2, Moon, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMyLawyerSchedule, useUpdateSchedule, useBulkUpdateSchedule, getSlotsForDate, defaultTimeSlots } from "@/hooks/useLawyerSchedules";
 import { toast } from "@/hooks/use-toast";
 
@@ -97,12 +98,32 @@ export function LawyerCalendar() {
   const selectedSlots = selectedDate ? getSlots(selectedDate) : [];
   const allSlotsAvailable = selectedSlots.every(s => s.available);
 
+  // Separate time slots into day (07:00-18:00) and night (19:00-06:00)
+  const daySlots = selectedSlots.filter(s => {
+    const hour = parseInt(s.time.split(':')[0]);
+    return hour >= 7 && hour <= 18;
+  });
+  
+  const nightSlots = selectedSlots.filter(s => {
+    const hour = parseInt(s.time.split(':')[0]);
+    return hour >= 19 || hour <= 6;
+  });
+
   return (
     <div className="space-y-4">
+      {/* Info Alert */}
+      <Alert className="border-primary/30 bg-primary/5">
+        <Moon className="h-4 w-4" />
+        <AlertDescription className="text-sm">
+          <strong>Pengaturan Auto-Offline:</strong> Pilih jam-jam di mana Anda akan otomatis offline. 
+          Jam yang <span className="text-muted-foreground">tidak aktif (abu-abu)</span> berarti Anda akan offline di jam tersebut.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Kalender Ketersediaan</CardTitle>
+            <CardTitle className="text-sm">Atur Jadwal Auto-Offline</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -205,7 +226,7 @@ export function LawyerCalendar() {
                 {selectedDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
               </CardTitle>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Semua</span>
+                <span className="text-xs text-muted-foreground">Aktif Semua</span>
                 <Switch
                   checked={allSlotsAvailable}
                   onCheckedChange={(checked) => toggleAllSlots(selectedDate, checked)}
@@ -214,29 +235,69 @@ export function LawyerCalendar() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-5 gap-2">
-              {selectedSlots.map((slot) => (
-                <button
-                  type="button"
-                  key={slot.time}
-                  onClick={() => toggleSlot(selectedDate, slot.time)}
-                  disabled={updateSchedule.isPending}
-                  className={cn(
-                    "py-2 px-1 rounded-lg text-xs font-medium transition-all cursor-pointer pointer-events-auto",
-                    slot.available
-                      ? "bg-success/20 text-success border border-success/30"
-                      : "bg-muted text-muted-foreground",
-                    updateSchedule.isPending && "opacity-50 cursor-wait"
-                  )}
-                >
-                  {slot.time}
-                </button>
-              ))}
+          <CardContent className="space-y-4">
+            {/* Day Time Slots (07:00 - 18:00) */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Siang (07:00 - 18:00)</p>
+              <div className="grid grid-cols-6 gap-2">
+                {daySlots.map((slot) => (
+                  <button
+                    type="button"
+                    key={slot.time}
+                    onClick={() => toggleSlot(selectedDate, slot.time)}
+                    disabled={updateSchedule.isPending}
+                    className={cn(
+                      "py-2 px-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                      slot.available
+                        ? "bg-success/20 text-success border border-success/30"
+                        : "bg-muted text-muted-foreground",
+                      updateSchedule.isPending && "opacity-50 cursor-wait"
+                    )}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              Klik slot waktu untuk mengaktifkan/menonaktifkan
-            </p>
+
+            {/* Night Time Slots (19:00 - 06:00) */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                <Moon className="w-3 h-3" />
+                Malam (19:00 - 06:00)
+              </p>
+              <div className="grid grid-cols-6 gap-2">
+                {nightSlots.map((slot) => (
+                  <button
+                    type="button"
+                    key={slot.time}
+                    onClick={() => toggleSlot(selectedDate, slot.time)}
+                    disabled={updateSchedule.isPending}
+                    className={cn(
+                      "py-2 px-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                      slot.available
+                        ? "bg-success/20 text-success border border-success/30"
+                        : "bg-muted text-muted-foreground",
+                      updateSchedule.isPending && "opacity-50 cursor-wait"
+                    )}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2 h-2 rounded bg-success/30 border border-success/50" /> Online
+                </span>
+                {" • "}
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2 h-2 rounded bg-muted border border-border" /> Auto-Offline
+                </span>
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
