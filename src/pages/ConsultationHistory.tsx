@@ -10,28 +10,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useConsultation } from "@/hooks/useConsultations";
 import { useMessages } from "@/hooks/useMessages";
+import { useConsultationReview, useCreateReview } from "@/hooks/useReviews";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function ConsultationHistory() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showAllMessages, setShowAllMessages] = useState(false);
-  const [hasRated, setHasRated] = useState(false);
   const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: consultation, isLoading: consultationLoading } = useConsultation(id || '');
   const { data: messages = [], isLoading: messagesLoading } = useMessages(id || '');
+  
+  // Check if user has already reviewed this lawyer for this consultation
+  const { data: existingReview, isLoading: reviewLoading } = useConsultationReview(
+    id,
+    user?.id,
+    consultation?.lawyer_id
+  );
+  
+  const createReview = useCreateReview();
 
-  // Debug logs
-  console.log("=== DEBUG CONSULTATION DETAIL ===");
-  console.log("Consultation ID:", id);
-  console.log("Consultation Data:", consultation);
-  console.log("Messages:", messages);
-  console.log("=== END DEBUG ===");
-
-  const isLoading = consultationLoading || messagesLoading;
+  const isLoading = consultationLoading || messagesLoading || reviewLoading;
 
   const displayMessages = showAllMessages 
     ? messages 
@@ -64,6 +72,26 @@ export default function ConsultationHistory() {
     return `${diffMins} menit`;
   };
 
+  const handleSubmitReview = async () => {
+    if (!consultation || rating === 0) return;
+    
+    setIsSubmitting(true);
+    try {
+      await createReview.mutateAsync({
+        lawyerId: consultation.lawyer_id,
+        rating,
+        comment: comment.trim() || undefined,
+        consultationTopic: consultation.topic
+      });
+      toast.success("Terima kasih atas ulasan Anda!");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast.error("Gagal mengirim ulasan. Silakan coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <MobileLayout showBottomNav={false}>
@@ -91,6 +119,7 @@ export default function ConsultationHistory() {
   }
 
   const lawyer = consultation.lawyers;
+  const hasReviewed = !!existingReview;
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -261,20 +290,23 @@ export default function ConsultationHistory() {
           </CardContent>
         </Card>
 
-        {/* Rating */}
-        {consultation.status === 'completed' && !hasRated ? (
+        {/* Rating - Only show for completed consultations */}
+        {consultation.status === 'completed' && !hasReviewed ? (
           <Card>
-            <CardContent className="p-4 text-center">
-              <h4 className="font-semibold mb-2">Beri Rating Konsultasi</h4>
-              <p className="text-sm text-muted-foreground mb-4">
-                Bagaimana pengalaman konsultasi Anda?
+            <CardContent className="p-4">
+              <h4 className="font-semibold mb-2 text-center">Beri Rating & Ulasan</h4>
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Bagaimana pengalaman konsultasi Anda dengan {lawyer?.name}?
               </p>
+              
+              {/* Star Rating */}
               <div className="flex justify-center gap-2 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     onClick={() => setRating(star)}
                     className="transition-transform hover:scale-110"
+                    disabled={isSubmitting}
                   >
                     <Star
                       className={cn(
@@ -287,17 +319,27 @@ export default function ConsultationHistory() {
                   </button>
                 ))}
               </div>
+
+              {/* Comment Textarea */}
+              <Textarea
+                placeholder="Tulis ulasan Anda tentang pengacara ini (opsional)..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="mb-4 min-h-[80px]"
+                disabled={isSubmitting}
+              />
+
               <Button
                 variant="gradient"
                 className="w-full"
-                onClick={() => setHasRated(true)}
-                disabled={rating === 0}
+                onClick={handleSubmitReview}
+                disabled={rating === 0 || isSubmitting}
               >
-                Kirim Rating
+                {isSubmitting ? "Mengirim..." : "Kirim Ulasan"}
               </Button>
             </CardContent>
           </Card>
-        ) : hasRated ? (
+        ) : hasReviewed ? (
           <Card className="border-success/30 bg-success/5">
             <CardContent className="p-4 text-center">
               <div className="flex justify-center gap-1 mb-2">
@@ -306,15 +348,20 @@ export default function ConsultationHistory() {
                     key={star}
                     className={cn(
                       "w-5 h-5",
-                      star <= rating
+                      star <= (existingReview?.rating || 0)
                         ? "fill-warning text-warning"
                         : "text-muted-foreground/30"
                     )}
                   />
                 ))}
               </div>
+              {existingReview?.comment && (
+                <p className="text-sm text-foreground/80 mb-2 italic">
+                  "{existingReview.comment}"
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
-                Terima kasih atas rating Anda!
+                Terima kasih atas ulasan Anda!
               </p>
             </CardContent>
           </Card>
