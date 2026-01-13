@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Users, CheckCircle, Clock, MessageCircle, TrendingUp,
-  LogOut, ChevronRight, DollarSign, UserCheck, UserX,
+  LogOut, ChevronRight, Banknote, UserCheck, UserX,
   Plus, FileText, AlertCircle, Briefcase, Eye, Search,
   Filter, X, HelpCircle, Pencil, Trash2, Video, Phone,
   Calendar, Mail, ExternalLink, MoreHorizontal, Menu,
@@ -697,7 +697,7 @@ export default function SuperAdminDashboard() {
                   <p className="text-lg md:text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                 </div>
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+                  <Banknote className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
                 </div>
               </div>
             </CardContent>
@@ -973,7 +973,7 @@ export default function SuperAdminDashboard() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
+                  <Banknote className="w-5 h-5" />
                   Permintaan Perubahan Harga
                   {priceRequests.length > 0 && (
                     <Badge variant="warning">{priceRequests.length}</Badge>

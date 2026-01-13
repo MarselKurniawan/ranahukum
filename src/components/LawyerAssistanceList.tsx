@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Clock, DollarSign, FileText, ChevronRight } from "lucide-react";
+import { MessageCircle, Clock, Banknote, FileText, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -136,7 +136,7 @@ export function LawyerAssistanceList() {
                     </div>
                     {request.agreed_price && (
                       <div className="flex items-center gap-1 text-xs font-medium text-primary">
-                        <DollarSign className="w-3 h-3" />
+                        <Banknote className="w-3 h-3" />
                         {formatCurrency(request.agreed_price)}
                       </div>
                     )}

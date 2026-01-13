@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Save, Loader2, Star, MessageCircle, Clock,
-  DollarSign, MapPin, Briefcase, BadgeCheck, FileText, 
+  Banknote, MapPin, Briefcase, BadgeCheck, FileText, 
   Eye, GraduationCap, Phone, CheckCircle, UserX, HelpCircle
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -281,7 +281,7 @@ export default function SuperAdminLawyerDetail() {
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <DollarSign className="w-5 h-5 mx-auto text-success mb-1" />
+                <Banknote className="w-5 h-5 mx-auto text-success mb-1" />
                 <p className="text-lg font-bold">Rp {(totalRevenue / 1000).toFixed(0)}K</p>
                 <p className="text-[10px] text-muted-foreground">Pendapatan</p>
               </CardContent>

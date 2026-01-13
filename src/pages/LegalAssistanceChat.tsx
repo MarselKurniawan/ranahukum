@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Send, DollarSign, AlertTriangle, CheckCircle, 
+  ArrowLeft, Send, Banknote, AlertTriangle, CheckCircle, 
   Clock, FileText, Shield, ChevronDown, ChevronUp, X
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -134,7 +134,7 @@ export default function LegalAssistanceChat() {
       case 'pending':
         return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Menunggu</Badge>;
       case 'negotiating':
-        return <Badge variant="outline" className="border-warning text-warning"><DollarSign className="w-3 h-3 mr-1" />Negosiasi</Badge>;
+        return <Badge variant="outline" className="border-warning text-warning"><Banknote className="w-3 h-3 mr-1" />Negosiasi</Badge>;
       case 'agreed':
         return <Badge variant="outline" className="border-accent text-accent"><CheckCircle className="w-3 h-3 mr-1" />Disepakati</Badge>;
       case 'in_progress':
@@ -333,7 +333,7 @@ export default function LegalAssistanceChat() {
                     <Card className={`${isMine ? 'bg-primary text-primary-foreground' : 'bg-accent/20 border-accent/30'}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="w-4 h-4" />
+                          <Banknote className="w-4 h-4" />
                           <span className="text-xs font-medium">Penawaran Harga</span>
                         </div>
                         <p className="text-lg font-bold">
@@ -366,7 +366,7 @@ export default function LegalAssistanceChat() {
             <Card className="border-warning/30 bg-warning/5">
               <CardContent className="p-4">
                 <div className="text-center">
-                  <DollarSign className="w-8 h-8 mx-auto text-warning mb-2" />
+                  <Banknote className="w-8 h-8 mx-auto text-warning mb-2" />
                   <p className="text-sm font-medium mb-1">Penawaran Harga Baru</p>
                   <p className="text-2xl font-bold text-warning mb-3">
                     Rp {pendingPriceOffer.toLocaleString('id-ID')}

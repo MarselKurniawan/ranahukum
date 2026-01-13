@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, DollarSign, Clock, CheckCircle, XCircle, Send } from "lucide-react";
+import { ArrowLeft, Banknote, Clock, CheckCircle, XCircle, Send } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +95,7 @@ export default function LawyerPricing() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
+              <Banknote className="w-4 h-4" />
               Tarif Saat Ini
             </CardTitle>
           </CardHeader>

@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Banknote, Calendar, Users, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -259,7 +259,7 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
               )}
             </div>
             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-primary" />
+              <Banknote className="w-6 h-6 text-primary" />
             </div>
           </div>
         </CardContent>
