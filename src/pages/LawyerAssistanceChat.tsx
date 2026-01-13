@@ -239,32 +239,38 @@ export default function LawyerAssistanceChat() {
           </div>
         </div>
 
-        {/* Status/Stage Info (Collapsible) - for in_progress */}
-        {request.status === 'in_progress' && (
+        {/* Status/Stage Info (Collapsible) - for in_progress or completed */}
+        {(request.status === 'in_progress' || request.status === 'completed') && (
           <Collapsible open={showStatusHistory} onOpenChange={setShowStatusHistory}>
             <CollapsibleTrigger asChild>
               <div className="px-4 pb-3 cursor-pointer">
-                <Card className="border-primary/20 bg-primary/5">
+                <Card className={`${request.status === 'completed' ? 'border-success/20 bg-success/5' : 'border-primary/20 bg-primary/5'}`}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-primary" />
+                      {request.status === 'completed' ? (
+                        <CheckCircle className="w-4 h-4 text-success" />
+                      ) : (
+                        <Shield className="w-4 h-4 text-primary" />
+                      )}
                       <div>
                         <p className="text-xs text-muted-foreground">Status Saat Ini</p>
                         <p className="text-sm font-medium">{getCurrentStageLabel() || 'Belum dimulai'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowUpdateStatusDialog(true);
-                        }}
-                      >
-                        <Pencil className="w-3 h-3 mr-1" />
-                        Update
-                      </Button>
+                      {request.status === 'in_progress' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUpdateStatusDialog(true);
+                          }}
+                        >
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Update
+                        </Button>
+                      )}
                       {showStatusHistory ? 
                         <ChevronUp className="w-4 h-4 text-muted-foreground" /> : 
                         <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -446,6 +452,28 @@ export default function LawyerAssistanceChat() {
             <Pencil className="w-4 h-4 mr-2" />
             Update Status Pendampingan
           </Button>
+        </div>
+      )}
+
+      {/* Completed - Show completion notice */}
+      {request.status === 'completed' && (
+        <div className="sticky bottom-0 bg-card border-t border-border p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-success/20 mx-auto mb-2 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-success" />
+            </div>
+            <p className="font-semibold text-success mb-1">Pendampingan Selesai</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Pendampingan hukum telah selesai. Terima kasih atas kerjasamanya.
+            </p>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => navigate('/lawyer/dashboard')}
+            >
+              Kembali ke Dashboard
+            </Button>
+          </div>
         </div>
       )}
 

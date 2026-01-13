@@ -420,6 +420,28 @@ export default function LegalAssistanceChat() {
         </div>
       )}
 
+      {/* Completed - Show completion notice */}
+      {request.status === 'completed' && (
+        <div className="sticky bottom-0 bg-card border-t border-border p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-success/20 mx-auto mb-2 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-success" />
+            </div>
+            <p className="font-semibold text-success mb-1">Pendampingan Selesai</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Pendampingan hukum telah selesai. Terima kasih telah menggunakan layanan kami.
+            </p>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => navigate('/legal-assistance/my-requests')}
+            >
+              Lihat Riwayat Pendampingan
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
