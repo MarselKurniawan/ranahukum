@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Clock, CheckCircle, XCircle, FileText, DollarSign } from "lucide-react";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, XCircle, FileText, Banknote } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,7 +103,7 @@ export default function ClientAssistanceRequests() {
               </div>
               {request.agreed_price && (
                 <div className="flex items-center gap-1 text-sm font-semibold text-primary">
-                  <DollarSign className="w-3 h-3" />
+                  <Banknote className="w-3 h-3" />
                   {formatCurrency(request.agreed_price)}
                 </div>
               )}

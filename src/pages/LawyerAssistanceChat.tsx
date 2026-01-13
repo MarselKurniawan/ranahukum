@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Send, DollarSign, AlertTriangle, CheckCircle, 
+  ArrowLeft, Send, Banknote, AlertTriangle, CheckCircle, 
   Clock, FileText, Shield, ChevronDown, ChevronUp, Pencil, X
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -159,7 +159,7 @@ export default function LawyerAssistanceChat() {
       case 'pending':
         return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Menunggu</Badge>;
       case 'negotiating':
-        return <Badge variant="outline" className="border-warning text-warning"><DollarSign className="w-3 h-3 mr-1" />Negosiasi</Badge>;
+        return <Badge variant="outline" className="border-warning text-warning"><Banknote className="w-3 h-3 mr-1" />Negosiasi</Badge>;
       case 'agreed':
         return <Badge variant="outline" className="border-accent text-accent"><CheckCircle className="w-3 h-3 mr-1" />Disepakati</Badge>;
       case 'in_progress':
@@ -373,7 +373,7 @@ export default function LawyerAssistanceChat() {
                     <Card className={`${isMine ? 'bg-primary text-primary-foreground' : 'bg-accent/20 border-accent/30'}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="w-4 h-4" />
+                          <Banknote className="w-4 h-4" />
                           <span className="text-xs font-medium">Penawaran Harga</span>
                         </div>
                         <p className="text-lg font-bold">
@@ -413,7 +413,7 @@ export default function LawyerAssistanceChat() {
               className="gap-1"
               onClick={() => setShowPriceOfferDialog(true)}
             >
-              <DollarSign className="w-4 h-4" />
+              <Banknote className="w-4 h-4" />
               Tawarkan Harga
             </Button>
           </div>

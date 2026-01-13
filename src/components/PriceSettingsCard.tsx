@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Save, Loader2 } from "lucide-react";
+import { Banknote, Save, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +68,7 @@ export function PriceSettingsCard() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <DollarSign className="w-5 h-5" />
+            <Banknote className="w-5 h-5" />
             Harga Konsultasi Chat
           </CardTitle>
           {!isEditing && (

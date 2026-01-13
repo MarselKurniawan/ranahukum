@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Clock, Check, FileText, DollarSign } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Clock, Check, FileText, Banknote } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -290,7 +290,7 @@ export default function TransactionHistory() {
               </div>
               {request.agreed_price && (
                 <div className="flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" />
+                  <Banknote className="w-3 h-3" />
                   <span className="font-medium text-foreground">
                     Rp {request.agreed_price?.toLocaleString('id-ID')}
                   </span>

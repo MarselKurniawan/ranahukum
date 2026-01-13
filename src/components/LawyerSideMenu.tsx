@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Menu, X, Home, User, LogOut, Settings, 
-  FileText, DollarSign, ChevronRight 
+  FileText, Banknote, ChevronRight 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/lawyer/dashboard" },
   { icon: User, label: "Profil Saya", path: "/lawyer/profile" },
-  { icon: DollarSign, label: "Pengaturan Harga", path: "/lawyer/pricing" },
+  { icon: Banknote, label: "Pengaturan Harga", path: "/lawyer/pricing" },
   { icon: FileText, label: "Dokumen Verifikasi", path: "/lawyer/documents" },
 ];
 

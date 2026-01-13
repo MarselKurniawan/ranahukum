@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Scale, Clock, DollarSign, FileText, MessageCircle } from "lucide-react";
+import { ArrowLeft, User, Scale, Clock, Banknote, FileText, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -261,7 +261,7 @@ export default function SuperAdminAssistanceDetail() {
                             </p>
                             {msg.is_price_offer ? (
                               <div className="flex items-center gap-2">
-                                <DollarSign className="w-4 h-4" />
+                                <Banknote className="w-4 h-4" />
                                 <span className="font-medium">
                                   Penawaran: {formatCurrency(msg.offered_price || 0)}
                                 </span>
