@@ -1,46 +1,22 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Gift, Megaphone, Info, X } from "lucide-react";
+import { ArrowLeft, Bell, Gift, Megaphone, Info, X, CheckCheck } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { 
+  useNotifications, 
+  useMarkNotificationRead, 
+  useMarkAllNotificationsRead,
+  type Notification 
+} from "@/hooks/useNotifications";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-
-// Mock notifications - in real app, fetch from database
-const mockNotifications = [
-  {
-    id: "1",
-    type: "promo",
-    title: "Diskon 50% Konsultasi Pertama!",
-    description: "Khusus pengguna baru, dapatkan diskon 50% untuk konsultasi pertama Anda.",
-    image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&h=400&fit=crop",
-    created_at: new Date().toISOString(),
-    is_read: false,
-    promo_code: "NEWUSER50",
-    valid_until: "2026-02-28"
-  },
-  {
-    id: "2", 
-    type: "announcement",
-    title: "Fitur Baru: Legal Bot",
-    description: "Sekarang Anda bisa bertanya kepada Legal Bot untuk mendapatkan informasi hukum dasar secara gratis!",
-    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop",
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    is_read: true
-  },
-  {
-    id: "3",
-    type: "info",
-    title: "Update Kebijakan Privasi",
-    description: "Kami telah memperbarui kebijakan privasi. Silakan baca perubahan terbaru.",
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    is_read: true
-  }
-];
+import { useState } from "react";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -67,11 +43,18 @@ const getNotificationColor = (type: string) => {
 export default function Notifications() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [notifications] = useState(mockNotifications);
-  const [selectedNotification, setSelectedNotification] = useState<typeof mockNotifications[0] | null>(null);
+  const { data: notifications = [], isLoading } = useNotifications();
+  const markAsRead = useMarkNotificationRead();
+  const markAllAsRead = useMarkAllNotificationsRead();
+  const [selectedNotification, setSelectedNotification] = useState<(Notification & { is_read: boolean }) | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+    }
+  }, [user, navigate]);
 
   if (!user) {
-    navigate('/auth');
     return null;
   }
 
@@ -79,20 +62,55 @@ export default function Notifications() {
     return format(new Date(dateString), "d MMM yyyy, HH:mm", { locale: localeId });
   };
 
+  const handleNotificationClick = (notification: Notification & { is_read: boolean }) => {
+    // Mark as read when opened
+    if (!notification.is_read) {
+      markAsRead.mutate(notification.id);
+    }
+    setSelectedNotification(notification);
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   return (
     <MobileLayout showBottomNav={false}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
-        <div className="flex items-center gap-3 p-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold">Notifikasi</h1>
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-semibold">Notifikasi</h1>
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                {unreadCount} baru
+              </Badge>
+            )}
+          </div>
+          {unreadCount > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-xs"
+              onClick={() => markAllAsRead.mutate()}
+              disabled={markAllAsRead.isPending}
+            >
+              <CheckCheck className="w-4 h-4 mr-1" />
+              Tandai dibaca
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="p-4">
-        {notifications.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="text-center py-12">
             <Bell className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">Tidak ada notifikasi</p>
@@ -105,7 +123,7 @@ export default function Notifications() {
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   !notification.is_read ? "border-primary/50 bg-primary/5" : ""
                 }`}
-                onClick={() => setSelectedNotification(notification)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -137,10 +155,10 @@ export default function Notifications() {
       {/* Notification Detail Dialog */}
       <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
         <DialogContent className="max-w-[400px] p-0 overflow-hidden rounded-2xl">
-          {selectedNotification?.image && (
+          {selectedNotification?.image_url && (
             <div className="relative h-48 overflow-hidden">
               <img
-                src={selectedNotification.image}
+                src={selectedNotification.image_url}
                 alt={selectedNotification.title}
                 className="w-full h-full object-cover"
               />
