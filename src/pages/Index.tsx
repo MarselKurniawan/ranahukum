@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Shield, MessageCircle, Clock, User, Bot } from "lucide-react";
+import { Scale, Shield, MessageCircle, Clock, User, Bot, Bell } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { SearchBar } from "@/components/SearchBar";
 import { TagFilter } from "@/components/TagFilter";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyers } from "@/hooks/useLawyers";
 import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
+import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const features = [
@@ -23,6 +24,7 @@ export default function Index() {
   const { user, role } = useAuth();
   const { data: lawyers, isLoading } = useLawyers();
   const { data: specializationTypes = [] } = useSpecializationTypes();
+  const unreadAlertCount = useUnreadActivityAlertCount();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
 
@@ -64,15 +66,32 @@ export default function Index() {
             <Scale className="w-4 h-4 text-primary-foreground" />
             <span className="text-xs text-primary-foreground font-medium">Legal Connect</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => navigate(user ? '/profile' : '/auth')}
-          >
-            <User className="w-4 h-4 mr-1" />
-            {user ? 'Profil' : 'Masuk'}
-          </Button>
+          <div className="flex items-center gap-1">
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => navigate('/profile/notifications')}
+              >
+                <Bell className="w-4 h-4" />
+                {unreadAlertCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                    {unreadAlertCount > 9 ? '9+' : unreadAlertCount}
+                  </span>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate(user ? '/profile' : '/auth')}
+            >
+              <User className="w-4 h-4 mr-1" />
+              {user ? 'Profil' : 'Masuk'}
+            </Button>
+          </div>
         </div>
 
         <div className="text-center mb-6">

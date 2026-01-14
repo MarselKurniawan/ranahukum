@@ -4,7 +4,8 @@ import {
   Bell, 
   LogOut, 
   ChevronRight,
-  FileText
+  FileText,
+  Calculator
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
+import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -21,7 +23,9 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, role, signOut, loading } = useAuth();
   const { toast } = useToast();
-  const unreadCount = useUnreadNotificationCount();
+  const unreadNotificationCount = useUnreadNotificationCount();
+  const unreadAlertCount = useUnreadActivityAlertCount();
+  const totalUnread = unreadNotificationCount + unreadAlertCount;
 
   // Fetch user profile to check suspension status
   const { data: userProfile } = useQuery({
@@ -78,8 +82,9 @@ export default function Profile() {
 
   const menuItems = [
     { icon: User, label: "Edit Profil", path: "/profile/edit" },
-    { icon: Bell, label: "Notifikasi", path: "/profile/notifications", badge: unreadCount > 0 ? String(unreadCount) : undefined },
+    { icon: Bell, label: "Notifikasi", path: "/profile/notifications", badge: totalUnread > 0 ? String(totalUnread) : undefined },
     { icon: FileText, label: "Riwayat Transaksi", path: "/profile/transactions" },
+    { icon: Calculator, label: "Kalkulator Hukum", path: "/legal-calculator" },
   ];
 
   const handleLogout = async () => {
