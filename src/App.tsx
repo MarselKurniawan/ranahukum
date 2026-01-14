@@ -25,6 +25,7 @@ import LawyerPricing from "./pages/LawyerPricing";
 import LawyerDocuments from "./pages/LawyerDocuments";
 import LawyerQuiz from "./pages/LawyerQuiz";
 import LawyerConsultationDetail from "./pages/LawyerConsultationDetail";
+import LawyerInterviewChat from "./pages/LawyerInterviewChat";
 import LegalAssistance from "./pages/LegalAssistance";
 import LegalAssistanceDetail from "./pages/LegalAssistanceDetail";
 import LegalAssistanceChat from "./pages/LegalAssistanceChat";
@@ -36,6 +37,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminLawyerDetail from "./pages/SuperAdminLawyerDetail";
 import SuperAdminConsultationDetail from "./pages/SuperAdminConsultationDetail";
 import SuperAdminAssistanceDetail from "./pages/SuperAdminAssistanceDetail";
+import SuperAdminInterviewChat from "./pages/SuperAdminInterviewChat";
 import LawyerAssistanceHistory from "./pages/LawyerAssistanceHistory";
 import NotFound from "./pages/NotFound";
 
@@ -70,6 +72,7 @@ const App = () => (
             <Route path="/lawyer/quiz" element={<LawyerQuiz />} />
             <Route path="/lawyer/chat/:id" element={<LawyerChat />} />
             <Route path="/lawyer/consultation/:id" element={<LawyerConsultationDetail />} />
+            <Route path="/lawyer/interview" element={<LawyerInterviewChat />} />
             <Route path="/legal-assistance" element={<LegalAssistance />} />
             <Route path="/legal-assistance/my-requests" element={<ClientAssistanceRequests />} />
             <Route path="/legal-assistance/:id" element={<LegalAssistanceDetail />} />
@@ -83,6 +86,7 @@ const App = () => (
             <Route path="/admin/lawyer/:id" element={<SuperAdminLawyerDetail />} />
             <Route path="/admin/consultation/:id" element={<SuperAdminConsultationDetail />} />
             <Route path="/admin/assistance/:id" element={<SuperAdminAssistanceDetail />} />
+            <Route path="/admin/interview/:id" element={<SuperAdminInterviewChat />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

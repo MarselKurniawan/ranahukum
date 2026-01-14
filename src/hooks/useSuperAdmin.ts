@@ -249,12 +249,32 @@ export function useSuspendLawyer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ lawyerId, suspend }: { lawyerId: string; suspend: boolean }) => {
+    mutationFn: async ({ 
+      lawyerId, 
+      suspend, 
+      durationMinutes, 
+      reason 
+    }: { 
+      lawyerId: string; 
+      suspend: boolean; 
+      durationMinutes?: number;
+      reason?: string;
+    }) => {
+      let suspendedUntil: string | null = null;
+      
+      if (suspend && durationMinutes) {
+        const endDate = new Date();
+        endDate.setMinutes(endDate.getMinutes() + durationMinutes);
+        suspendedUntil = endDate.toISOString();
+      }
+
       const { data, error } = await supabase
         .from('lawyers')
         .update({ 
           is_suspended: suspend,
-          is_available: suspend ? false : undefined // Force offline when suspended
+          is_available: suspend ? false : undefined, // Force offline when suspended
+          suspended_until: suspend ? suspendedUntil : null,
+          suspend_reason: suspend ? reason : null
         })
         .eq('id', lawyerId)
         .select()
@@ -274,10 +294,32 @@ export function useSuspendClient() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ profileId, suspend }: { profileId: string; suspend: boolean }) => {
+    mutationFn: async ({ 
+      profileId, 
+      suspend, 
+      durationMinutes, 
+      reason 
+    }: { 
+      profileId: string; 
+      suspend: boolean; 
+      durationMinutes?: number;
+      reason?: string;
+    }) => {
+      let suspendedUntil: string | null = null;
+      
+      if (suspend && durationMinutes) {
+        const endDate = new Date();
+        endDate.setMinutes(endDate.getMinutes() + durationMinutes);
+        suspendedUntil = endDate.toISOString();
+      }
+
       const { data, error } = await supabase
         .from('profiles')
-        .update({ is_suspended: suspend })
+        .update({ 
+          is_suspended: suspend,
+          suspended_until: suspend ? suspendedUntil : null,
+          suspend_reason: suspend ? reason : null
+        })
         .eq('id', profileId)
         .select()
         .single();
