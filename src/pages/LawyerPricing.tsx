@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyerProfile } from "@/hooks/useLawyerProfile";
 import { useLawyerPriceRequests, useCreatePriceRequest } from "@/hooks/useLawyerPriceRequests";
+import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LawyerPricing() {
@@ -19,8 +20,14 @@ export default function LawyerPricing() {
   const { user, role, loading: authLoading } = useAuth();
   const { data: profile, isLoading: loadingProfile } = useLawyerProfile();
   const { data: priceRequests = [], isLoading: loadingRequests } = useLawyerPriceRequests();
+  const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
   const createRequest = useCreatePriceRequest();
   const { toast } = useToast();
+
+  // Get consultation price from global settings
+  const consultationPrice = chatPriceSetting 
+    ? (chatPriceSetting.value as { amount?: number })?.amount || 0 
+    : 0;
 
   const [requestedPrice, setRequestedPrice] = useState("");
   const [notes, setNotes] = useState("");
@@ -103,9 +110,9 @@ export default function LawyerPricing() {
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <div>
                 <p className="text-sm font-medium">Konsultasi Chat</p>
-                <p className="text-xs text-muted-foreground">Diatur oleh Admin</p>
+                <p className="text-xs text-muted-foreground">Diatur global oleh Admin</p>
               </div>
-              <p className="font-bold text-primary">{formatCurrency(profile?.price || 0)}</p>
+              <p className="font-bold text-primary">{formatCurrency(consultationPrice)}</p>
             </div>
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <div>

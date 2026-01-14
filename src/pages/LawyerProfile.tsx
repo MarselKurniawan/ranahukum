@@ -13,18 +13,8 @@ import { useLawyerProfile, useUpdateLawyerProfile } from "@/hooks/useLawyerProfi
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-
-
-const SPECIALIZATION_OPTIONS = [
-  "Hukum Keluarga",
-  "Hukum Pidana", 
-  "Hukum Perdata",
-  "Hukum Bisnis",
-  "Hukum Properti",
-  "Hukum Ketenagakerjaan",
-  "Hukum Pajak",
-  "Hukum Imigrasi",
-];
+import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
+import { useAppSetting } from "@/hooks/useLegalAssistance";
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
@@ -34,6 +24,13 @@ export default function LawyerProfile() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { data: specializationTypes = [], isLoading: loadingSpecs } = useSpecializationTypes();
+  const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
+  
+  // Get consultation price from global settings
+  const consultationPrice = chatPriceSetting 
+    ? (chatPriceSetting.value as { amount?: number })?.amount || 0 
+    : 0;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -133,7 +130,7 @@ export default function LawyerProfile() {
     navigate('/');
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || loadingSpecs) {
     return (
       <MobileLayout showBottomNav={false}>
         <div className="p-4 space-y-4">
@@ -248,14 +245,14 @@ export default function LawyerProfile() {
           <CardContent>
             <p className="text-xs text-muted-foreground mb-3">Pilih minimal 1 spesialisasi</p>
             <div className="flex flex-wrap gap-2">
-              {SPECIALIZATION_OPTIONS.map((spec) => (
+              {specializationTypes.map((spec) => (
                 <Badge
-                  key={spec}
-                  variant={formData.specialization.includes(spec) ? "default" : "outline"}
+                  key={spec.id}
+                  variant={formData.specialization.includes(spec.name) ? "default" : "outline"}
                   className="cursor-pointer transition-colors"
-                  onClick={() => toggleSpecialization(spec)}
+                  onClick={() => toggleSpecialization(spec.name)}
                 >
-                  {spec}
+                  {spec.name}
                 </Badge>
               ))}
             </div>
@@ -267,8 +264,8 @@ export default function LawyerProfile() {
           <CardContent className="p-4">
             <p className="text-sm font-medium mb-1">Tentang Tarif Layanan</p>
             <p className="text-xs text-muted-foreground">
-              Tarif konsultasi Anda akan diatur oleh Admin setelah profil diverifikasi. 
-              Tarif saat ini: <strong>Rp {(profile?.price || 0).toLocaleString('id-ID')}</strong>
+              Tarif konsultasi chat diatur secara global oleh Admin. 
+              Tarif saat ini: <strong>Rp {consultationPrice.toLocaleString('id-ID')}</strong>
             </p>
           </CardContent>
         </Card>
