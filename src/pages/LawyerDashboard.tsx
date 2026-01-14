@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
-  Calendar, Users, TrendingUp, Play, BadgeCheck, Ban
+  Calendar, Users, TrendingUp, Play, BadgeCheck, Ban, Bell
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
 import { useLawyerProfile, useLawyerProfileCompletion, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
 import { useLawyerSuspension } from "@/hooks/useSuspensionCheck";
+import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 
@@ -35,6 +36,7 @@ export default function LawyerDashboard() {
   const updateProfile = useUpdateLawyerProfile();
   const updateConsultation = useUpdateConsultation();
   const lawyerSuspension = useLawyerSuspension();
+  const unreadAlertCount = useUnreadActivityAlertCount();
   const [isOnline, setIsOnline] = useState(false);
 
   // Check if lawyer is suspended (active suspension)
@@ -324,7 +326,22 @@ export default function LawyerDashboard() {
       <div className="gradient-hero pb-20 px-4 pt-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-bold text-primary-foreground">Dashboard</h1>
-          <LawyerSideMenu />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate('/profile/notifications')}
+            >
+              <Bell className="w-5 h-5" />
+              {unreadAlertCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold">
+                  {unreadAlertCount > 9 ? '9+' : unreadAlertCount}
+                </span>
+              )}
+            </Button>
+            <LawyerSideMenu />
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
