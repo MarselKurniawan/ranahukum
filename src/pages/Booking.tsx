@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX, Ban } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useClientSuspension } from "@/hooks/useSuspensionCheck";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 
 const paymentMethods = [
   { id: "gopay", name: "GoPay", icon: "💚" },
@@ -28,6 +30,7 @@ export default function Booking() {
   const { data: lawyer, isLoading } = useLawyer(id || '');
   const { data: chatPriceSetting, isLoading: isPriceLoading } = useAppSetting('chat_consultation_price');
   const createConsultation = useCreateConsultation();
+  const clientSuspension = useClientSuspension();
   
   // Get consultation price from global settings
   const consultationPrice = chatPriceSetting 
@@ -38,6 +41,9 @@ export default function Booking() {
   const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+
+  // Check if client is suspended
+  const isClientSuspended = clientSuspension?.isActive;
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -72,6 +78,31 @@ export default function Booking() {
           <Button variant="outline" onClick={() => navigate("/search")}>
             Cari Pengacara
           </Button>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Show suspended message
+  if (isClientSuspended) {
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="p-4">
+          <SuspensionBanner
+            suspendedUntil={clientSuspension.suspendedUntil!}
+            suspendReason={clientSuspension.suspendReason}
+            userType="client"
+          />
+          <div className="flex flex-col items-center justify-center py-16">
+            <Ban className="w-16 h-16 text-destructive mb-4" />
+            <p className="text-lg font-semibold mb-2 text-center">Akun Anda Di-suspend</p>
+            <p className="text-muted-foreground text-sm text-center mb-4">
+              Anda tidak dapat melakukan konsultasi selama masa penangguhan.
+            </p>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Kembali ke Beranda
+            </Button>
+          </div>
         </div>
       </MobileLayout>
     );

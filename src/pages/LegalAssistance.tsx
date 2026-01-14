@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, MapPin, Star, Briefcase, Shield, 
-  MessageCircle, Filter, Search, ChevronRight, Banknote, X
+  MessageCircle, Filter, Search, ChevronRight, Banknote, X, Ban
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLawyers } from "@/hooks/useLawyers";
 import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
+import { useClientSuspension } from "@/hooks/useSuspensionCheck";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { Slider } from "@/components/ui/slider";
 import {
   Command,
@@ -47,12 +49,16 @@ export default function LegalAssistance() {
   const navigate = useNavigate();
   const { data: lawyers, isLoading } = useLawyers();
   const { data: specializationTypes = [] } = useSpecializationTypes();
+  const clientSuspension = useClientSuspension();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedSpec, setSelectedSpec] = useState("Semua");
   const [selectedPriceRange, setSelectedPriceRange] = useState(0);
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
+
+  // Check if client is suspended
+  const isClientSuspended = clientSuspension?.isActive;
 
   // Build specializations from database
   const specializations = useMemo(() => {
@@ -100,6 +106,41 @@ export default function LegalAssistance() {
     (selectedLocation !== "all" ? 1 : 0) + 
     (selectedPriceRange !== 0 ? 1 : 0) +
     (selectedSpec !== "Semua" ? 1 : 0);
+
+  // Show suspended message if client is suspended
+  if (isClientSuspended) {
+    return (
+      <MobileLayout>
+        <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
+          <div className="flex items-center gap-3 p-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h2 className="font-semibold">Pendampingan Hukum</h2>
+            </div>
+          </div>
+        </div>
+        <div className="p-4">
+          <SuspensionBanner
+            suspendedUntil={clientSuspension.suspendedUntil!}
+            suspendReason={clientSuspension.suspendReason}
+            userType="client"
+          />
+          <div className="flex flex-col items-center justify-center py-16">
+            <Ban className="w-16 h-16 text-destructive mb-4" />
+            <p className="text-lg font-semibold mb-2 text-center">Akun Anda Di-suspend</p>
+            <p className="text-muted-foreground text-sm text-center mb-4">
+              Anda tidak dapat mengakses layanan pendampingan hukum selama masa penangguhan.
+            </p>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Kembali ke Beranda
+            </Button>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>

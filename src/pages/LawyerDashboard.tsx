@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, CheckCircle, XCircle, MessageCircle, Star, 
-  Calendar, Users, TrendingUp, Play, BadgeCheck
+  Calendar, Users, TrendingUp, Play, BadgeCheck, Ban
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
 import { useLawyerProfile, useLawyerProfileCompletion, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
+import { useLawyerSuspension } from "@/hooks/useSuspensionCheck";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 
@@ -33,7 +34,11 @@ export default function LawyerDashboard() {
   const profileCompletion = useLawyerProfileCompletion();
   const updateProfile = useUpdateLawyerProfile();
   const updateConsultation = useUpdateConsultation();
+  const lawyerSuspension = useLawyerSuspension();
   const [isOnline, setIsOnline] = useState(false);
+
+  // Check if lawyer is suspended (active suspension)
+  const isLawyerSuspended = lawyerSuspension?.isActive;
 
   useEffect(() => {
     if (!loading && (!user || role !== 'lawyer')) {
@@ -46,14 +51,43 @@ export default function LawyerDashboard() {
     }
   }, [user, role, loading, navigate, toast]);
 
-  // Set isOnline from profile
+  // Set isOnline from profile, but force offline if suspended
   useEffect(() => {
     if (lawyerProfile) {
-      setIsOnline(lawyerProfile.is_available);
+      // If suspended, always show offline
+      if (isLawyerSuspended) {
+        setIsOnline(false);
+      } else {
+        setIsOnline(lawyerProfile.is_available);
+      }
     }
-  }, [lawyerProfile]);
+  }, [lawyerProfile, isLawyerSuspended]);
+
+  // Force offline when suspended
+  useEffect(() => {
+    const forceOffline = async () => {
+      if (isLawyerSuspended && lawyerProfile?.is_available) {
+        try {
+          await updateProfile.mutateAsync({ is_available: false });
+        } catch (error) {
+          // Ignore error
+        }
+      }
+    };
+    forceOffline();
+  }, [isLawyerSuspended, lawyerProfile?.is_available]);
 
   const handleToggleOnline = async (checked: boolean) => {
+    // Block if suspended
+    if (isLawyerSuspended) {
+      toast({
+        title: "Akun Di-suspend",
+        description: "Anda tidak dapat mengaktifkan status online selama masa penangguhan.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Block if not approved yet
     if (checked && lawyerProfile?.approval_status !== 'approved') {
       toast({
@@ -82,8 +116,8 @@ export default function LawyerDashboard() {
     }
   };
 
-  // Check if lawyer can go online
-  const canGoOnline = lawyerProfile?.approval_status === 'approved' && profileCompletion?.isComplete;
+  // Check if lawyer can go online (not suspended)
+  const canGoOnline = lawyerProfile?.approval_status === 'approved' && profileCompletion?.isComplete && !isLawyerSuspended;
 
   if (loading || loadingConsultations || loadingProfile) {
     return (
@@ -104,6 +138,10 @@ export default function LawyerDashboard() {
   const completedRequests = consultations.filter((r) => r.status === "completed");
 
   const handleAccept = async (id: string) => {
+    if (isLawyerSuspended) {
+      toast({ title: "Akun di-suspend", description: "Anda tidak dapat menerima konsultasi", variant: "destructive" });
+      return;
+    }
     await updateConsultation.mutateAsync({ id, status: 'accepted' });
     toast({ title: "Konsultasi diterima" });
   };
@@ -114,6 +152,10 @@ export default function LawyerDashboard() {
   };
 
   const handleStartConsultation = async (id: string) => {
+    if (isLawyerSuspended) {
+      toast({ title: "Akun di-suspend", description: "Anda tidak dapat memulai konsultasi", variant: "destructive" });
+      return;
+    }
     await updateConsultation.mutateAsync({ id, status: 'active' });
     navigate(`/lawyer/chat/${id}`);
   };
@@ -169,7 +211,7 @@ export default function LawyerDashboard() {
                 {formatDate(request.created_at)}
               </div>
 
-              {request.status === "pending" && (
+              {request.status === "pending" && !isLawyerSuspended && (
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -192,7 +234,14 @@ export default function LawyerDashboard() {
                 </div>
               )}
 
-              {request.status === "accepted" && (
+              {request.status === "pending" && isLawyerSuspended && (
+                <Badge variant="destructive" className="text-xs">
+                  <Ban className="w-3 h-3 mr-1" />
+                  Suspended
+                </Badge>
+              )}
+
+              {request.status === "accepted" && !isLawyerSuspended && (
                 <Button
                   size="sm"
                   variant="gradient"
@@ -204,7 +253,14 @@ export default function LawyerDashboard() {
                 </Button>
               )}
 
-              {request.status === "active" && (
+              {request.status === "accepted" && isLawyerSuspended && (
+                <Badge variant="destructive" className="text-xs">
+                  <Ban className="w-3 h-3 mr-1" />
+                  Suspended
+                </Badge>
+              )}
+
+              {request.status === "active" && !isLawyerSuspended && (
                 <Button
                   size="sm"
                   variant="gradient"
@@ -214,6 +270,13 @@ export default function LawyerDashboard() {
                   <MessageCircle className="w-3 h-3 mr-1" />
                   Lanjut Chat
                 </Button>
+              )}
+
+              {request.status === "active" && isLawyerSuspended && (
+                <Badge variant="destructive" className="text-xs">
+                  <Ban className="w-3 h-3 mr-1" />
+                  Suspended
+                </Badge>
               )}
 
               {request.status === "completed" && (
@@ -234,17 +297,17 @@ export default function LawyerDashboard() {
     </Card>
   );
 
-  // Check if lawyer is suspended
+  // Check if lawyer is suspended (from profile data)
   const isSuspended = lawyerProfile?.is_suspended && lawyerProfile?.suspended_until;
 
   return (
     <MobileLayout showBottomNav={false}>
       {/* Suspension Banner */}
-      {isSuspended && (
+      {isLawyerSuspended && (
         <div className="px-4 pt-4">
           <SuspensionBanner 
-            suspendedUntil={lawyerProfile.suspended_until!}
-            suspendReason={lawyerProfile.suspend_reason}
+            suspendedUntil={lawyerSuspension.suspendedUntil!}
+            suspendReason={lawyerSuspension.suspendReason}
             userType="lawyer"
           />
         </div>
