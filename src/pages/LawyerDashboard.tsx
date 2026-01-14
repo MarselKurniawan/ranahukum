@@ -16,6 +16,7 @@ import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
 import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -233,8 +234,22 @@ export default function LawyerDashboard() {
     </Card>
   );
 
+  // Check if lawyer is suspended
+  const isSuspended = lawyerProfile?.is_suspended && lawyerProfile?.suspended_until;
+
   return (
     <MobileLayout showBottomNav={false}>
+      {/* Suspension Banner */}
+      {isSuspended && (
+        <div className="px-4 pt-4">
+          <SuspensionBanner 
+            suspendedUntil={lawyerProfile.suspended_until!}
+            suspendReason={lawyerProfile.suspend_reason}
+            userType="lawyer"
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="gradient-hero pb-20 px-4 pt-6">
         <div className="flex items-center justify-between mb-6">
