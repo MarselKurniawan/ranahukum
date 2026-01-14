@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Shield, Briefcase, Award, MapPin } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Shield, Briefcase, Award, MapPin, Ban } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReviewList } from "@/components/ReviewList";
 import { ReviewForm } from "@/components/ReviewForm";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
+import { useClientSuspension } from "@/hooks/useSuspensionCheck";
 
 export default function LawyerDetail() {
   const { id } = useParams();
@@ -19,8 +21,12 @@ export default function LawyerDetail() {
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
   const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
+  const clientSuspension = useClientSuspension();
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [refreshReviews, setRefreshReviews] = useState(0);
+
+  // Check if client is suspended
+  const isClientSuspended = clientSuspension?.isActive;
 
   // Get consultation price from global settings
   const consultationPrice = chatPriceSetting 
@@ -195,28 +201,40 @@ export default function LawyerDetail() {
 
       {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-50">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
-            <p className="text-lg font-bold text-primary">
-              Rp {consultationPrice.toLocaleString("id-ID")}
-              <span className="text-xs text-muted-foreground font-normal">
-                /sesi
-              </span>
-            </p>
+        {isClientSuspended ? (
+          <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+            <Ban className="w-5 h-5 text-destructive shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-destructive">Akun Di-suspend</p>
+              <p className="text-xs text-muted-foreground">Anda tidak dapat melakukan konsultasi</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="gradient" 
-              className="rounded-xl gap-2"
-              onClick={() => navigate(`/booking/${lawyer.id}`)}
-              disabled={!lawyer.is_available}
-            >
-              <MessageCircle className="w-4 h-4" />
-              {lawyer.is_available ? "Mulai Konsultasi" : "Sedang Offline"}
-            </Button>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
+                <p className="text-lg font-bold text-primary">
+                  Rp {consultationPrice.toLocaleString("id-ID")}
+                  <span className="text-xs text-muted-foreground font-normal">
+                    /sesi
+                  </span>
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="gradient" 
+                  className="rounded-xl gap-2"
+                  onClick={() => navigate(`/booking/${lawyer.id}`)}
+                  disabled={!lawyer.is_available}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {lawyer.is_available ? "Mulai Konsultasi" : "Sedang Offline"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </MobileLayout>
   );
