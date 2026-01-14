@@ -8,7 +8,7 @@ export interface Consultation {
   client_id: string;
   lawyer_id: string;
   topic: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'active' | 'completed' | 'cancelled';
+  status: 'pending' | 'accepted' | 'rejected' | 'active' | 'completed' | 'cancelled' | 'expired';
   price: number;
   started_at: string | null;
   ended_at: string | null;

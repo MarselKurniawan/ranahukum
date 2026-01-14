@@ -35,7 +35,7 @@ export default function Consultations() {
     c.status === "active" || c.status === "pending" || c.status === "accepted"
   );
   const completedConsultations = consultations.filter((c) => 
-    c.status === "completed" || c.status === "rejected" || c.status === "cancelled"
+    c.status === "completed" || c.status === "rejected" || c.status === "cancelled" || c.status === "expired"
   );
 
   const formatDate = (dateString: string) => {
@@ -60,6 +60,8 @@ export default function Consultations() {
         return <Badge variant="destructive" className="text-[10px]">Ditolak</Badge>;
       case 'cancelled':
         return <Badge variant="outline" className="text-[10px]">Dibatalkan</Badge>;
+      case 'expired':
+        return <Badge variant="destructive" className="text-[10px]">Kedaluwarsa</Badge>;
       default:
         return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
     }
@@ -131,6 +133,17 @@ export default function Consultations() {
                     onClick={() => navigate(`/consultation/${consultation.id}`)}
                   >
                     Lihat Detail
+                  </Button>
+                )}
+
+                {(consultation.status === "rejected" || consultation.status === "cancelled" || consultation.status === "expired") && (
+                  <Button
+                    size="sm"
+                    variant="gradient"
+                    className="h-8 text-xs"
+                    onClick={() => navigate("/search")}
+                  >
+                    Cari Pengacara Lain
                   </Button>
                 )}
               </div>
