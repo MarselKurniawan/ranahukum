@@ -2009,33 +2009,21 @@ export default function SuperAdminDashboard() {
                 />
               </div>
 
-              <Separator />
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Pilih Metode Interview:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-                    <Video className="w-5 h-5" />
-                    <span className="text-xs">Video Call</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-                    <Phone className="w-5 h-5" />
-                    <span className="text-xs">Phone Call</span>
-                  </Button>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                <strong>Chat Interview:</strong> Mulai chat dengan lawyer untuk berdiskusi mengenai jadwal interview dan pertanyaan verifikasi.
+              </p>
             </div>
           )}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setInterviewDialogOpen(false)}>
               Batal
             </Button>
-            <Button onClick={() => {
-              toast({ title: "Fitur interview sedang dalam pengembangan" });
-              setInterviewDialogOpen(false);
-            }}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Jadwalkan
+            <Button 
+              onClick={() => handleStartInterview(selectedLawyerForInterview)}
+              disabled={createInterview.isPending}
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              {createInterview.isPending ? 'Memulai...' : 'Mulai Chat Interview'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2235,6 +2223,26 @@ export default function SuperAdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Suspend Lawyer Dialog */}
+      <SuspendDialog
+        open={suspendLawyerDialogOpen}
+        onOpenChange={setSuspendLawyerDialogOpen}
+        onConfirm={handleSuspendLawyer}
+        userName={selectedLawyerForSuspend?.name || ''}
+        userType="lawyer"
+        isPending={suspendLawyer.isPending}
+      />
+
+      {/* Suspend Client Dialog */}
+      <SuspendDialog
+        open={suspendClientDialogOpen}
+        onOpenChange={setSuspendClientDialogOpen}
+        onConfirm={handleSuspendClient}
+        userName={selectedClientForSuspend?.full_name || 'Client'}
+        userType="client"
+        isPending={suspendClient.isPending}
+      />
     </div>
   );
 }

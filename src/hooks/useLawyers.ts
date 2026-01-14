@@ -16,6 +16,8 @@ export interface DbLawyer {
   is_verified: boolean;
   is_available: boolean;
   is_suspended?: boolean;
+  suspended_until?: string | null;
+  suspend_reason?: string | null;
   pendampingan_price: number;
   created_at: string;
   approval_status: string;

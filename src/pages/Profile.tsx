@@ -10,15 +10,36 @@ import { MobileLayout } from "@/components/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, role, signOut, loading } = useAuth();
   const { toast } = useToast();
   const unreadCount = useUnreadNotificationCount();
+
+  // Fetch user profile to check suspension status
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
+
+  const isSuspended = userProfile?.is_suspended && userProfile?.suspended_until;
 
   const menuItems = [
     { icon: User, label: "Edit Profil", path: "/profile/edit" },
@@ -42,6 +63,15 @@ export default function Profile() {
   return (
     <MobileLayout>
       <div className="p-4">
+        {/* Suspension Banner */}
+        {isSuspended && (
+          <SuspensionBanner 
+            suspendedUntil={userProfile.suspended_until!}
+            suspendReason={userProfile.suspend_reason}
+            userType="client"
+          />
+        )}
+
         {/* Header Profile */}
         <Card className="mb-6 overflow-hidden">
           <div className="gradient-hero h-20" />
