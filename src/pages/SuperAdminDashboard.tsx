@@ -99,6 +99,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PriceSettingsCard } from "@/components/PriceSettingsCard";
+import { SuspendDialog } from "@/components/SuspendDialog";
+import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -169,6 +171,16 @@ export default function SuperAdminDashboard() {
   // Specialization delete state
   const [deleteSpecOpen, setDeleteSpecOpen] = useState(false);
   const [deletingSpecId, setDeletingSpecId] = useState<string | null>(null);
+
+  // Suspend dialog state
+  const [suspendLawyerDialogOpen, setSuspendLawyerDialogOpen] = useState(false);
+  const [suspendClientDialogOpen, setSuspendClientDialogOpen] = useState(false);
+  const [selectedLawyerForSuspend, setSelectedLawyerForSuspend] = useState<any>(null);
+  const [selectedClientForSuspend, setSelectedClientForSuspend] = useState<any>(null);
+
+  // Interview hooks
+  const createInterview = useCreateInterviewSession();
+  const { data: interviewSessions = [] } = useAllInterviewSessions();
   
   const [newNotif, setNewNotif] = useState({
     title: "",
@@ -380,14 +392,22 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // Suspend handlers
-  const handleSuspendLawyer = async (lawyerId: string, suspend: boolean) => {
+  // Suspend handlers with duration
+  const handleSuspendLawyer = async (durationMinutes: number, reason: string) => {
+    if (!selectedLawyerForSuspend) return;
     try {
-      await suspendLawyer.mutateAsync({ lawyerId, suspend });
-      toast({ 
-        title: suspend ? "Lawyer Dinonaktifkan" : "Lawyer Diaktifkan",
-        description: suspend ? "Akun lawyer telah dinonaktifkan sementara" : "Akun lawyer telah diaktifkan kembali"
+      await suspendLawyer.mutateAsync({ 
+        lawyerId: selectedLawyerForSuspend.id, 
+        suspend: true,
+        durationMinutes,
+        reason
       });
+      toast({ 
+        title: "Lawyer Dinonaktifkan",
+        description: `Akun akan ditangguhkan selama ${durationMinutes} menit`
+      });
+      setSuspendLawyerDialogOpen(false);
+      setSelectedLawyerForSuspend(null);
     } catch (error) {
       toast({
         title: "Gagal",
@@ -397,19 +417,56 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleSuspendClient = async (profileId: string, suspend: boolean) => {
+  const handleUnsuspendLawyer = async (lawyerId: string) => {
     try {
-      await suspendClient.mutateAsync({ profileId, suspend });
-      toast({ 
-        title: suspend ? "Client Dinonaktifkan" : "Client Diaktifkan",
-        description: suspend ? "Akun client telah dinonaktifkan sementara" : "Akun client telah diaktifkan kembali"
-      });
+      await suspendLawyer.mutateAsync({ lawyerId, suspend: false });
+      toast({ title: "Lawyer Diaktifkan Kembali" });
     } catch (error) {
-      toast({
-        title: "Gagal",
-        description: "Terjadi kesalahan",
-        variant: "destructive"
+      toast({ title: "Gagal", variant: "destructive" });
+    }
+  };
+
+  const handleSuspendClient = async (durationMinutes: number, reason: string) => {
+    if (!selectedClientForSuspend) return;
+    try {
+      await suspendClient.mutateAsync({ 
+        profileId: selectedClientForSuspend.id, 
+        suspend: true,
+        durationMinutes,
+        reason
       });
+      toast({ 
+        title: "Client Dinonaktifkan",
+        description: `Akun akan ditangguhkan selama ${durationMinutes} menit`
+      });
+      setSuspendClientDialogOpen(false);
+      setSelectedClientForSuspend(null);
+    } catch (error) {
+      toast({ title: "Gagal", variant: "destructive" });
+    }
+  };
+
+  const handleUnsuspendClient = async (profileId: string) => {
+    try {
+      await suspendClient.mutateAsync({ profileId, suspend: false });
+      toast({ title: "Client Diaktifkan Kembali" });
+    } catch (error) {
+      toast({ title: "Gagal", variant: "destructive" });
+    }
+  };
+
+  // Start interview chat
+  const handleStartInterview = async (lawyer: any) => {
+    try {
+      const session = await createInterview.mutateAsync({ 
+        lawyerId: lawyer.id,
+        notes: interviewNotes 
+      });
+      toast({ title: "Sesi interview dimulai" });
+      setInterviewDialogOpen(false);
+      navigate(`/admin/interview/${session.id}`);
+    } catch (error) {
+      toast({ title: "Gagal memulai interview", variant: "destructive" });
     }
   };
 
@@ -1143,7 +1200,7 @@ export default function SuperAdminDashboard() {
                               {lawyer.is_suspended ? (
                                 <DropdownMenuItem 
                                   className="text-success"
-                                  onClick={() => handleSuspendLawyer(lawyer.id, false)}
+                                  onClick={() => handleUnsuspendLawyer(lawyer.id)}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Aktifkan Kembali
@@ -1151,7 +1208,10 @@ export default function SuperAdminDashboard() {
                               ) : (
                                 <DropdownMenuItem 
                                   className="text-destructive"
-                                  onClick={() => handleSuspendLawyer(lawyer.id, true)}
+                                  onClick={() => {
+                                    setSelectedLawyerForSuspend(lawyer);
+                                    setSuspendLawyerDialogOpen(true);
+                                  }}
                                 >
                                   <UserX className="w-4 h-4 mr-2" />
                                   Suspend Akun
@@ -1257,7 +1317,7 @@ export default function SuperAdminDashboard() {
                               {client.is_suspended ? (
                                 <DropdownMenuItem 
                                   className="text-success"
-                                  onClick={() => handleSuspendClient(client.id, false)}
+                                  onClick={() => handleUnsuspendClient(client.id)}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Aktifkan Kembali
@@ -1265,7 +1325,10 @@ export default function SuperAdminDashboard() {
                               ) : (
                                 <DropdownMenuItem 
                                   className="text-destructive"
-                                  onClick={() => handleSuspendClient(client.id, true)}
+                                  onClick={() => {
+                                    setSelectedClientForSuspend(client);
+                                    setSuspendClientDialogOpen(true);
+                                  }}
                                 >
                                   <UserX className="w-4 h-4 mr-2" />
                                   Suspend Akun

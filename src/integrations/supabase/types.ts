@@ -91,6 +91,91 @@ export type Database = {
           },
         ]
       }
+      interview_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          interview_id: string
+          sender_id: string
+          sender_type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          interview_id: string
+          sender_id: string
+          sender_type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          interview_id?: string
+          sender_id?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_messages_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_sessions: {
+        Row: {
+          admin_id: string
+          created_at: string
+          ended_at: string | null
+          google_meet_link: string | null
+          id: string
+          lawyer_id: string
+          notes: string | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          ended_at?: string | null
+          google_meet_link?: string | null
+          id?: string
+          lawyer_id: string
+          notes?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          ended_at?: string | null
+          google_meet_link?: string | null
+          id?: string
+          lawyer_id?: string
+          notes?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_sessions_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyer_documents: {
         Row: {
           document_type: string
@@ -308,6 +393,8 @@ export type Database = {
           review_count: number | null
           specialization: string[] | null
           submitted_at: string | null
+          suspend_reason: string | null
+          suspended_until: string | null
           updated_at: string
           user_id: string
         }
@@ -332,6 +419,8 @@ export type Database = {
           review_count?: number | null
           specialization?: string[] | null
           submitted_at?: string | null
+          suspend_reason?: string | null
+          suspended_until?: string | null
           updated_at?: string
           user_id: string
         }
@@ -356,6 +445,8 @@ export type Database = {
           review_count?: number | null
           specialization?: string[] | null
           submitted_at?: string | null
+          suspend_reason?: string | null
+          suspended_until?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -588,6 +679,8 @@ export type Database = {
           id: string
           is_suspended: boolean | null
           phone: string | null
+          suspend_reason: string | null
+          suspended_until: string | null
           updated_at: string
           user_id: string
           whatsapp: string | null
@@ -600,6 +693,8 @@ export type Database = {
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
+          suspend_reason?: string | null
+          suspended_until?: string | null
           updated_at?: string
           user_id: string
           whatsapp?: string | null
@@ -612,6 +707,8 @@ export type Database = {
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
+          suspend_reason?: string | null
+          suspended_until?: string | null
           updated_at?: string
           user_id?: string
           whatsapp?: string | null
