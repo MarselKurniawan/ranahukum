@@ -172,23 +172,29 @@ export default function LawyerDashboard() {
     return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
 
-  const RequestCard = ({ request }: { request: Consultation }) => (
-    <Card className="animate-fade-in">
-      <CardContent className="p-4">
-        <div className="flex gap-3">
-          <Avatar className="w-12 h-12">
-            <AvatarFallback>
-              {request.profiles?.full_name?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="font-semibold text-sm">
-                  {request.profiles?.full_name || 'Pengguna Anonim'}
-                </h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">{request.topic}</p>
-              </div>
+  const RequestCard = ({ request }: { request: Consultation }) => {
+    // Check if consultation is anonymous
+    const isAnonymousConsultation = (request as { is_anonymous?: boolean }).is_anonymous;
+    const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (request.profiles?.full_name || 'Pengguna Anonim');
+    const displayInitial = isAnonymousConsultation ? 'A' : (request.profiles?.full_name?.[0] || 'U');
+    
+    return (
+      <Card className="animate-fade-in">
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <Avatar className="w-12 h-12">
+              <AvatarFallback>
+                {displayInitial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-sm">
+                    {displayName}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{request.topic}</p>
+                </div>
               <Badge
                 variant={
                   request.status === "pending" ? "warning" :
@@ -293,9 +299,10 @@ export default function LawyerDashboard() {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Check if lawyer is suspended (from profile data)
   const isSuspended = lawyerProfile?.is_suspended && lawyerProfile?.suspended_until;

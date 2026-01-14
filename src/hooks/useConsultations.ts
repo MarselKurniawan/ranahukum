@@ -14,6 +14,7 @@ export interface Consultation {
   ended_at: string | null;
   lawyer_notes: string | null;
   created_at: string;
+  is_anonymous?: boolean;
   lawyers?: {
     name: string;
     image_url: string | null;
@@ -228,7 +229,7 @@ export function useCreateConsultation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ lawyerId, topic, price }: { lawyerId: string; topic: string; price: number }) => {
+    mutationFn: async ({ lawyerId, topic, price, isAnonymous = false }: { lawyerId: string; topic: string; price: number; isAnonymous?: boolean }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -239,7 +240,8 @@ export function useCreateConsultation() {
           lawyer_id: lawyerId,
           topic,
           price,
-          status: 'pending'
+          status: 'pending',
+          is_anonymous: isAnonymous
         })
         .select()
         .single();

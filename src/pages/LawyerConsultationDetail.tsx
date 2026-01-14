@@ -28,6 +28,9 @@ export default function LawyerConsultationDetail() {
 
   // Get client and lawyer info
   const client = consultation ? (consultation as { profiles?: { full_name: string | null } }).profiles : null;
+  const isAnonymousConsultation = consultation ? (consultation as { is_anonymous?: boolean }).is_anonymous : false;
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (client?.full_name || 'Pengguna Anonim');
+  const displayInitial = isAnonymousConsultation ? 'A' : (client?.full_name?.[0] || 'U');
   const lawyerId = consultation?.lawyer_id;
   const clientId = consultation?.client_id;
 
@@ -128,12 +131,12 @@ export default function LawyerConsultationDetail() {
             <div className="flex gap-3">
               <Avatar className="w-14 h-14">
                 <AvatarFallback className="text-lg">
-                  {client?.full_name?.[0] || 'U'}
+                  {displayInitial}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h3 className="font-semibold">{client?.full_name || 'Pengguna Anonim'}</h3>
-                <Badge 
+                <h3 className="font-semibold">{displayName}</h3>
+                <Badge
                   variant={consultation.status === 'completed' ? 'success' : 'secondary'} 
                   className="mt-1 text-xs"
                 >
