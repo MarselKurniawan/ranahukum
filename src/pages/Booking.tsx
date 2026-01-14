@@ -140,7 +140,8 @@ export default function Booking() {
       const consultation = await createConsultation.mutateAsync({
         lawyerId: lawyer.id,
         topic: topic.trim(),
-        price: consultationPrice + platformFee
+        price: consultationPrice + platformFee,
+        isAnonymous: isAnonymous
       });
 
       toast({

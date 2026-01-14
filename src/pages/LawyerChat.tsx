@@ -284,6 +284,9 @@ export default function LawyerChat() {
   }
 
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
+  const isAnonymousConsultation = (consultation as { is_anonymous?: boolean }).is_anonymous;
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (client?.full_name || 'Pengguna Anonim');
+  const displayInitial = isAnonymousConsultation ? 'A' : (client?.full_name?.[0] || 'U');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
 
@@ -307,11 +310,11 @@ export default function LawyerChat() {
             </Button>
             <Avatar className="w-10 h-10">
               <AvatarFallback>
-                {client?.full_name?.[0] || 'U'}
+                {displayInitial}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-sm">{client?.full_name || 'Pengguna Anonim'}</h2>
+              <h2 className="font-semibold text-sm">{displayName}</h2>
               <Badge 
                 variant={consultation.status === 'active' ? 'success' : 'secondary'} 
                 className="text-[10px]"
@@ -371,7 +374,7 @@ export default function LawyerChat() {
               >
                 {!isCurrentUserMessage && (
                   <Avatar className="w-8 h-8">
-                    <AvatarFallback>{client?.full_name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarFallback>{displayInitial}</AvatarFallback>
                   </Avatar>
                 )}
                 <div
