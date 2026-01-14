@@ -39,6 +39,41 @@ export default function Profile() {
     enabled: !!user
   });
 
+  // Fetch user stats (consultations, reviews, total paid)
+  const { data: userStats } = useQuery({
+    queryKey: ['user-stats', user?.id],
+    queryFn: async () => {
+      if (!user) return { consultationCount: 0, reviewCount: 0, totalPaid: 0 };
+      
+      // Get completed consultations count and total paid
+      const { data: consultations, error: consultError } = await supabase
+        .from('consultations')
+        .select('id, price, status')
+        .eq('client_id', user.id)
+        .eq('status', 'completed');
+      
+      if (consultError) throw consultError;
+      
+      const consultationCount = consultations?.length || 0;
+      const totalPaid = consultations?.reduce((sum, c) => sum + (c.price || 0), 0) || 0;
+      
+      // Get reviews count
+      const { count: reviewCount, error: reviewError } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      if (reviewError) throw reviewError;
+      
+      return {
+        consultationCount,
+        reviewCount: reviewCount || 0,
+        totalPaid
+      };
+    },
+    enabled: !!user
+  });
+
   const isSuspended = userProfile?.is_suspended && userProfile?.suspended_until;
 
   const menuItems = [
@@ -93,15 +128,17 @@ export default function Profile() {
 
             <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
               <div className="text-center">
-                <p className="text-lg font-bold text-primary">0</p>
+                <p className="text-lg font-bold text-primary">{userStats?.consultationCount || 0}</p>
                 <p className="text-xs text-muted-foreground">Konsultasi</p>
               </div>
               <div className="text-center border-x border-border">
-                <p className="text-lg font-bold text-primary">0</p>
+                <p className="text-lg font-bold text-primary">{userStats?.reviewCount || 0}</p>
                 <p className="text-xs text-muted-foreground">Ulasan</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-primary">Rp 0</p>
+                <p className="text-lg font-bold text-primary">
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(userStats?.totalPaid || 0)}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Bayar</p>
               </div>
             </div>
