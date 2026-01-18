@@ -101,6 +101,14 @@ import {
 import { PriceSettingsCard } from "@/components/PriceSettingsCard";
 import { SuspendDialog } from "@/components/SuspendDialog";
 import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
+import {
+  useAllPendampinganRequests,
+  useAllPendampinganInterviews,
+  useSchedulePendampinganInterview,
+  useApprovePendampingan,
+  useCompletePendampinganInterview,
+  useCancelPendampinganInterview
+} from "@/hooks/usePendampinganRequest";
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -130,6 +138,14 @@ export default function SuperAdminDashboard() {
 
   // Legal assistance requests
   const { data: allAssistanceRequests = [] } = useAllAssistanceRequests();
+
+  // Pendampingan activation requests
+  const { data: pendampinganRequests = [] } = useAllPendampinganRequests();
+  const { data: pendampinganInterviews = [] } = useAllPendampinganInterviews();
+  const schedulePendampinganInterview = useSchedulePendampinganInterview();
+  const approvePendampingan = useApprovePendampingan();
+  const completePendampinganInterview = useCompletePendampinganInterview();
+  const cancelPendampinganInterview = useCancelPendampinganInterview();
 
   // Notification management hooks
   const { data: allNotifications = [] } = useAllNotifications();
@@ -181,6 +197,16 @@ export default function SuperAdminDashboard() {
   // Interview hooks
   const createInterview = useCreateInterviewSession();
   const { data: interviewSessions = [] } = useAllInterviewSessions();
+  
+  // Pendampingan interview scheduling state
+  const [pendampinganScheduleOpen, setPendampinganScheduleOpen] = useState(false);
+  const [selectedLawyerForPendampingan, setSelectedLawyerForPendampingan] = useState<any>(null);
+  const [pendampinganSchedule, setPendampinganSchedule] = useState({
+    date: "",
+    time: "",
+    notes: "",
+    meetLink: ""
+  });
   
   const [newNotif, setNewNotif] = useState({
     title: "",
@@ -618,7 +644,7 @@ export default function SuperAdminDashboard() {
     .filter(c => c.status === 'completed')
     .reduce((sum, c) => sum + c.price, 0);
 
-  const pendingRequestsCount = pendingLawyers.length + priceRequests.length + pendingDocuments.length;
+  const pendingRequestsCount = pendingLawyers.length + priceRequests.length + pendingDocuments.length + pendampinganRequests.length;
 
   const filteredPendingLawyers = pendingLawyers.filter(l => 
     l.name.toLowerCase().includes(searchPendingLawyer.toLowerCase()) ||
@@ -702,59 +728,59 @@ export default function SuperAdminDashboard() {
       </Sheet>
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        {/* Quick Stats */}
+        {/* Quick Stats - Corporate Style */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50">
+          <Card className="border-primary/20 shadow-card hover:shadow-elevated transition-shadow">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">Lawyer Aktif</p>
-                  <p className="text-2xl md:text-3xl font-bold">{approvedLawyers.length}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-primary">{approvedLawyers.length}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50">
+          <Card className="border-accent/20 shadow-card hover:shadow-elevated transition-shadow">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">Client</p>
-                  <p className="text-2xl md:text-3xl font-bold">{clients.length}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-accent">{clients.length}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Users className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 md:w-6 md:h-6 text-accent" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50">
+          <Card className="border-success/20 shadow-card hover:shadow-elevated transition-shadow">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">Konsultasi</p>
-                  <p className="text-2xl md:text-3xl font-bold">{allConsultations.length}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-success">{allConsultations.length}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-success/10 flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-success" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200/50">
+          <Card className="border-warning/20 shadow-card hover:shadow-elevated transition-shadow">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-lg md:text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+                  <p className="text-lg md:text-2xl font-bold text-warning">{formatCurrency(totalRevenue)}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <Banknote className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-warning/10 flex items-center justify-center">
+                  <Banknote className="w-5 h-5 md:w-6 md:h-6 text-warning" />
                 </div>
               </div>
             </CardContent>
@@ -771,7 +797,7 @@ export default function SuperAdminDashboard() {
               <div className="flex-1">
                 <p className="font-medium">{pendingRequestsCount} permintaan menunggu persetujuan</p>
                 <p className="text-sm text-muted-foreground">
-                  {pendingLawyers.length} pendaftaran lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} perubahan harga
+                  {pendingLawyers.length} pendaftaran lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} perubahan harga • {pendampinganRequests.length} aktivasi pendampingan
                 </p>
               </div>
             </CardContent>
@@ -1093,6 +1119,197 @@ export default function SuperAdminDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Pendampingan Activation Requests */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Gavel className="w-5 h-5" />
+                  Permintaan Aktivasi Pendampingan
+                  {pendampinganRequests.length > 0 && (
+                    <Badge variant="warning">{pendampinganRequests.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pendampinganRequests.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pendampinganRequests.map((lawyer: any) => (
+                      <div key={lawyer.id} className="p-4 border rounded-lg">
+                        <div className="flex gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={lawyer.image_url || undefined} />
+                            <AvatarFallback>{lawyer.name?.[0] || 'L'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{lawyer.name}</h4>
+                            <p className="text-xs text-muted-foreground">{lawyer.location}</p>
+                            <Badge 
+                              variant={lawyer.pendampingan_status === 'pending' ? 'warning' : 'accent'} 
+                              className="text-[10px] mt-2"
+                            >
+                              {lawyer.pendampingan_status === 'pending' ? 'Menunggu Review' : 'Interview Dijadwalkan'}
+                            </Badge>
+                            {lawyer.pendampingan_requested_at && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Diajukan: {new Date(lawyer.pendampingan_requested_at).toLocaleDateString('id-ID')}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Detail
+                              </Button>
+                              {lawyer.pendampingan_status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs"
+                                    onClick={() => {
+                                      setSelectedLawyerForPendampingan(lawyer);
+                                      setPendampinganSchedule({ date: "", time: "", notes: "", meetLink: "" });
+                                      setPendampinganScheduleOpen(true);
+                                    }}
+                                  >
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    Jadwalkan Interview
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs text-destructive"
+                                    onClick={() => approvePendampingan.mutate({ lawyerId: lawyer.id, approve: false })}
+                                    disabled={approvePendampingan.isPending}
+                                  >
+                                    <X className="w-3 h-3 mr-1" />
+                                    Tolak
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="h-8 text-xs"
+                                    onClick={() => approvePendampingan.mutate({ lawyerId: lawyer.id, approve: true })}
+                                    disabled={approvePendampingan.isPending}
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Setujui Langsung
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">Tidak ada permintaan aktivasi pendampingan</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Scheduled Pendampingan Interviews */}
+            {pendampinganInterviews.filter(i => i.status === 'scheduled').length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Video className="w-5 h-5" />
+                    Interview Pendampingan Terjadwal
+                    <Badge variant="accent">
+                      {pendampinganInterviews.filter(i => i.status === 'scheduled').length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pendampinganInterviews
+                      .filter(i => i.status === 'scheduled')
+                      .map((interview) => (
+                        <div key={interview.id} className="p-4 border rounded-lg border-accent/30 bg-accent/5">
+                          <div className="flex gap-3">
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={interview.lawyer?.image_url || undefined} />
+                              <AvatarFallback>{interview.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <h4 className="font-medium">{interview.lawyer?.name}</h4>
+                              <div className="flex items-center gap-2 mt-2 text-sm">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <span>{new Date(interview.scheduled_date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span>{interview.scheduled_time}</span>
+                              </div>
+                              {interview.google_meet_link && (
+                                <a 
+                                  href={interview.google_meet_link} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-sm text-primary hover:underline mt-1"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  Google Meet
+                                </a>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs text-destructive"
+                                  onClick={() => cancelPendampinganInterview.mutate({ 
+                                    interviewId: interview.id, 
+                                    lawyerId: interview.lawyer_id 
+                                  })}
+                                  disabled={cancelPendampinganInterview.isPending}
+                                >
+                                  Batalkan
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs text-destructive"
+                                  onClick={() => completePendampinganInterview.mutate({ 
+                                    interviewId: interview.id, 
+                                    lawyerId: interview.lawyer_id,
+                                    approve: false
+                                  })}
+                                  disabled={completePendampinganInterview.isPending}
+                                >
+                                  Tolak
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-8 text-xs"
+                                  onClick={() => completePendampinganInterview.mutate({ 
+                                    interviewId: interview.id, 
+                                    lawyerId: interview.lawyer_id,
+                                    approve: true
+                                  })}
+                                  disabled={completePendampinganInterview.isPending}
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Setujui
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Lawyers Tab */}
@@ -2029,7 +2246,113 @@ export default function SuperAdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Quiz Question Dialog */}
+      {/* Pendampingan Interview Schedule Dialog */}
+      <Dialog open={pendampinganScheduleOpen} onOpenChange={setPendampinganScheduleOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Jadwalkan Interview Pendampingan
+            </DialogTitle>
+            <DialogDescription>
+              Tentukan jadwal interview untuk aktivasi layanan pendampingan
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLawyerForPendampingan && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={selectedLawyerForPendampingan.image_url || undefined} />
+                  <AvatarFallback>{selectedLawyerForPendampingan.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{selectedLawyerForPendampingan.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedLawyerForPendampingan.location}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tanggal Interview</Label>
+                  <Input
+                    type="date"
+                    value={pendampinganSchedule.date}
+                    onChange={(e) => setPendampinganSchedule(prev => ({ ...prev, date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Waktu Interview</Label>
+                  <Select 
+                    value={pendampinganSchedule.time} 
+                    onValueChange={(v) => setPendampinganSchedule(prev => ({ ...prev, time: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih waktu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="09:00">09:00 WIB</SelectItem>
+                      <SelectItem value="10:00">10:00 WIB</SelectItem>
+                      <SelectItem value="11:00">11:00 WIB</SelectItem>
+                      <SelectItem value="13:00">13:00 WIB</SelectItem>
+                      <SelectItem value="14:00">14:00 WIB</SelectItem>
+                      <SelectItem value="15:00">15:00 WIB</SelectItem>
+                      <SelectItem value="16:00">16:00 WIB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Link Google Meet (Opsional)</Label>
+                <Input
+                  value={pendampinganSchedule.meetLink}
+                  onChange={(e) => setPendampinganSchedule(prev => ({ ...prev, meetLink: e.target.value }))}
+                  placeholder="https://meet.google.com/xxx-xxx-xxx"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Catatan (Opsional)</Label>
+                <Textarea
+                  value={pendampinganSchedule.notes}
+                  onChange={(e) => setPendampinganSchedule(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Catatan untuk interview..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setPendampinganScheduleOpen(false)}>
+              Batal
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!selectedLawyerForPendampingan || !pendampinganSchedule.date || !pendampinganSchedule.time) return;
+                try {
+                  await schedulePendampinganInterview.mutateAsync({
+                    lawyerId: selectedLawyerForPendampingan.id,
+                    scheduledDate: pendampinganSchedule.date,
+                    scheduledTime: pendampinganSchedule.time,
+                    notes: pendampinganSchedule.notes || undefined,
+                    googleMeetLink: pendampinganSchedule.meetLink || undefined
+                  });
+                  toast({ title: "Interview berhasil dijadwalkan" });
+                  setPendampinganScheduleOpen(false);
+                } catch (error) {
+                  toast({ title: "Gagal menjadwalkan interview", variant: "destructive" });
+                }
+              }}
+              disabled={schedulePendampinganInterview.isPending || !pendampinganSchedule.date || !pendampinganSchedule.time}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {schedulePendampinganInterview.isPending ? 'Menjadwalkan...' : 'Jadwalkan Interview'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={editQuizOpen} onOpenChange={setEditQuizOpen}>
         <DialogContent>
           <DialogHeader>

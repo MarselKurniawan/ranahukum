@@ -389,7 +389,11 @@ export type Database = {
           is_verified: boolean | null
           location: string | null
           name: string
+          pendampingan_enabled: boolean | null
+          pendampingan_interview_id: string | null
           pendampingan_price: number | null
+          pendampingan_requested_at: string | null
+          pendampingan_status: string | null
           price: number | null
           quiz_completed: boolean | null
           rating: number | null
@@ -415,7 +419,11 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           name: string
+          pendampingan_enabled?: boolean | null
+          pendampingan_interview_id?: string | null
           pendampingan_price?: number | null
+          pendampingan_requested_at?: string | null
+          pendampingan_status?: string | null
           price?: number | null
           quiz_completed?: boolean | null
           rating?: number | null
@@ -441,7 +449,11 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           name?: string
+          pendampingan_enabled?: boolean | null
+          pendampingan_interview_id?: string | null
           pendampingan_price?: number | null
+          pendampingan_requested_at?: string | null
+          pendampingan_status?: string | null
           price?: number | null
           quiz_completed?: boolean | null
           rating?: number | null
@@ -453,7 +465,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lawyers_pendampingan_interview_id_fkey"
+            columns: ["pendampingan_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_assistance_messages: {
         Row: {
@@ -729,6 +749,62 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: []
+      }
+      pendampingan_interviews: {
+        Row: {
+          admin_id: string
+          admin_reminder_sent: boolean | null
+          completed_at: string | null
+          created_at: string
+          google_meet_link: string | null
+          id: string
+          lawyer_id: string
+          lawyer_reminder_sent: boolean | null
+          notes: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          admin_reminder_sent?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          google_meet_link?: string | null
+          id?: string
+          lawyer_id: string
+          lawyer_reminder_sent?: boolean | null
+          notes?: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          admin_reminder_sent?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          google_meet_link?: string | null
+          id?: string
+          lawyer_id?: string
+          lawyer_reminder_sent?: boolean | null
+          notes?: string | null
+          scheduled_date?: string
+          scheduled_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendampingan_interviews_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
