@@ -502,44 +502,101 @@ export type Database = {
       legal_assistance_requests: {
         Row: {
           agreed_price: number | null
+          can_withdraw: boolean | null
           case_description: string
+          case_type: string | null
+          client_address: string | null
+          client_age: number | null
           client_id: string
+          client_name: string | null
+          client_nik: string | null
+          client_religion: string | null
           created_at: string
           current_stage: string | null
           id: string
+          identity_verified: boolean | null
+          identity_verified_at: string | null
           lawyer_id: string
+          meeting_date: string | null
+          meeting_evidence_url: string | null
+          meeting_location: string | null
+          meeting_notes: string | null
+          meeting_signature_url: string | null
+          meeting_time: string | null
+          meeting_verified: boolean | null
+          meeting_verified_at: string | null
           payment_status: string
           proposed_price: number | null
           stage_notes: string | null
           status: string
+          surat_kuasa_uploaded_at: string | null
+          surat_kuasa_url: string | null
           updated_at: string
         }
         Insert: {
           agreed_price?: number | null
+          can_withdraw?: boolean | null
           case_description: string
+          case_type?: string | null
+          client_address?: string | null
+          client_age?: number | null
           client_id: string
+          client_name?: string | null
+          client_nik?: string | null
+          client_religion?: string | null
           created_at?: string
           current_stage?: string | null
           id?: string
+          identity_verified?: boolean | null
+          identity_verified_at?: string | null
           lawyer_id: string
+          meeting_date?: string | null
+          meeting_evidence_url?: string | null
+          meeting_location?: string | null
+          meeting_notes?: string | null
+          meeting_signature_url?: string | null
+          meeting_time?: string | null
+          meeting_verified?: boolean | null
+          meeting_verified_at?: string | null
           payment_status?: string
           proposed_price?: number | null
           stage_notes?: string | null
           status?: string
+          surat_kuasa_uploaded_at?: string | null
+          surat_kuasa_url?: string | null
           updated_at?: string
         }
         Update: {
           agreed_price?: number | null
+          can_withdraw?: boolean | null
           case_description?: string
+          case_type?: string | null
+          client_address?: string | null
+          client_age?: number | null
           client_id?: string
+          client_name?: string | null
+          client_nik?: string | null
+          client_religion?: string | null
           created_at?: string
           current_stage?: string | null
           id?: string
+          identity_verified?: boolean | null
+          identity_verified_at?: string | null
           lawyer_id?: string
+          meeting_date?: string | null
+          meeting_evidence_url?: string | null
+          meeting_location?: string | null
+          meeting_notes?: string | null
+          meeting_signature_url?: string | null
+          meeting_time?: string | null
+          meeting_verified?: boolean | null
+          meeting_verified_at?: string | null
           payment_status?: string
           proposed_price?: number | null
           stage_notes?: string | null
           status?: string
+          surat_kuasa_uploaded_at?: string | null
+          surat_kuasa_url?: string | null
           updated_at?: string
         }
         Relationships: [

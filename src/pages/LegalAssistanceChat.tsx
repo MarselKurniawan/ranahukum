@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +36,13 @@ import {
   useSendAssistanceMessage,
   useAcceptPriceOffer,
   useUpdatePaymentStatus,
+  useUpdateClientIdentity,
   ASSISTANCE_STAGES
 } from "@/hooks/useLegalAssistance";
+import { ClientIdentityForm, ClientIdentityData } from "@/components/ClientIdentityForm";
+import { MeetingScheduleForm } from "@/components/MeetingScheduleForm";
+import { SuratKuasaUpload } from "@/components/SuratKuasaUpload";
+import { LegalAssistanceTerms } from "@/components/LegalAssistanceTerms";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -53,11 +59,14 @@ export default function LegalAssistanceChat() {
   const sendMessage = useSendAssistanceMessage();
   const acceptPrice = useAcceptPriceOffer();
   const updatePayment = useUpdatePaymentStatus();
+  const updateIdentity = useUpdateClientIdentity();
   
   const [inputMessage, setInputMessage] = useState("");
   const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [pendingPriceOffer, setPendingPriceOffer] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("chat");
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -106,6 +115,28 @@ export default function LegalAssistanceChat() {
     } catch (error) {
       toast({
         title: "Gagal menyetujui harga",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSubmitIdentity = async (data: ClientIdentityData) => {
+    if (!id) return;
+
+    try {
+      await updateIdentity.mutateAsync({
+        requestId: id,
+        clientName: data.client_name,
+        clientAddress: data.client_address,
+        clientAge: data.client_age,
+        clientReligion: data.client_religion,
+        clientNik: data.client_nik,
+        caseType: data.case_type
+      });
+      toast({ title: "Data identitas berhasil disimpan!" });
+    } catch (error) {
+      toast({
+        title: "Gagal menyimpan data",
         variant: "destructive"
       });
     }

@@ -16,6 +16,28 @@ export interface LegalAssistanceRequest {
   payment_status: string;
   created_at: string;
   updated_at: string;
+  // Client identity fields
+  client_name: string | null;
+  client_address: string | null;
+  client_age: number | null;
+  client_religion: string | null;
+  client_nik: string | null;
+  case_type: string | null;
+  identity_verified: boolean;
+  identity_verified_at: string | null;
+  // Surat Kuasa
+  surat_kuasa_url: string | null;
+  surat_kuasa_uploaded_at: string | null;
+  // Meeting
+  meeting_date: string | null;
+  meeting_time: string | null;
+  meeting_location: string | null;
+  meeting_notes: string | null;
+  meeting_evidence_url: string | null;
+  meeting_signature_url: string | null;
+  meeting_verified: boolean;
+  meeting_verified_at: string | null;
+  can_withdraw: boolean;
   lawyer?: {
     id: string;
     user_id?: string;
@@ -654,6 +676,166 @@ export function useAllAssistanceRequests() {
       );
 
       return enrichedData;
+    }
+  });
+}
+
+// Update client identity
+export function useUpdateClientIdentity() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ 
+      requestId, 
+      clientName,
+      clientAddress,
+      clientAge,
+      clientReligion,
+      clientNik,
+      caseType
+    }: { 
+      requestId: string;
+      clientName: string;
+      clientAddress: string;
+      clientAge: number;
+      clientReligion: string;
+      clientNik: string;
+      caseType: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('legal_assistance_requests')
+        .update({ 
+          client_name: clientName,
+          client_address: clientAddress,
+          client_age: clientAge,
+          client_religion: clientReligion,
+          client_nik: clientNik,
+          case_type: caseType,
+          identity_verified: true,
+          identity_verified_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .eq('client_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assistance-request', variables.requestId] });
+      queryClient.invalidateQueries({ queryKey: ['client-assistance-requests'] });
+    }
+  });
+}
+
+// Update meeting schedule (lawyer only)
+export function useUpdateMeetingSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      requestId, 
+      meetingDate,
+      meetingTime,
+      meetingLocation,
+      meetingNotes
+    }: { 
+      requestId: string;
+      meetingDate: string;
+      meetingTime: string;
+      meetingLocation: string;
+      meetingNotes?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('legal_assistance_requests')
+        .update({ 
+          meeting_date: meetingDate,
+          meeting_time: meetingTime,
+          meeting_location: meetingLocation,
+          meeting_notes: meetingNotes
+        })
+        .eq('id', requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assistance-request', variables.requestId] });
+      queryClient.invalidateQueries({ queryKey: ['lawyer-assistance-requests'] });
+    }
+  });
+}
+
+// Upload Surat Kuasa (lawyer only)
+export function useUploadSuratKuasa() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      requestId, 
+      suratKuasaUrl
+    }: { 
+      requestId: string;
+      suratKuasaUrl: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('legal_assistance_requests')
+        .update({ 
+          surat_kuasa_url: suratKuasaUrl,
+          surat_kuasa_uploaded_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assistance-request', variables.requestId] });
+    }
+  });
+}
+
+// Upload meeting evidence (lawyer only)
+export function useUploadMeetingEvidence() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      requestId, 
+      meetingEvidenceUrl,
+      meetingSignatureUrl
+    }: { 
+      requestId: string;
+      meetingEvidenceUrl: string;
+      meetingSignatureUrl: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('legal_assistance_requests')
+        .update({ 
+          meeting_evidence_url: meetingEvidenceUrl,
+          meeting_signature_url: meetingSignatureUrl,
+          meeting_verified: true,
+          meeting_verified_at: new Date().toISOString(),
+          can_withdraw: true
+        })
+        .eq('id', requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assistance-request', variables.requestId] });
+      queryClient.invalidateQueries({ queryKey: ['lawyer-assistance-requests'] });
     }
   });
 }
