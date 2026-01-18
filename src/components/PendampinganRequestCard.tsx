@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Gavel, Clock, CheckCircle, Calendar, ExternalLink, AlertCircle, Video } from "lucide-react";
+import { Gavel, Clock, CheckCircle, Calendar, ExternalLink, AlertCircle, Video, MessageCircle } from "lucide-react";
 import { 
   useLawyerPendampinganStatus, 
   useRequestPendampinganActivation,
@@ -23,6 +24,7 @@ import {
 import { LegalAssistanceTerms } from "./LegalAssistanceTerms";
 
 export function PendampinganRequestCard() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { data: pendampinganStatus, isLoading } = useLawyerPendampinganStatus();
   const { data: scheduledInterview } = useLawyerPendampinganInterview();
@@ -105,6 +107,17 @@ export function PendampinganRequestCard() {
                   </a>
                 )}
               </div>
+              <div className="flex gap-2 mt-3">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-8 text-xs"
+                  onClick={() => navigate('/lawyer/pendampingan-chat')}
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />
+                  Buka Chat
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Pastikan Anda hadir tepat waktu untuk interview aktivasi pendampingan
               </p>
@@ -119,13 +132,26 @@ export function PendampinganRequestCard() {
   if (pendampinganStatus?.pendampingan_status === 'pending') {
     return (
       <Card className="border-warning/30 bg-warning/5">
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-warning" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Menunggu Review Admin</p>
-            <p className="text-xs text-muted-foreground">Permintaan aktivasi pendampingan Anda sedang ditinjau oleh tim admin</p>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-warning" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-sm">Menunggu Review Admin</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Permintaan aktivasi pendampingan Anda sedang ditinjau oleh tim admin
+              </p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 text-xs mt-3"
+                onClick={() => navigate('/lawyer/pendampingan-chat')}
+              >
+                <MessageCircle className="w-3 h-3 mr-1" />
+                Buka Chat Admin
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

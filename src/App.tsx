@@ -39,6 +39,7 @@ import SuperAdminConsultationDetail from "./pages/SuperAdminConsultationDetail";
 import SuperAdminAssistanceDetail from "./pages/SuperAdminAssistanceDetail";
 import SuperAdminInterviewChat from "./pages/SuperAdminInterviewChat";
 import LawyerAssistanceHistory from "./pages/LawyerAssistanceHistory";
+import LawyerPendampinganChat from "./pages/LawyerPendampinganChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/legal-assistance/chat/:id" element={<LegalAssistanceChat />} />
             <Route path="/lawyer/assistance/:id" element={<LawyerAssistanceChat />} />
             <Route path="/lawyer/assistance" element={<LawyerAssistanceHistory />} />
+            <Route path="/lawyer/pendampingan-chat" element={<LawyerPendampinganChat />} />
             <Route path="/document-templates" element={<DocumentTemplates />} />
             <Route path="/legal-calculator" element={<LegalCalculator />} />
             {/* Super Admin Routes */}
