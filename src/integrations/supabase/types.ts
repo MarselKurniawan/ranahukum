@@ -223,6 +223,61 @@ export type Database = {
           },
         ]
       }
+      lawyer_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          is_withdrawn: boolean
+          lawyer_id: string
+          request_id: string | null
+          withdrawal_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_withdrawn?: boolean
+          lawyer_id: string
+          request_id?: string | null
+          withdrawal_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_withdrawn?: boolean
+          lawyer_id?: string
+          request_id?: string | null
+          withdrawal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_earnings_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lawyer_earnings_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_assistance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lawyer_earnings_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "lawyer_withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyer_price_requests: {
         Row: {
           created_at: string
@@ -367,6 +422,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lawyer_schedules_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lawyer_withdrawals: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          admin_notes: string | null
+          amount: number
+          bank_name: string
+          created_at: string
+          id: string
+          lawyer_id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          admin_notes?: string | null
+          amount: number
+          bank_name: string
+          created_at?: string
+          id?: string
+          lawyer_id: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          admin_notes?: string | null
+          amount?: number
+          bank_name?: string
+          created_at?: string
+          id?: string
+          lawyer_id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_withdrawals_lawyer_id_fkey"
             columns: ["lawyer_id"]
             isOneToOne: false
             referencedRelation: "lawyers"
