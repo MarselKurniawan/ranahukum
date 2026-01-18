@@ -750,6 +750,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pendampingan_interview_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          interview_id: string | null
+          sender_id: string
+          sender_type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          interview_id?: string | null
+          sender_id: string
+          sender_type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          interview_id?: string | null
+          sender_id?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendampingan_interview_messages_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "pendampingan_interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pendampingan_interviews: {
         Row: {
           admin_id: string
