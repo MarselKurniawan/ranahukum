@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Banknote, AlertTriangle, CheckCircle, 
-  Clock, FileText, Shield, ChevronDown, ChevronUp, Pencil, X
+  Clock, FileText, Shield, ChevronDown, ChevronUp, Pencil, X,
+  Camera, FileSignature
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +46,12 @@ import {
   useAssistanceStatusHistory,
   useSendAssistanceMessage,
   useUpdateAssistanceStatus,
+  useUploadSuratKuasa,
+  useUploadMeetingEvidence,
   ASSISTANCE_STAGES
 } from "@/hooks/useLegalAssistance";
+import { SuratKuasaUpload } from "@/components/SuratKuasaUpload";
+import { MeetingEvidenceForm } from "@/components/MeetingEvidenceForm";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -62,11 +68,14 @@ export default function LawyerAssistanceChat() {
   const { data: statusHistory = [] } = useAssistanceStatusHistory(id || '');
   const sendMessage = useSendAssistanceMessage();
   const updateStatus = useUpdateAssistanceStatus();
+  const uploadSuratKuasa = useUploadSuratKuasa();
+  const uploadMeetingEvidence = useUploadMeetingEvidence();
   
   const [inputMessage, setInputMessage] = useState("");
   const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [showPriceOfferDialog, setShowPriceOfferDialog] = useState(false);
   const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false);
+  const [showDocumentsTab, setShowDocumentsTab] = useState(false);
   const [offerPrice, setOfferPrice] = useState("");
   const [offerNote, setOfferNote] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
@@ -151,6 +160,43 @@ export default function LawyerAssistanceChat() {
         title: "Gagal memperbarui status",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleUploadSuratKuasa = async (url: string) => {
+    if (!id || !lawyerProfile?.id) return;
+    
+    try {
+      await uploadSuratKuasa.mutateAsync({
+        requestId: id,
+        suratKuasaUrl: url
+      });
+      toast({ title: "Surat Kuasa berhasil diupload" });
+    } catch (error) {
+      toast({
+        title: "Gagal mengupload Surat Kuasa",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const handleUploadMeetingEvidence = async (evidenceUrl: string, signatureUrl: string) => {
+    if (!id) return;
+    
+    try {
+      await uploadMeetingEvidence.mutateAsync({
+        requestId: id,
+        meetingEvidenceUrl: evidenceUrl,
+        meetingSignatureUrl: signatureUrl
+      });
+      toast({ title: "Bukti pertemuan berhasil diupload" });
+    } catch (error) {
+      toast({
+        title: "Gagal mengupload bukti pertemuan",
+        variant: "destructive"
+      });
+      throw error;
     }
   };
 
@@ -437,21 +483,98 @@ export default function LawyerAssistanceChat() {
         </div>
       )}
 
-      {/* In Progress - Show update status */}
+      {/* In Progress - Show documents tab and update status */}
       {request.status === 'in_progress' && (
-        <div className="sticky bottom-0 bg-card border-t border-border p-4">
-          <div className="text-center text-sm text-muted-foreground mb-2">
-            <Shield className="w-5 h-5 mx-auto mb-1 text-primary" />
-            Pendampingan hukum sedang berjalan
-          </div>
-          <Button 
-            className="w-full" 
-            variant="gradient"
-            onClick={() => setShowUpdateStatusDialog(true)}
-          >
-            <Pencil className="w-4 h-4 mr-2" />
-            Update Status Pendampingan
-          </Button>
+        <div className="sticky bottom-0 bg-card border-t border-border p-4 space-y-3">
+          {/* Documents Toggle */}
+          {showDocumentsTab ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Dokumen Pendampingan</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowDocumentsTab(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <Tabs defaultValue="surat-kuasa" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="surat-kuasa" className="text-xs">
+                    <FileSignature className="w-3 h-3 mr-1" />
+                    Surat Kuasa
+                  </TabsTrigger>
+                  <TabsTrigger value="bukti-pertemuan" className="text-xs">
+                    <Camera className="w-3 h-3 mr-1" />
+                    Bukti Pertemuan
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="surat-kuasa" className="mt-3">
+                  <SuratKuasaUpload
+                    requestId={id || ''}
+                    lawyerId={lawyerProfile?.id || ''}
+                    onSubmit={handleUploadSuratKuasa}
+                    suratKuasaUrl={request.surat_kuasa_url}
+                    uploadedAt={request.surat_kuasa_uploaded_at}
+                    isSubmitting={uploadSuratKuasa.isPending}
+                    isLawyer={true}
+                    clientIdentity={{
+                      client_name: request.client_name || undefined,
+                      client_nik: request.client_nik || undefined,
+                      case_type: request.case_type || undefined
+                    }}
+                  />
+                </TabsContent>
+                <TabsContent value="bukti-pertemuan" className="mt-3">
+                  <MeetingEvidenceForm
+                    requestId={id || ''}
+                    lawyerId={lawyerProfile?.id || ''}
+                    onSubmit={handleUploadMeetingEvidence}
+                    initialData={{
+                      meeting_evidence_url: request.meeting_evidence_url || undefined,
+                      meeting_signature_url: request.meeting_signature_url || undefined
+                    }}
+                    isSubmitting={uploadMeetingEvidence.isPending}
+                    isVerified={request.meeting_verified || false}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  className="flex-1 gap-1"
+                  size="sm"
+                  onClick={() => setShowDocumentsTab(true)}
+                >
+                  <FileSignature className="w-4 h-4" />
+                  Upload Dokumen
+                  {(request.surat_kuasa_url || request.meeting_verified) && (
+                    <Badge variant="secondary" className="ml-1 text-[10px]">
+                      {request.surat_kuasa_url && request.meeting_verified ? '2' : '1'}
+                    </Badge>
+                  )}
+                </Button>
+                <Button 
+                  variant="gradient"
+                  className="flex-1 gap-1"
+                  size="sm"
+                  onClick={() => setShowUpdateStatusDialog(true)}
+                >
+                  <Pencil className="w-4 h-4" />
+                  Update Status
+                </Button>
+              </div>
+              <div className="text-center text-xs text-muted-foreground">
+                <Shield className="w-4 h-4 inline-block mr-1 text-primary" />
+                Pendampingan hukum sedang berjalan
+              </div>
+            </>
+          )}
         </div>
       )}
 
