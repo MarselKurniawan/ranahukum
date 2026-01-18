@@ -1265,6 +1265,15 @@ export default function SuperAdminDashboard() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  className="h-8 text-xs"
+                                  onClick={() => navigate(`/admin/pendampingan-chat/${interview.id}`)}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  Chat
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="h-8 text-xs text-destructive"
                                   onClick={() => cancelPendampinganInterview.mutate({ 
                                     interviewId: interview.id, 

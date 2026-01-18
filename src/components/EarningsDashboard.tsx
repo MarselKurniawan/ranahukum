@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Banknote, Calendar, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Banknote, Calendar, Users, BarChart3, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,10 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WithdrawalForm } from "./WithdrawalForm";
+import { WithdrawalHistory } from "./WithdrawalHistory";
+import { useLawyerBalance } from "@/hooks/useLawyerWithdrawal";
 
 interface EarningsDashboardProps {
   lawyerId?: string;
@@ -31,6 +35,7 @@ interface TransactionData {
 
 export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
   const [period, setPeriod] = useState("6months");
+  const { data: balance } = useLawyerBalance();
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['lawyer-earnings', lawyerId],
@@ -220,129 +225,164 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Period Selector */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Statistik Pendapatan</h3>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1month">1 Bulan</SelectItem>
-            <SelectItem value="3months">3 Bulan</SelectItem>
-            <SelectItem value="6months">6 Bulan</SelectItem>
-            <SelectItem value="1year">1 Tahun</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <Tabs defaultValue="stats" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="stats">Statistik</TabsTrigger>
+        <TabsTrigger value="withdraw">
+          <Wallet className="h-4 w-4 mr-1" />
+          Tarik Saldo
+        </TabsTrigger>
+      </TabsList>
 
-      {/* Main Stats */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Total Pendapatan</p>
-              <p className="text-2xl font-bold">{formatCurrency(stats.totalEarnings)}</p>
-              {stats.previousEarnings > 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {isPositiveGrowth ? (
-                    <TrendingUp className="w-4 h-4 text-success" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-destructive" />
-                  )}
-                  <span className={`text-xs font-medium ${isPositiveGrowth ? "text-success" : "text-destructive"}`}>
-                    {isPositiveGrowth ? "+" : ""}{growthPercentage.toFixed(1)}%
-                  </span>
-                  <span className="text-xs text-muted-foreground">dari periode sebelumnya</span>
-                </div>
-              )}
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Banknote className="w-6 h-6 text-primary" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <TabsContent value="stats" className="space-y-4">
+        {/* Period Selector */}
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm">Statistik Pendapatan</h3>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1month">1 Bulan</SelectItem>
+              <SelectItem value="3months">3 Bulan</SelectItem>
+              <SelectItem value="6months">6 Bulan</SelectItem>
+              <SelectItem value="1year">1 Tahun</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="p-3 text-center">
-            <Users className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">{stats.totalTransactions}</p>
-            <p className="text-[10px] text-muted-foreground">Transaksi Selesai</p>
+        {/* Main Stats */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Total Pendapatan</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.totalEarnings)}</p>
+                {stats.previousEarnings > 0 && (
+                  <div className="flex items-center gap-1 mt-1">
+                    {isPositiveGrowth ? (
+                      <TrendingUp className="w-4 h-4 text-success" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-destructive" />
+                    )}
+                    <span className={`text-xs font-medium ${isPositiveGrowth ? "text-success" : "text-destructive"}`}>
+                      {isPositiveGrowth ? "+" : ""}{growthPercentage.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">dari periode sebelumnya</span>
+                  </div>
+                )}
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Banknote className="w-6 h-6 text-primary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <BarChart3 className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold">{formatCurrency(stats.averagePerTransaction)}</p>
-            <p className="text-[10px] text-muted-foreground">Rata-rata</p>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Bar Chart */}
-      {stats.monthlyData.length > 0 && (
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card>
+            <CardContent className="p-3 text-center">
+              <Users className="w-5 h-5 mx-auto text-primary mb-1" />
+              <p className="text-lg font-bold">{stats.totalTransactions}</p>
+              <p className="text-[10px] text-muted-foreground">Transaksi Selesai</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <BarChart3 className="w-5 h-5 mx-auto text-primary mb-1" />
+              <p className="text-lg font-bold">{formatCurrency(stats.averagePerTransaction)}</p>
+              <p className="text-[10px] text-muted-foreground">Rata-rata</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bar Chart */}
+        {stats.monthlyData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Pendapatan Bulanan
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between gap-2 h-32">
+                {stats.monthlyData.map((item, idx) => (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full bg-primary/20 rounded-t-md relative overflow-hidden transition-all hover:bg-primary/30"
+                      style={{ height: `${Math.max((item.amount / maxAmount) * 100, 5)}%` }}
+                    >
+                      <div
+                        className="absolute bottom-0 left-0 right-0 bg-primary rounded-t-md transition-all"
+                        style={{ height: '100%' }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{item.month}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Transactions */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Pendapatan Bulanan
-            </CardTitle>
+            <CardTitle className="text-sm">Transaksi Terakhir</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between gap-2 h-32">
-              {stats.monthlyData.map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full bg-primary/20 rounded-t-md relative overflow-hidden transition-all hover:bg-primary/30"
-                    style={{ height: `${Math.max((item.amount / maxAmount) * 100, 5)}%` }}
-                  >
-                    <div
-                      className="absolute bottom-0 left-0 right-0 bg-primary rounded-t-md transition-all"
-                      style={{ height: '100%' }}
-                    />
+          <CardContent className="space-y-3">
+            {stats.recentTransactions.length > 0 ? (
+              stats.recentTransactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{tx.profiles?.full_name || 'Anonim'}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={tx.type === 'assistance' ? 'accent' : 'tag'} className="text-[10px]">
+                        {tx.type === 'assistance' ? 'Pendampingan' : 'Konsultasi'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(tx.ended_at || tx.created_at)}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-muted-foreground">{item.month}</span>
+                  <span className="font-semibold text-success">+{formatCurrency(tx.price)}</span>
                 </div>
-              ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Belum ada transaksi
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="withdraw" className="space-y-4">
+        {/* Balance Card */}
+        <Card className="border-success/20 bg-gradient-to-br from-success/5 to-transparent">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Saldo Tersedia</p>
+                <p className="text-2xl font-bold text-success">{formatCurrency(balance?.available || 0)}</p>
+                {(balance?.pending || 0) > 0 && (
+                  <p className="text-xs text-warning mt-1">
+                    Dalam proses: {formatCurrency(balance?.pending || 0)}
+                  </p>
+                )}
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-success" />
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Transaksi Terakhir</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {stats.recentTransactions.length > 0 ? (
-            stats.recentTransactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{tx.profiles?.full_name || 'Anonim'}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={tx.type === 'assistance' ? 'accent' : 'tag'} className="text-[10px]">
-                      {tx.type === 'assistance' ? 'Pendampingan' : 'Konsultasi'}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(tx.ended_at || tx.created_at)}
-                    </span>
-                  </div>
-                </div>
-                <span className="font-semibold text-success">+{formatCurrency(tx.price)}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Belum ada transaksi
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        <WithdrawalForm />
+        <WithdrawalHistory />
+      </TabsContent>
+    </Tabs>
   );
 }
