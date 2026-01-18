@@ -17,6 +17,7 @@ import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
 import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
+import { PendampinganRequestCard } from "@/components/PendampinganRequestCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -504,7 +505,8 @@ export default function LawyerDashboard() {
           </Tabs>
           </TabsContent>
 
-          <TabsContent value="assistance">
+          <TabsContent value="assistance" className="space-y-4">
+            <PendampinganRequestCard />
             <LawyerAssistanceList />
           </TabsContent>
 
