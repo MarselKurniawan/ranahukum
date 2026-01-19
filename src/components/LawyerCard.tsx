@@ -1,7 +1,8 @@
-import { Star, Clock, CheckCircle, MapPin } from "lucide-react";
+import { Star, Clock, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
+import { VerifiedBadge, VerifiedBadgeCompact } from "@/components/VerifiedBadge";
 
 interface LawyerCardProps {
   id: string;
@@ -54,7 +55,10 @@ export function LawyerCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-foreground truncate">{name}</h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-semibold text-foreground truncate">{name}</h3>
+                  {isVerified && <VerifiedBadge size="sm" showLabel={false} />}
+                </div>
                 {location && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                     <MapPin className="w-3 h-3" />
@@ -89,12 +93,7 @@ export function LawyerCard({
               <Clock className="w-3 h-3" />
               {responseTime}
             </span>
-            {isVerified && (
-              <span className="flex items-center gap-1">
-                <CheckCircle className="w-3 h-3 text-success" />
-                Terverifikasi
-              </span>
-            )}
+            {isVerified && <VerifiedBadgeCompact />}
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Mulai dari</p>

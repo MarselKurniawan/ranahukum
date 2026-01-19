@@ -43,6 +43,10 @@ export type Database = {
       }
       consultations: {
         Row: {
+          auto_expired: boolean | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_id: string
           created_at: string
           ended_at: string | null
@@ -57,6 +61,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_expired?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id: string
           created_at?: string
           ended_at?: string | null
@@ -71,6 +79,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_expired?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string
           created_at?: string
           ended_at?: string | null
@@ -680,7 +692,11 @@ export type Database = {
       legal_assistance_requests: {
         Row: {
           agreed_price: number | null
+          auto_expired: boolean | null
           can_withdraw: boolean | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           case_description: string
           case_type: string | null
           client_address: string | null
@@ -713,7 +729,11 @@ export type Database = {
         }
         Insert: {
           agreed_price?: number | null
+          auto_expired?: boolean | null
           can_withdraw?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           case_description: string
           case_type?: string | null
           client_address?: string | null
@@ -746,7 +766,11 @@ export type Database = {
         }
         Update: {
           agreed_price?: number | null
+          auto_expired?: boolean | null
           can_withdraw?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           case_description?: string
           case_type?: string | null
           client_address?: string | null

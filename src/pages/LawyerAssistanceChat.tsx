@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Banknote, AlertTriangle, CheckCircle, 
   Clock, FileText, Shield, ChevronDown, ChevronUp, Pencil, X,
-  Camera, FileSignature
+  Camera, FileSignature, XCircle
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,8 @@ import {
   useUploadMeetingEvidence,
   ASSISTANCE_STAGES
 } from "@/hooks/useLegalAssistance";
+import { useCancelAssistance } from "@/hooks/useCancelRequest";
+import { CancelRequestDialog } from "@/components/CancelRequestDialog";
 import { SuratKuasaUpload } from "@/components/SuratKuasaUpload";
 import { MeetingEvidenceForm } from "@/components/MeetingEvidenceForm";
 import { format } from "date-fns";
@@ -70,12 +72,14 @@ export default function LawyerAssistanceChat() {
   const updateStatus = useUpdateAssistanceStatus();
   const uploadSuratKuasa = useUploadSuratKuasa();
   const uploadMeetingEvidence = useUploadMeetingEvidence();
+  const cancelAssistance = useCancelAssistance();
   
   const [inputMessage, setInputMessage] = useState("");
   const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [showPriceOfferDialog, setShowPriceOfferDialog] = useState(false);
   const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false);
   const [showDocumentsTab, setShowDocumentsTab] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [offerPrice, setOfferPrice] = useState("");
   const [offerNote, setOfferNote] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
@@ -199,6 +203,18 @@ export default function LawyerAssistanceChat() {
         variant: "destructive"
       });
       throw error;
+    }
+  };
+
+  const handleCancelRequest = async (reason: string) => {
+    if (!id) return;
+    try {
+      await cancelAssistance.mutateAsync({ requestId: id, cancelReason: reason });
+      toast({ title: "Pendampingan berhasil dibatalkan" });
+      setShowCancelDialog(false);
+      navigate(-1);
+    } catch (error) {
+      toast({ title: "Gagal membatalkan", variant: "destructive" });
     }
   };
 
@@ -719,6 +735,16 @@ export default function LawyerAssistanceChat() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Dialog */}
+      <CancelRequestDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelRequest}
+        type="pendampingan"
+        userType="lawyer"
+        isLoading={cancelAssistance.isPending}
+      />
     </MobileLayout>
   );
 }
