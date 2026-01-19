@@ -7,13 +7,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, Calendar, Clock, Video, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, Send, Calendar, Clock, Video, ExternalLink, Info, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   usePendampinganInterviewMessages, 
   useSendPendampinganInterviewMessage,
   useLawyerPendampinganChatInterview
 } from "@/hooks/usePendampinganInterviewChat";
+import { InterviewCountdown } from "@/components/InterviewCountdown";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -129,11 +130,27 @@ export default function LawyerPendampinganChat() {
               </div>
               <p className="text-xs text-muted-foreground">dengan Tim Admin</p>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/lawyer/dashboard')}
+              className="gap-1.5"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
           </div>
           
           {/* Interview Info - only show if scheduled */}
           {isScheduled && interview.scheduled_date && (
-            <div className="px-4 pb-3 space-y-2">
+            <div className="px-4 pb-3 space-y-3">
+              {/* Countdown Timer */}
+              <InterviewCountdown 
+                scheduledDate={interview.scheduled_date}
+                scheduledTime={interview.scheduled_time || '10:00'}
+                status={interview.status}
+              />
+              
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
