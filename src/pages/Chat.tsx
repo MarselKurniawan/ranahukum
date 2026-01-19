@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Mic, Paperclip, Play, Pause, FileText, X, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, Send, Mic, Paperclip, Play, Pause, FileText, X, Clock, CheckCircle, Ban } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChatUpload } from "@/hooks/useChatUpload";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CancelRequestDialog } from "@/components/CancelRequestDialog";
+import { useCancelConsultation } from "@/hooks/useCancelRequest";
+import { useToast } from "@/hooks/use-toast";
 
 function VoicePlayer({ src }: { src: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -91,9 +94,12 @@ export default function Chat() {
     consultationId: id || '' 
   });
   const { isOtherUserTyping, setTyping } = useTypingIndicator(id || '');
+  const cancelConsultation = useCancelConsultation();
+  const { toast } = useToast();
   
   const [inputValue, setInputValue] = useState("");
   const [elapsedTime, setElapsedTime] = useState("00:00");
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +160,21 @@ export default function Chat() {
       content,
       messageType: 'text'
     });
+  };
+
+  const handleCancelConsultation = async (reason: string) => {
+    if (!id) return;
+    try {
+      await cancelConsultation.mutateAsync({
+        consultationId: id,
+        cancelReason: reason
+      });
+      toast({ title: "Konsultasi dibatalkan" });
+      setShowCancelDialog(false);
+      navigate('/consultations');
+    } catch (error) {
+      toast({ title: "Gagal membatalkan konsultasi", variant: "destructive" });
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,10 +297,24 @@ export default function Chat() {
               </div>
             </div>
           </div>
-          {/* Consultation Timer */}
-          <div className="flex items-center gap-2 bg-secondary px-3 py-1.5 rounded-full">
-            <Clock className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">{elapsedTime}</span>
+          <div className="flex items-center gap-2">
+            {/* Consultation Timer */}
+            <div className="flex items-center gap-1.5 bg-secondary px-2.5 py-1.5 rounded-full">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium">{elapsedTime}</span>
+            </div>
+            {/* Cancel Button - only for pending/accepted status */}
+            {(consultation.status === 'pending' || consultation.status === 'accepted') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                className="text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Ban className="w-3.5 h-3.5 mr-1" />
+                Batalkan
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -422,6 +457,16 @@ export default function Chat() {
           </div>
         </div>
       )}
+
+      {/* Cancel Dialog */}
+      <CancelRequestDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelConsultation}
+        type="consultation"
+        userType="client"
+        isLoading={cancelConsultation.isPending}
+      />
     </MobileLayout>
   );
 }

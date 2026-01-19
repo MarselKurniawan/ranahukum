@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Mic, Paperclip, 
-  XCircle, FileText, Lightbulb, Play, Pause, X, Clock
+  XCircle, FileText, Lightbulb, Play, Pause, X, Clock, Ban
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import { useChatUpload } from "@/hooks/useChatUpload";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { CancelRequestDialog } from "@/components/CancelRequestDialog";
+import { useCancelConsultation } from "@/hooks/useCancelRequest";
 
 function VoicePlayer({ src }: { src: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,9 +110,11 @@ export default function LawyerChat() {
     consultationId: id || '' 
   });
   const { isOtherUserTyping, setTyping } = useTypingIndicator(id || '');
+  const cancelConsultation = useCancelConsultation();
   
   const [inputValue, setInputValue] = useState("");
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [advice, setAdvice] = useState("");
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -213,6 +217,21 @@ export default function LawyerChat() {
         title: "Gagal mengakhiri konsultasi",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleCancelConsultation = async (reason: string) => {
+    if (!id) return;
+    try {
+      await cancelConsultation.mutateAsync({
+        consultationId: id,
+        cancelReason: reason
+      });
+      toast({ title: "Konsultasi dibatalkan" });
+      setShowCancelDialog(false);
+      navigate('/lawyer/dashboard');
+    } catch (error) {
+      toast({ title: "Gagal membatalkan konsultasi", variant: "destructive" });
     }
   };
 
@@ -342,6 +361,18 @@ export default function LawyerChat() {
               >
                 <XCircle className="w-4 h-4 mr-1" />
                 Akhiri
+              </Button>
+            )}
+            {/* Cancel Button - for pending/accepted status */}
+            {(consultation.status === 'pending' || consultation.status === 'accepted') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                className="text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Ban className="w-3.5 h-3.5 mr-1" />
+                Batalkan
               </Button>
             )}
           </div>
@@ -529,6 +560,16 @@ export default function LawyerChat() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Dialog */}
+      <CancelRequestDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelConsultation}
+        type="consultation"
+        userType="lawyer"
+        isLoading={cancelConsultation.isPending}
+      />
     </MobileLayout>
   );
 }
