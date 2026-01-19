@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Gavel, Clock, CheckCircle, Calendar, ExternalLink, AlertCircle, Video, MessageCircle } from "lucide-react";
+import { Gavel, Clock, CheckCircle, Calendar, ExternalLink, AlertCircle, Video, MessageCircle, Timer } from "lucide-react";
 import { 
   useLawyerPendampinganStatus, 
   useRequestPendampinganActivation,
-  useLawyerPendampinganInterview
+  useLawyerPendampinganInterview,
+  canRequestAgain,
+  getRemainingCooldown
 } from "@/hooks/usePendampinganRequest";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -30,12 +32,34 @@ export function PendampinganRequestCard() {
   const { data: scheduledInterview } = useLawyerPendampinganInterview();
   const requestActivation = useRequestPendampinganActivation();
   const [showTerms, setShowTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [remainingCooldown, setRemainingCooldown] = useState<string | null>(null);
+
+  // Update remaining cooldown every minute
+  useEffect(() => {
+    if (pendampinganStatus?.pendampingan_status === 'rejected') {
+      const updateCooldown = () => {
+        const remaining = getRemainingCooldown(
+          pendampinganStatus.pendampingan_rejected_at,
+          pendampinganStatus.pendampingan_rejection_count || 0
+        );
+        setRemainingCooldown(remaining);
+      };
+
+      updateCooldown();
+      const interval = setInterval(updateCooldown, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [pendampinganStatus]);
 
   if (isLoading) {
     return null;
   }
 
   const handleRequestActivation = async () => {
+    if (isSubmitting) return; // Prevent double-click
+    
+    setIsSubmitting(true);
     try {
       await requestActivation.mutateAsync();
       toast({
@@ -43,13 +67,23 @@ export function PendampinganRequestCard() {
         description: "Permintaan aktivasi layanan pendampingan berhasil dikirim. Tim admin akan meninjau permintaan Anda.",
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim permintaan';
       toast({
         title: "Gagal",
-        description: "Terjadi kesalahan saat mengirim permintaan",
+        description: message,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const canRequest = pendampinganStatus?.pendampingan_status === 'rejected' 
+    ? canRequestAgain(
+        pendampinganStatus.pendampingan_rejected_at,
+        pendampinganStatus.pendampingan_rejection_count || 0
+      )
+    : true;
 
   // Already enabled
   if (pendampinganStatus?.pendampingan_enabled) {
@@ -158,7 +192,7 @@ export function PendampinganRequestCard() {
     );
   }
 
-  // Rejected
+  // Rejected - show with cooldown info if applicable
   if (pendampinganStatus?.pendampingan_status === 'rejected') {
     return (
       <Card className="border-destructive/30 bg-destructive/5">
@@ -167,11 +201,51 @@ export function PendampinganRequestCard() {
             <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
               <AlertCircle className="w-5 h-5 text-destructive" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-sm">Permintaan Ditolak</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Maaf, permintaan aktivasi pendampingan Anda ditolak. Silakan hubungi admin untuk informasi lebih lanjut.
+                Maaf, permintaan aktivasi pendampingan Anda ditolak.
               </p>
+              
+              {remainingCooldown ? (
+                <div className="mt-3 p-2 bg-muted/50 rounded-lg flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Anda dapat mengajukan lagi dalam <span className="font-medium">{remainingCooldown}</span>
+                  </span>
+                </div>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-3 h-8 text-xs"
+                      disabled={!canRequest || isSubmitting}
+                    >
+                      <Gavel className="w-3 h-3 mr-1" />
+                      Ajukan Kembali
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Ajukan Aktivasi Pendampingan?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Dengan mengajukan aktivasi, tim admin akan meninjau profil Anda dan mungkin menjadwalkan interview untuk verifikasi.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleRequestActivation}
+                        disabled={isSubmitting || requestActivation.isPending}
+                      >
+                        {isSubmitting || requestActivation.isPending ? 'Mengirim...' : 'Ya, Ajukan'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         </CardContent>
@@ -204,7 +278,7 @@ export function PendampinganRequestCard() {
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="gradient" className="h-8 text-xs">
+                    <Button size="sm" variant="gradient" className="h-8 text-xs" disabled={isSubmitting}>
                       <Gavel className="w-3 h-3 mr-1" />
                       Ajukan Aktivasi
                     </Button>
@@ -220,9 +294,9 @@ export function PendampinganRequestCard() {
                       <AlertDialogCancel>Batal</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleRequestActivation}
-                        disabled={requestActivation.isPending}
+                        disabled={isSubmitting || requestActivation.isPending}
                       >
-                        {requestActivation.isPending ? 'Mengirim...' : 'Ya, Ajukan'}
+                        {isSubmitting || requestActivation.isPending ? 'Mengirim...' : 'Ya, Ajukan'}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

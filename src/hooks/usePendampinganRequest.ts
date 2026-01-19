@@ -26,6 +26,51 @@ export interface PendampinganInterview {
   };
 }
 
+// Exponential backoff cooldown periods in minutes
+const COOLDOWN_PERIODS = [5, 15, 30, 60, 180, 420, 720, 1440]; // 5min, 15min, 30min, 1hr, 3hr, 7hr, 12hr, 24hr
+
+// Calculate cooldown end time based on rejection count
+export function calculateCooldownEnd(rejectedAt: string | null, rejectionCount: number): Date | null {
+  if (!rejectedAt || rejectionCount === 0) return null;
+  
+  const rejectedDate = new Date(rejectedAt);
+  const cooldownMinutes = COOLDOWN_PERIODS[Math.min(rejectionCount - 1, COOLDOWN_PERIODS.length - 1)];
+  const cooldownEnd = new Date(rejectedDate.getTime() + cooldownMinutes * 60 * 1000);
+  
+  return cooldownEnd;
+}
+
+// Check if user can request again
+export function canRequestAgain(rejectedAt: string | null, rejectionCount: number): boolean {
+  const cooldownEnd = calculateCooldownEnd(rejectedAt, rejectionCount);
+  if (!cooldownEnd) return true;
+  return new Date() >= cooldownEnd;
+}
+
+// Get remaining cooldown time in human readable format
+export function getRemainingCooldown(rejectedAt: string | null, rejectionCount: number): string | null {
+  const cooldownEnd = calculateCooldownEnd(rejectedAt, rejectionCount);
+  if (!cooldownEnd) return null;
+  
+  const now = new Date();
+  if (now >= cooldownEnd) return null;
+  
+  const diffMs = cooldownEnd.getTime() - now.getTime();
+  const diffMins = Math.ceil(diffMs / (60 * 1000));
+  
+  if (diffMins < 60) {
+    return `${diffMins} menit`;
+  } else if (diffMins < 1440) {
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return mins > 0 ? `${hours} jam ${mins} menit` : `${hours} jam`;
+  } else {
+    const days = Math.floor(diffMins / 1440);
+    const hours = Math.floor((diffMins % 1440) / 60);
+    return hours > 0 ? `${days} hari ${hours} jam` : `${days} hari`;
+  }
+}
+
 // Get lawyer's pendampingan status
 export function useLawyerPendampinganStatus() {
   const { user } = useAuth();
@@ -37,7 +82,7 @@ export function useLawyerPendampinganStatus() {
 
       const { data, error } = await supabase
         .from('lawyers')
-        .select('id, pendampingan_enabled, pendampingan_status, pendampingan_requested_at')
+        .select('id, pendampingan_enabled, pendampingan_status, pendampingan_requested_at, pendampingan_rejection_count, pendampingan_rejected_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -56,6 +101,31 @@ export function useRequestPendampinganActivation() {
   return useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
+
+      // First check current status and cooldown
+      const { data: lawyer, error: fetchError } = await supabase
+        .from('lawyers')
+        .select('id, pendampingan_status, pendampingan_rejection_count, pendampingan_rejected_at')
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Check if already pending
+      if (lawyer.pendampingan_status === 'pending') {
+        throw new Error('Permintaan sudah dalam proses review');
+      }
+
+      // Check cooldown if rejected
+      if (lawyer.pendampingan_status === 'rejected') {
+        const rejectionCount = lawyer.pendampingan_rejection_count || 1;
+        const rejectedAt = lawyer.pendampingan_rejected_at;
+        
+        if (!canRequestAgain(rejectedAt, rejectionCount)) {
+          const remaining = getRemainingCooldown(rejectedAt, rejectionCount);
+          throw new Error(`Silakan tunggu ${remaining} lagi sebelum mengajukan kembali`);
+        }
+      }
 
       const { data, error } = await supabase
         .from('lawyers')
@@ -224,12 +294,31 @@ export function useApprovePendampingan() {
 
   return useMutation({
     mutationFn: async ({ lawyerId, approve }: { lawyerId: string; approve: boolean }) => {
+      // If rejecting, we need to increment rejection count
+      let updateData: Record<string, unknown> = {
+        pendampingan_status: approve ? 'approved' : 'rejected',
+        pendampingan_enabled: approve
+      };
+
+      if (!approve) {
+        // Get current rejection count
+        const { data: lawyer } = await supabase
+          .from('lawyers')
+          .select('pendampingan_rejection_count')
+          .eq('id', lawyerId)
+          .single();
+
+        const currentCount = lawyer?.pendampingan_rejection_count || 0;
+        updateData = {
+          ...updateData,
+          pendampingan_rejection_count: currentCount + 1,
+          pendampingan_rejected_at: new Date().toISOString()
+        };
+      }
+
       const { data, error } = await supabase
         .from('lawyers')
-        .update({ 
-          pendampingan_status: approve ? 'approved' : 'rejected',
-          pendampingan_enabled: approve
-        })
+        .update(updateData)
         .eq('id', lawyerId)
         .select()
         .single();
@@ -272,13 +361,32 @@ export function useCompletePendampinganInterview() {
 
       if (interviewError) throw interviewError;
 
+      // Prepare lawyer update data
+      let updateData: Record<string, unknown> = {
+        pendampingan_status: approve ? 'approved' : 'rejected',
+        pendampingan_enabled: approve
+      };
+
+      // If rejecting, increment rejection count
+      if (!approve) {
+        const { data: lawyer } = await supabase
+          .from('lawyers')
+          .select('pendampingan_rejection_count')
+          .eq('id', lawyerId)
+          .single();
+
+        const currentCount = lawyer?.pendampingan_rejection_count || 0;
+        updateData = {
+          ...updateData,
+          pendampingan_rejection_count: currentCount + 1,
+          pendampingan_rejected_at: new Date().toISOString()
+        };
+      }
+
       // Update lawyer's pendampingan status
       const { data, error: lawyerError } = await supabase
         .from('lawyers')
-        .update({ 
-          pendampingan_status: approve ? 'approved' : 'rejected',
-          pendampingan_enabled: approve
-        })
+        .update(updateData)
         .eq('id', lawyerId)
         .select()
         .single();
