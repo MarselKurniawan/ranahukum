@@ -1,1 +1,4 @@
 project_id = "xxebelrsuaippxbdkyqe"
+
+[functions.auto-expire-requests]
+verify_jwt = false
