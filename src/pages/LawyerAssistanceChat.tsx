@@ -156,8 +156,10 @@ export default function LawyerAssistanceChat() {
       setSelectedStage("");
       setStageNotes("");
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal memperbarui status';
       toast({
         title: "Gagal memperbarui status",
+        description: message,
         variant: "destructive"
       });
     }
@@ -675,6 +677,24 @@ export default function LawyerAssistanceChat() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Warning for completed stage */}
+            {selectedStage === 'completed' && (!request?.surat_kuasa_url || !request?.meeting_verified) && (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex gap-2">
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-warning">Dokumen Belum Lengkap</p>
+                  <p className="text-xs text-warning/80 mt-1">
+                    {!request?.surat_kuasa_url && !request?.meeting_verified 
+                      ? 'Surat Kuasa dan Bukti Pertemuan harus diupload terlebih dahulu.'
+                      : !request?.surat_kuasa_url 
+                        ? 'Surat Kuasa harus diupload terlebih dahulu.'
+                        : 'Bukti Pertemuan dan Tanda Tangan harus diupload terlebih dahulu.'}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label>Catatan (Opsional)</Label>
               <Textarea

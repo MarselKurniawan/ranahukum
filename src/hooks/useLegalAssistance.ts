@@ -439,15 +439,40 @@ export function useUpdateAssistanceStatus() {
       status, 
       currentStage,
       stageNotes,
-      agreedPrice
+      agreedPrice,
+      skipValidation = false
     }: { 
       requestId: string; 
       status?: string;
       currentStage?: string;
       stageNotes?: string;
       agreedPrice?: number;
+      skipValidation?: boolean;
     }) => {
       if (!user) throw new Error('Not authenticated');
+
+      // If trying to set stage to "completed", validate documents first
+      if (currentStage === 'completed' && !skipValidation) {
+        const { data: request, error: fetchError } = await supabase
+          .from('legal_assistance_requests')
+          .select('surat_kuasa_url, meeting_evidence_url, meeting_signature_url, meeting_verified')
+          .eq('id', requestId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const missingDocs: string[] = [];
+        if (!request.surat_kuasa_url) {
+          missingDocs.push('Surat Kuasa');
+        }
+        if (!request.meeting_evidence_url || !request.meeting_signature_url || !request.meeting_verified) {
+          missingDocs.push('Bukti Pertemuan dan Tanda Tangan');
+        }
+
+        if (missingDocs.length > 0) {
+          throw new Error(`Harap upload ${missingDocs.join(' dan ')} terlebih dahulu sebelum menyelesaikan pendampingan`);
+        }
+      }
 
       const updateData: Record<string, unknown> = {};
       if (status) updateData.status = status;

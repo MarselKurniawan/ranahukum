@@ -503,6 +503,8 @@ export type Database = {
           pendampingan_enabled: boolean | null
           pendampingan_interview_id: string | null
           pendampingan_price: number | null
+          pendampingan_rejected_at: string | null
+          pendampingan_rejection_count: number | null
           pendampingan_requested_at: string | null
           pendampingan_status: string | null
           price: number | null
@@ -533,6 +535,8 @@ export type Database = {
           pendampingan_enabled?: boolean | null
           pendampingan_interview_id?: string | null
           pendampingan_price?: number | null
+          pendampingan_rejected_at?: string | null
+          pendampingan_rejection_count?: number | null
           pendampingan_requested_at?: string | null
           pendampingan_status?: string | null
           price?: number | null
@@ -563,6 +567,8 @@ export type Database = {
           pendampingan_enabled?: boolean | null
           pendampingan_interview_id?: string | null
           pendampingan_price?: number | null
+          pendampingan_rejected_at?: string | null
+          pendampingan_rejection_count?: number | null
           pendampingan_requested_at?: string | null
           pendampingan_status?: string | null
           price?: number | null
