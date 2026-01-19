@@ -364,29 +364,70 @@ export type Database = {
           },
         ]
       }
+      lawyer_quiz_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_label: string
+          option_text: string
+          question_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_label: string
+          option_text: string
+          question_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_label?: string
+          option_text?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "lawyer_quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyer_quiz_questions: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           is_active: boolean
           question: string
           question_order: number
+          question_type: string
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           question: string
           question_order?: number
+          question_type?: string
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           question?: string
           question_order?: number
+          question_type?: string
           updated_at?: string
         }
         Relationships: []

@@ -79,8 +79,11 @@ import {
   useAllQuizQuestions, 
   useCreateQuizQuestion, 
   useUpdateQuizQuestion, 
-  useDeleteQuizQuestion 
+  useDeleteQuizQuestion,
+  useQuizCategories,
+  type QuizQuestion
 } from "@/hooks/useLawyerQuiz";
+import { QuizQuestionForm } from "@/components/QuizQuestionForm";
 import { useAllAssistanceRequests } from "@/hooks/useLegalAssistance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -132,6 +135,7 @@ export default function SuperAdminDashboard() {
 
   // Quiz management hooks
   const { data: quizQuestions = [] } = useAllQuizQuestions();
+  const { data: quizCategories = [] } = useQuizCategories();
   const createQuizQuestion = useCreateQuizQuestion();
   const updateQuizQuestion = useUpdateQuizQuestion();
   const deleteQuizQuestion = useDeleteQuizQuestion();
@@ -170,10 +174,9 @@ export default function SuperAdminDashboard() {
   const [interviewNotes, setInterviewNotes] = useState("");
   
   // Quiz management state
-  const [newQuizQuestion, setNewQuizQuestion] = useState("");
   const [addQuizOpen, setAddQuizOpen] = useState(false);
   const [editQuizOpen, setEditQuizOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string } | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
   const [deleteQuizOpen, setDeleteQuizOpen] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
 
@@ -329,12 +332,20 @@ export default function SuperAdminDashboard() {
   };
 
   // Quiz management handlers
-  const handleAddQuizQuestion = async () => {
-    if (!newQuizQuestion.trim()) return;
+  const handleAddQuizQuestion = async (data: {
+    question: string;
+    question_type: 'essay' | 'multiple_choice';
+    category: string;
+    options?: { label: string; text: string; is_correct: boolean }[];
+  }) => {
     try {
-      await createQuizQuestion.mutateAsync({ question: newQuizQuestion });
+      await createQuizQuestion.mutateAsync({
+        question: data.question,
+        question_type: data.question_type,
+        category: data.category || undefined,
+        options: data.options
+      });
       toast({ title: "Pertanyaan quiz berhasil ditambahkan" });
-      setNewQuizQuestion("");
       setAddQuizOpen(false);
     } catch (error) {
       toast({
@@ -345,12 +356,20 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleUpdateQuizQuestion = async () => {
-    if (!editingQuestion || !editingQuestion.question.trim()) return;
+  const handleUpdateQuizQuestion = async (data: {
+    question: string;
+    question_type: 'essay' | 'multiple_choice';
+    category: string;
+    options?: { label: string; text: string; is_correct: boolean }[];
+  }) => {
+    if (!editingQuestion) return;
     try {
       await updateQuizQuestion.mutateAsync({
         id: editingQuestion.id,
-        question: editingQuestion.question
+        question: data.question,
+        question_type: data.question_type,
+        category: data.category || null,
+        options: data.options
       });
       toast({ title: "Pertanyaan berhasil diperbarui" });
       setEditingQuestion(null);
@@ -2105,28 +2124,15 @@ export default function SuperAdminDashboard() {
                         Tambah
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Tambah Pertanyaan Quiz</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label>Pertanyaan</Label>
-                          <Textarea
-                            value={newQuizQuestion}
-                            onChange={(e) => setNewQuizQuestion(e.target.value)}
-                            placeholder="Masukkan pertanyaan untuk calon lawyer..."
-                            rows={3}
-                          />
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={handleAddQuizQuestion}
-                          disabled={createQuizQuestion.isPending || !newQuizQuestion.trim()}
-                        >
-                          Simpan
-                        </Button>
-                      </div>
+                      <QuizQuestionForm
+                        onSubmit={handleAddQuizQuestion}
+                        isPending={createQuizQuestion.isPending}
+                        categories={quizCategories}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -2144,7 +2150,15 @@ export default function SuperAdminDashboard() {
                             <span className="text-sm font-medium text-primary">{index + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm">{q.question}</p>
+                            {q.category && (
+                              <Badge variant="outline" className="text-xs mb-1 mr-1">
+                                {q.category}
+                              </Badge>
+                            )}
+                            <Badge variant={q.question_type === 'multiple_choice' ? 'default' : 'secondary'} className="text-xs mb-1">
+                              {q.question_type === 'multiple_choice' ? 'Pilihan Ganda' : 'Essay'}
+                            </Badge>
+                            <p className="text-sm line-clamp-2 mt-1">{q.question}</p>
                             <div className="flex items-center gap-3 mt-3">
                               <div className="flex items-center gap-2">
                                 <Switch
@@ -2161,7 +2175,7 @@ export default function SuperAdminDashboard() {
                                   variant="ghost"
                                   className="h-8 w-8"
                                   onClick={() => {
-                                    setEditingQuestion({ id: q.id, question: q.question });
+                                    setEditingQuestion(q);
                                     setEditQuizOpen(true);
                                   }}
                                 >
@@ -2363,30 +2377,18 @@ export default function SuperAdminDashboard() {
       </Dialog>
 
       <Dialog open={editQuizOpen} onOpenChange={setEditQuizOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Pertanyaan Quiz</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Pertanyaan</Label>
-              <Textarea
-                value={editingQuestion?.question || ''}
-                onChange={(e) => setEditingQuestion(prev => 
-                  prev ? { ...prev, question: e.target.value } : null
-                )}
-                placeholder="Masukkan pertanyaan..."
-                rows={3}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleUpdateQuizQuestion}
-              disabled={updateQuizQuestion.isPending || !editingQuestion?.question.trim()}
-            >
-              Simpan Perubahan
-            </Button>
-          </div>
+          {editingQuestion && (
+            <QuizQuestionForm
+              initialData={editingQuestion}
+              onSubmit={handleUpdateQuizQuestion}
+              isPending={updateQuizQuestion.isPending}
+              categories={quizCategories}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

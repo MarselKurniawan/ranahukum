@@ -6,18 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Scale, ChevronRight, ChevronLeft, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyerProfile } from "@/hooks/useLawyerProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-interface QuizQuestion {
-  id: string;
-  question: string;
-  question_order: number;
-}
+import { useActiveQuizQuestions, type QuizQuestion } from "@/hooks/useLawyerQuiz";
 
 export default function LawyerQuiz() {
   const navigate = useNavigate();
@@ -29,20 +27,8 @@ export default function LawyerQuiz() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  // Fetch quiz questions
-  const { data: questions = [], isLoading: questionsLoading } = useQuery({
-    queryKey: ['lawyer-quiz-questions'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lawyer_quiz_questions')
-        .select('*')
-        .eq('is_active', true)
-        .order('question_order', { ascending: true });
-
-      if (error) throw error;
-      return data as QuizQuestion[];
-    }
-  });
+  // Fetch quiz questions with options
+  const { data: questions = [], isLoading: questionsLoading } = useActiveQuizQuestions();
 
   // Check if already completed
   useEffect(() => {
@@ -95,8 +81,14 @@ export default function LawyerQuiz() {
   });
 
   const currentQuestion = questions[currentIndex];
-  const progress = ((currentIndex + 1) / questions.length) * 100;
-  const canGoNext = currentQuestion && answers[currentQuestion.id]?.trim().length > 10;
+  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
+  
+  // Validation: essay needs 10+ chars, multiple choice just needs selection
+  const canGoNext = currentQuestion && (
+    currentQuestion.question_type === 'multiple_choice' 
+      ? !!answers[currentQuestion.id]
+      : (answers[currentQuestion.id]?.trim().length || 0) > 10
+  );
   const isLastQuestion = currentIndex === questions.length - 1;
 
   const handleNext = () => {
@@ -173,26 +165,68 @@ export default function LawyerQuiz() {
         <div className="flex-1 px-4 -mt-6">
           <Card className="shadow-elevated">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base leading-relaxed">
+              {/* Category Badge */}
+              {currentQuestion?.category && (
+                <Badge variant="secondary" className="w-fit mb-2">
+                  {currentQuestion.category}
+                </Badge>
+              )}
+              <CardTitle className="text-base leading-relaxed whitespace-pre-wrap">
                 {currentQuestion?.question}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea
-                placeholder="Tulis jawaban Anda di sini... (minimal 10 karakter)"
-                value={answers[currentQuestion?.id] || ""}
-                onChange={(e) => setAnswers({
-                  ...answers,
-                  [currentQuestion?.id]: e.target.value
-                })}
-                rows={6}
-                className="resize-none"
-              />
-              
-              <p className="text-xs text-muted-foreground">
-                {(answers[currentQuestion?.id] || "").length} karakter
-                {(answers[currentQuestion?.id] || "").length < 10 && " (minimal 10)"}
-              </p>
+              {/* Essay type */}
+              {currentQuestion?.question_type === 'essay' && (
+                <>
+                  <Textarea
+                    placeholder="Tulis jawaban Anda di sini... (minimal 10 karakter)"
+                    value={answers[currentQuestion?.id] || ""}
+                    onChange={(e) => setAnswers({
+                      ...answers,
+                      [currentQuestion?.id]: e.target.value
+                    })}
+                    rows={6}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {(answers[currentQuestion?.id] || "").length} karakter
+                    {(answers[currentQuestion?.id] || "").length < 10 && " (minimal 10)"}
+                  </p>
+                </>
+              )}
+
+              {/* Multiple Choice type */}
+              {currentQuestion?.question_type === 'multiple_choice' && currentQuestion.options && (
+                <RadioGroup
+                  value={answers[currentQuestion.id] || ""}
+                  onValueChange={(value) => setAnswers({
+                    ...answers,
+                    [currentQuestion.id]: value
+                  })}
+                  className="space-y-3"
+                >
+                  {currentQuestion.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                        answers[currentQuestion.id] === option.option_label 
+                          ? 'border-primary bg-primary/5' 
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => setAnswers({
+                        ...answers,
+                        [currentQuestion.id]: option.option_label
+                      })}
+                    >
+                      <RadioGroupItem value={option.option_label} id={option.id} className="mt-0.5" />
+                      <Label htmlFor={option.id} className="flex-1 cursor-pointer font-normal leading-relaxed">
+                        <span className="font-medium">{option.option_label}.</span> {option.option_text}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
 
               {/* Navigation */}
               <div className="flex gap-3 pt-2">
@@ -237,8 +271,11 @@ export default function LawyerQuiz() {
           {/* Tips */}
           <div className="mt-4 p-4 bg-muted/50 rounded-lg">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              💡 <span className="font-medium">Tips:</span> Jawab dengan jujur dan detail. 
-              Jawaban Anda akan membantu kami memahami kualifikasi dan pengalaman Anda sebagai konsultan hukum.
+              💡 <span className="font-medium">Tips:</span> {
+                currentQuestion?.question_type === 'multiple_choice' 
+                  ? 'Pilih jawaban yang paling tepat berdasarkan pengetahuan hukum Anda.'
+                  : 'Jawab dengan jujur dan detail. Jawaban Anda akan membantu kami memahami kualifikasi dan pengalaman Anda sebagai konsultan hukum.'
+              }
             </p>
           </div>
         </div>
