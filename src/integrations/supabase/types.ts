@@ -999,6 +999,56 @@ export type Database = {
           },
         ]
       }
+      platform_earnings: {
+        Row: {
+          created_at: string
+          description: string | null
+          fee_type: string
+          fee_value: number
+          gross_amount: number
+          id: string
+          lawyer_amount: number
+          lawyer_id: string | null
+          platform_fee: number
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fee_type: string
+          fee_value: number
+          gross_amount: number
+          id?: string
+          lawyer_amount: number
+          lawyer_id?: string | null
+          platform_fee: number
+          source_id?: string | null
+          source_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fee_type?: string
+          fee_value?: number
+          gross_amount?: number
+          id?: string
+          lawyer_amount?: number
+          lawyer_id?: string | null
+          platform_fee?: number
+          source_id?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_earnings_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

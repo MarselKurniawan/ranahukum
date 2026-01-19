@@ -102,6 +102,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PriceSettingsCard } from "@/components/PriceSettingsCard";
+import { PlatformFeeSettingsCard } from "@/components/PlatformFeeSettingsCard";
 import { SuspendDialog } from "@/components/SuspendDialog";
 import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
 import {
@@ -1976,6 +1977,20 @@ export default function SuperAdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Price Settings */}
               <PriceSettingsCard />
+              
+              {/* Platform Fee Chat */}
+              <PlatformFeeSettingsCard
+                settingKey="platform_fee_chat"
+                title="Biaya Platform Chat"
+                description="Biaya platform untuk konsultasi chat (masuk ke admin)"
+              />
+              
+              {/* Platform Fee Pendampingan */}
+              <PlatformFeeSettingsCard
+                settingKey="platform_fee_pendampingan"
+                title="Biaya Platform Pendampingan"
+                description="Biaya platform untuk pendampingan hukum (masuk ke admin)"
+              />
               
               {/* Specialization Types */}
               <Card>

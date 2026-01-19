@@ -15,6 +15,7 @@ import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClientSuspension } from "@/hooks/useSuspensionCheck";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
+import { calculatePlatformFee } from "@/hooks/usePlatformEarnings";
 
 const paymentMethods = [
   { id: "gopay", name: "GoPay", icon: "💚" },
@@ -29,6 +30,7 @@ export default function Booking() {
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
   const { data: chatPriceSetting, isLoading: isPriceLoading } = useAppSetting('chat_consultation_price');
+  const { data: platformFeeSetting } = useAppSetting('platform_fee_chat');
   const createConsultation = useCreateConsultation();
   const clientSuspension = useClientSuspension();
   
@@ -36,6 +38,12 @@ export default function Booking() {
   const consultationPrice = chatPriceSetting 
     ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
     : 50000;
+  
+  // Get platform fee from settings
+  const platformFeeConfig = platformFeeSetting?.value as { type?: 'fixed' | 'percentage'; amount?: number } | undefined;
+  const feeType = platformFeeConfig?.type || 'fixed';
+  const feeValue = platformFeeConfig?.amount || 5000;
+  const { platformFee, totalAmount } = calculatePlatformFee(consultationPrice, feeType, feeValue);
   
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
@@ -108,7 +116,7 @@ export default function Booking() {
     );
   }
 
-  const platformFee = 5000;
+  // Platform fee is now calculated above using settings
 
   const handlePayment = async () => {
     if (!user) {
@@ -140,7 +148,7 @@ export default function Booking() {
       const consultation = await createConsultation.mutateAsync({
         lawyerId: lawyer.id,
         topic: topic.trim(),
-        price: consultationPrice + platformFee,
+        price: totalAmount,
         isAnonymous: isAnonymous
       });
 
@@ -268,13 +276,15 @@ export default function Booking() {
                 <span>Rp {consultationPrice.toLocaleString("id-ID")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Biaya Platform</span>
+                <span className="text-muted-foreground">
+                  Biaya Platform {feeType === 'percentage' ? `(${feeValue}%)` : ''}
+                </span>
                 <span>Rp {platformFee.toLocaleString("id-ID")}</span>
               </div>
               <div className="border-t border-border pt-2 flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="text-primary">
-                  Rp {(consultationPrice + platformFee).toLocaleString("id-ID")}
+                  Rp {totalAmount.toLocaleString("id-ID")}
                 </span>
               </div>
             </div>
