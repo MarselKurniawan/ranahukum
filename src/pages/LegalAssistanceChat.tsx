@@ -37,12 +37,14 @@ import {
   useAcceptPriceOffer,
   useUpdatePaymentStatus,
   useUpdateClientIdentity,
+  useAppSetting,
   ASSISTANCE_STAGES
 } from "@/hooks/useLegalAssistance";
 import { ClientIdentityForm, ClientIdentityData } from "@/components/ClientIdentityForm";
 import { MeetingScheduleForm } from "@/components/MeetingScheduleForm";
 import { SuratKuasaUpload } from "@/components/SuratKuasaUpload";
 import { LegalAssistanceTerms } from "@/components/LegalAssistanceTerms";
+import { calculatePlatformFee } from "@/hooks/usePlatformEarnings";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -56,10 +58,16 @@ export default function LegalAssistanceChat() {
   const { data: request, isLoading } = useAssistanceRequest(id || '');
   const { data: messages = [] } = useAssistanceMessages(id || '');
   const { data: statusHistory = [] } = useAssistanceStatusHistory(id || '');
+  const { data: platformFeeSetting } = useAppSetting('platform_fee_pendampingan');
   const sendMessage = useSendAssistanceMessage();
   const acceptPrice = useAcceptPriceOffer();
   const updatePayment = useUpdatePaymentStatus();
   const updateIdentity = useUpdateClientIdentity();
+  
+  // Get platform fee from settings
+  const platformFeeConfig = platformFeeSetting?.value as { type?: 'fixed' | 'percentage'; amount?: number } | undefined;
+  const feeType = platformFeeConfig?.type || 'percentage';
+  const feeValue = platformFeeConfig?.amount || 5;
   
   const [inputMessage, setInputMessage] = useState("");
   const [showStatusHistory, setShowStatusHistory] = useState(false);
@@ -483,27 +491,35 @@ export default function LegalAssistanceChat() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Biaya Pendampingan</span>
-                <span className="font-semibold">
-                  Rp {(request.agreed_price || 0).toLocaleString('id-ID')}
-                </span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Biaya Platform (5%)</span>
-                <span className="font-semibold">
-                  Rp {((request.agreed_price || 0) * 0.05).toLocaleString('id-ID')}
-                </span>
-              </div>
-              <Separator className="my-2" />
-              <div className="flex justify-between">
-                <span className="font-medium">Total</span>
-                <span className="font-bold text-primary">
-                  Rp {((request.agreed_price || 0) * 1.05).toLocaleString('id-ID')}
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const baseAmount = request.agreed_price || 0;
+              const { platformFee, totalAmount } = calculatePlatformFee(baseAmount, feeType, feeValue);
+              return (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-muted-foreground">Biaya Pendampingan</span>
+                    <span className="font-semibold">
+                      Rp {baseAmount.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-muted-foreground">
+                      Biaya Platform {feeType === 'percentage' ? `(${feeValue}%)` : ''}
+                    </span>
+                    <span className="font-semibold">
+                      Rp {platformFee.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="font-medium">Total</span>
+                    <span className="font-bold text-primary">
+                      Rp {totalAmount.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
             
             <div className="text-xs text-muted-foreground">
               Dengan melakukan pembayaran, Anda menyetujui syarat dan ketentuan layanan pendampingan hukum.
