@@ -284,9 +284,10 @@ export default function LawyerChat() {
   }
 
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
-  const isAnonymousConsultation = (consultation as { is_anonymous?: boolean }).is_anonymous;
-  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (client?.full_name || 'Pengguna Anonim');
-  const displayInitial = isAnonymousConsultation ? 'A' : (client?.full_name?.[0] || 'U');
+  const isAnonymousConsultation = (consultation as { is_anonymous?: boolean }).is_anonymous === true;
+  const clientName = client?.full_name;
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
+  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
 

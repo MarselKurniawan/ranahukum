@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Shield, Briefcase, Award, MapPin, Ban } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Briefcase, Award, MapPin, Ban } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReviewList } from "@/components/ReviewList";
 import { ReviewForm } from "@/components/ReviewForm";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
@@ -81,9 +82,12 @@ export default function LawyerDetail() {
             alt={lawyer.name}
             className="w-24 h-24 rounded-2xl mx-auto mb-3 border-4 border-primary-foreground/20 object-cover"
           />
-          <h1 className="text-lg font-bold text-primary-foreground mb-1">
-            {lawyer.name}
-          </h1>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <h1 className="text-lg font-bold text-primary-foreground">
+              {lawyer.name}
+            </h1>
+            {lawyer.is_verified && <VerifiedBadge size="md" showLabel={false} />}
+          </div>
           {lawyer.location && (
             <div className="flex items-center justify-center gap-1 mb-2">
               <MapPin className="w-3 h-3 text-primary-foreground/70" />
@@ -157,13 +161,15 @@ export default function LawyerDetail() {
 
             {/* Verified Badge */}
             {lawyer.is_verified && (
-              <Card className="border-success/20 bg-success/5">
+              <Card className="border-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-success" />
+                  <VerifiedBadge size="lg" showLabel={false} />
                   <div>
-                    <p className="font-medium text-sm">Pengacara Terverifikasi</p>
+                    <p className="font-medium text-sm bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                      Pengacara Terverifikasi
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Identitas dan lisensi telah diverifikasi
+                      Identitas dan lisensi telah diverifikasi oleh tim kami
                     </p>
                   </div>
                 </CardContent>

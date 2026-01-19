@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Banknote, AlertTriangle, CheckCircle, 
-  Clock, FileText, Shield, ChevronDown, ChevronUp, X
+  Clock, FileText, Shield, ChevronDown, ChevronUp, X, XCircle
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ import {
   useAppSetting,
   ASSISTANCE_STAGES
 } from "@/hooks/useLegalAssistance";
+import { useCancelAssistance } from "@/hooks/useCancelRequest";
+import { CancelRequestDialog } from "@/components/CancelRequestDialog";
 import { ClientIdentityForm, ClientIdentityData } from "@/components/ClientIdentityForm";
 import { MeetingScheduleForm } from "@/components/MeetingScheduleForm";
 import { SuratKuasaUpload } from "@/components/SuratKuasaUpload";
@@ -63,6 +65,7 @@ export default function LegalAssistanceChat() {
   const acceptPrice = useAcceptPriceOffer();
   const updatePayment = useUpdatePaymentStatus();
   const updateIdentity = useUpdateClientIdentity();
+  const cancelAssistance = useCancelAssistance();
   
   // Get platform fee from settings
   const platformFeeConfig = platformFeeSetting?.value as { type?: 'fixed' | 'percentage'; amount?: number } | undefined;
@@ -73,6 +76,7 @@ export default function LegalAssistanceChat() {
   const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [pendingPriceOffer, setPendingPriceOffer] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("chat");
 
@@ -168,6 +172,25 @@ export default function LegalAssistanceChat() {
     }
   };
 
+  const handleCancelRequest = async (reason: string) => {
+    if (!id) return;
+    
+    try {
+      await cancelAssistance.mutateAsync({
+        requestId: id,
+        cancelReason: reason
+      });
+      toast({ title: "Pendampingan berhasil dibatalkan" });
+      setShowCancelDialog(false);
+      navigate(-1);
+    } catch (error) {
+      toast({
+        title: "Gagal membatalkan pendampingan",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -239,6 +262,17 @@ export default function LegalAssistanceChat() {
               {getStatusBadge(request.status)}
             </div>
           </div>
+          {/* Cancel Button - show only if not completed/cancelled */}
+          {(request.status === 'pending' || request.status === 'negotiating') && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setShowCancelDialog(true)}
+            >
+              <XCircle className="w-5 h-5" />
+            </Button>
+          )}
         </div>
 
         {/* Warning Banner */}
@@ -535,6 +569,16 @@ export default function LegalAssistanceChat() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Dialog */}
+      <CancelRequestDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelRequest}
+        type="pendampingan"
+        userType={isClient ? "client" : "lawyer"}
+        isLoading={cancelAssistance.isPending}
+      />
     </MobileLayout>
   );
 }
