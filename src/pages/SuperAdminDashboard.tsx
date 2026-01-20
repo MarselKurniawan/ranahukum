@@ -6,7 +6,7 @@ import {
   Plus, FileText, AlertCircle, Briefcase, Eye, Search,
   Filter, X, HelpCircle, Pencil, Trash2, Video, Phone,
   Calendar, Mail, ExternalLink, MoreHorizontal, Menu,
-  Bell, Gift, Megaphone, Info, Image, Gavel
+  Bell, Gift, Megaphone, Info, Image, Gavel, Award
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,11 @@ import { useAllPriceRequests, useApprovePriceRequest } from "@/hooks/useLawyerPr
 import { useAllSpecializationTypes, useCreateSpecializationType, useUpdateSpecializationType, useDeleteSpecializationType } from "@/hooks/useSpecializationTypes";
 import { usePendingDocuments, useReviewDocument, useLawyerDocuments } from "@/hooks/useLawyerDocuments";
 import { 
+  usePendingCredentials, 
+  useReviewCertification, 
+  useReviewLicense 
+} from "@/hooks/useLawyerCredentials";
+import {
   useAllQuizQuestions, 
   useCreateQuizQuestion, 
   useUpdateQuizQuestion, 
@@ -158,6 +163,11 @@ export default function SuperAdminDashboard() {
   const updateNotification = useUpdateNotification();
   const deleteNotification = useDeleteNotification();
 
+  // Credentials review hooks
+  const { data: pendingCredentials } = usePendingCredentials();
+  const reviewCertification = useReviewCertification();
+  const reviewLicense = useReviewLicense();
+
   const [newSpecName, setNewSpecName] = useState("");
   const [newSpecDesc, setNewSpecDesc] = useState("");
   const [addSpecOpen, setAddSpecOpen] = useState(false);
@@ -167,6 +177,8 @@ export default function SuperAdminDashboard() {
   const [searchPendingLawyer, setSearchPendingLawyer] = useState("");
   const [rejectNotes, setRejectNotes] = useState("");
   const [selectedDocForReject, setSelectedDocForReject] = useState<string | null>(null);
+  const [selectedCredentialForReject, setSelectedCredentialForReject] = useState<{ type: 'cert' | 'license'; id: string } | null>(null);
+  const [credentialRejectNotes, setCredentialRejectNotes] = useState("");
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   
   // Interview dialog state
@@ -664,7 +676,8 @@ export default function SuperAdminDashboard() {
     .filter(c => c.status === 'completed')
     .reduce((sum, c) => sum + c.price, 0);
 
-  const pendingRequestsCount = pendingLawyers.length + priceRequests.length + pendingDocuments.length + pendampinganRequests.length;
+  const pendingCredentialsCount = (pendingCredentials?.certifications?.length || 0) + (pendingCredentials?.licenses?.length || 0);
+  const pendingRequestsCount = pendingLawyers.length + priceRequests.length + pendingDocuments.length + pendampinganRequests.length + pendingCredentialsCount;
 
   const filteredPendingLawyers = pendingLawyers.filter(l => 
     l.name.toLowerCase().includes(searchPendingLawyer.toLowerCase()) ||
@@ -817,7 +830,7 @@ export default function SuperAdminDashboard() {
               <div className="flex-1">
                 <p className="font-medium">{pendingRequestsCount} permintaan menunggu persetujuan</p>
                 <p className="text-sm text-muted-foreground">
-                  {pendingLawyers.length} pendaftaran lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} perubahan harga • {pendampinganRequests.length} aktivasi pendampingan
+                  {pendingLawyers.length} pendaftaran lawyer • {pendingDocuments.length} dokumen • {priceRequests.length} perubahan harga • {pendampinganRequests.length} aktivasi pendampingan • {pendingCredentialsCount} sertifikasi/lisensi
                 </p>
               </div>
             </CardContent>
@@ -1339,6 +1352,154 @@ export default function SuperAdminDashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Pending Credentials (Certifications & Licenses) */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Award className="w-5 h-5" />
+                  Sertifikasi & Lisensi Menunggu Review
+                  {pendingCredentialsCount > 0 && (
+                    <Badge variant="warning">{pendingCredentialsCount}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pendingCredentialsCount > 0 ? (
+                  <div className="space-y-6">
+                    {/* Pending Certifications */}
+                    {pendingCredentials?.certifications && pendingCredentials.certifications.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Award className="w-4 h-4" />
+                          Sertifikasi ({pendingCredentials.certifications.length})
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {pendingCredentials.certifications.map((cert: any) => (
+                            <div key={cert.id} className="p-4 border rounded-lg">
+                              <div className="flex gap-3">
+                                <Avatar className="w-10 h-10">
+                                  <AvatarImage src={cert.lawyer?.image_url || undefined} />
+                                  <AvatarFallback>{cert.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-medium text-sm">{cert.name}</h5>
+                                  <p className="text-xs text-muted-foreground">{cert.lawyer?.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {cert.issuer && `${cert.issuer} • `}{cert.year || '-'}
+                                  </p>
+                                  {cert.file_url && (
+                                    <a 
+                                      href={cert.file_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                      Lihat Dokumen
+                                    </a>
+                                  )}
+                                  <div className="flex gap-2 mt-3">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs text-destructive flex-1"
+                                      onClick={() => {
+                                        setSelectedCredentialForReject({ type: 'cert', id: cert.id });
+                                        setCredentialRejectNotes("");
+                                      }}
+                                    >
+                                      Tolak
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="h-7 text-xs flex-1"
+                                      onClick={() => reviewCertification.mutate({ id: cert.id, approve: true })}
+                                      disabled={reviewCertification.isPending}
+                                    >
+                                      Setujui
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pending Licenses */}
+                    {pendingCredentials?.licenses && pendingCredentials.licenses.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Lisensi ({pendingCredentials.licenses.length})
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {pendingCredentials.licenses.map((license: any) => (
+                            <div key={license.id} className="p-4 border rounded-lg">
+                              <div className="flex gap-3">
+                                <Avatar className="w-10 h-10">
+                                  <AvatarImage src={license.lawyer?.image_url || undefined} />
+                                  <AvatarFallback>{license.lawyer?.name?.[0] || 'L'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-medium text-sm">{license.name}</h5>
+                                  <p className="text-xs text-muted-foreground">{license.lawyer?.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {license.license_number && `No. ${license.license_number}`}
+                                    {license.issuer && ` • ${license.issuer}`}
+                                  </p>
+                                  {license.file_url && (
+                                    <a 
+                                      href={license.file_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                      Lihat Dokumen
+                                    </a>
+                                  )}
+                                  <div className="flex gap-2 mt-3">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs text-destructive flex-1"
+                                      onClick={() => {
+                                        setSelectedCredentialForReject({ type: 'license', id: license.id });
+                                        setCredentialRejectNotes("");
+                                      }}
+                                    >
+                                      Tolak
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="h-7 text-xs flex-1"
+                                      onClick={() => reviewLicense.mutate({ id: license.id, approve: true })}
+                                      disabled={reviewLicense.isPending}
+                                    >
+                                      Setujui
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">Tidak ada sertifikasi/lisensi menunggu review</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Lawyers Tab */}
@@ -2592,6 +2753,60 @@ export default function SuperAdminDashboard() {
         userType="client"
         isPending={suspendClient.isPending}
       />
+
+      {/* Reject Credential Dialog */}
+      <Dialog 
+        open={!!selectedCredentialForReject} 
+        onOpenChange={(open) => !open && setSelectedCredentialForReject(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tolak {selectedCredentialForReject?.type === 'cert' ? 'Sertifikasi' : 'Lisensi'}</DialogTitle>
+            <DialogDescription>
+              Berikan alasan penolakan agar lawyer dapat memperbaiki pengajuannya.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Catatan Penolakan</Label>
+              <Textarea
+                value={credentialRejectNotes}
+                onChange={(e) => setCredentialRejectNotes(e.target.value)}
+                placeholder="Contoh: Dokumen tidak jelas, harap upload ulang dengan kualitas yang lebih baik"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedCredentialForReject(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedCredentialForReject?.type === 'cert') {
+                  reviewCertification.mutate({ 
+                    id: selectedCredentialForReject.id, 
+                    approve: false,
+                    notes: credentialRejectNotes 
+                  });
+                } else if (selectedCredentialForReject?.type === 'license') {
+                  reviewLicense.mutate({ 
+                    id: selectedCredentialForReject.id, 
+                    approve: false,
+                    notes: credentialRejectNotes 
+                  });
+                }
+                setSelectedCredentialForReject(null);
+                setCredentialRejectNotes("");
+              }}
+              disabled={reviewCertification.isPending || reviewLicense.isPending}
+            >
+              Tolak
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

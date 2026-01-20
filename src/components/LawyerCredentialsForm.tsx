@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Upload, FileText, Award, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Upload, FileText, Award, Loader2, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,24 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   useLawyerCertifications, 
   useLawyerLicenses, 
   useAddCertification,
-  useAddLicense 
+  useAddLicense,
+  useDeleteCertification,
+  useDeleteLicense
 } from "@/hooks/useLawyerCredentials";
 import { useLawyerProfile, useUpdateLawyerProfile } from "@/hooks/useLawyerProfile";
 
@@ -31,6 +43,9 @@ export function LawyerCredentialsForm() {
   const { data: licenses = [], isLoading: loadingLicenses } = useLawyerLicenses();
   const addCertification = useAddCertification();
   const addLicense = useAddLicense();
+
+  const deleteCertification = useDeleteCertification();
+  const deleteLicense = useDeleteLicense();
 
   const [bio, setBio] = useState("");
   const [bioInitialized, setBioInitialized] = useState(false);
@@ -44,6 +59,8 @@ export function LawyerCredentialsForm() {
   }, [profile, bioInitialized]);
   const [showCertDialog, setShowCertDialog] = useState(false);
   const [showLicenseDialog, setShowLicenseDialog] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<{ type: 'cert' | 'license'; id: string; name: string } | null>(null);
   const certFileRef = useRef<HTMLInputElement>(null);
   const licenseFileRef = useRef<HTMLInputElement>(null);
 
@@ -129,6 +146,25 @@ export function LawyerCredentialsForm() {
     }
   };
 
+  const canDelete = (status: string) => status === 'pending' || status === 'rejected';
+
+  const handleDelete = async () => {
+    if (!deletingItem) return;
+    try {
+      if (deletingItem.type === 'cert') {
+        await deleteCertification.mutateAsync(deletingItem.id);
+      } else {
+        await deleteLicense.mutateAsync(deletingItem.id);
+      }
+      toast({ title: `${deletingItem.type === 'cert' ? 'Sertifikasi' : 'Lisensi'} berhasil dihapus` });
+    } catch (error) {
+      toast({ title: "Gagal menghapus", variant: "destructive" });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeletingItem(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Bio */}
@@ -180,8 +216,24 @@ export function LawyerCredentialsForm() {
                   <p className="text-xs text-muted-foreground">
                     {cert.issuer && `${cert.issuer} • `}{cert.year || '-'}
                   </p>
+                  {cert.notes && cert.status === 'rejected' && (
+                    <p className="text-xs text-destructive mt-1">Catatan: {cert.notes}</p>
+                  )}
                 </div>
                 {getStatusBadge(cert.status)}
+                {canDelete(cert.status) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setDeletingItem({ type: 'cert', id: cert.id, name: cert.name });
+                      setDeleteConfirmOpen(true);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             ))
           )}
@@ -212,8 +264,24 @@ export function LawyerCredentialsForm() {
                     {license.license_number && `No. ${license.license_number}`}
                     {license.file_name && ` • ${license.file_name}`}
                   </p>
+                  {license.notes && license.status === 'rejected' && (
+                    <p className="text-xs text-destructive mt-1">Catatan: {license.notes}</p>
+                  )}
                 </div>
                 {getStatusBadge(license.status)}
+                {canDelete(license.status) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setDeletingItem({ type: 'license', id: license.id, name: license.name });
+                      setDeleteConfirmOpen(true);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             ))
           )}
@@ -377,6 +445,30 @@ export function LawyerCredentialsForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus {deletingItem?.type === 'cert' ? 'Sertifikasi' : 'Lisensi'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda yakin ingin menghapus "{deletingItem?.name}"? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {(deleteCertification.isPending || deleteLicense.isPending) && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
