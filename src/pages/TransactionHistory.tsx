@@ -154,8 +154,28 @@ export default function TransactionHistory() {
   const hasReviewed = (lawyerId: string) => reviewedLawyers.has(lawyerId);
 
   if (!user) {
-    navigate('/auth');
-    return null;
+    return (
+      <MobileLayout showBottomNav={false}>
+        <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
+          <div className="flex items-center gap-3 p-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-semibold">Riwayat Transaksi</h1>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center h-[60vh] p-4">
+          <MessageCircle className="w-16 h-16 text-muted-foreground mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Masuk untuk Melihat Riwayat</h2>
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            Silakan login terlebih dahulu untuk melihat riwayat transaksi Anda
+          </p>
+          <Button variant="gradient" onClick={() => navigate('/auth')}>
+            Masuk Sekarang
+          </Button>
+        </div>
+      </MobileLayout>
+    );
   }
 
   const ConsultationCard = ({ consultation, showReviewButton = false }: { consultation: any; showReviewButton?: boolean }) => (

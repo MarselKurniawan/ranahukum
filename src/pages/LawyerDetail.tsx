@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Briefcase, Award, MapPin, Ban } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Briefcase, Award, MapPin, Ban, FileText, GraduationCap, ExternalLink } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLawyer } from "@/hooks/useLawyers";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { useClientSuspension } from "@/hooks/useSuspensionCheck";
+import { useApprovedCertifications, useApprovedLicenses } from "@/hooks/useLawyerCredentials";
 
 export default function LawyerDetail() {
   const { id } = useParams();
@@ -23,6 +24,8 @@ export default function LawyerDetail() {
   const { data: lawyer, isLoading } = useLawyer(id || '');
   const { data: chatPriceSetting } = useAppSetting('chat_consultation_price');
   const clientSuspension = useClientSuspension();
+  const { data: certifications = [] } = useApprovedCertifications(id || '');
+  const { data: licenses = [] } = useApprovedLicenses(id || '');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [refreshReviews, setRefreshReviews] = useState(0);
 
@@ -161,16 +164,106 @@ export default function LawyerDetail() {
 
             {/* Verified Badge */}
             {lawyer.is_verified && (
-              <Card className="border-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
+              <Card className="border-0 bg-gradient-to-r from-primary/10 to-accent/10">
                 <CardContent className="p-4 flex items-center gap-3">
                   <VerifiedBadge size="lg" showLabel={false} />
                   <div>
-                    <p className="font-medium text-sm bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                    <p className="font-medium text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                       Pengacara Terverifikasi
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Identitas dan lisensi telah diverifikasi oleh tim kami
                     </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Bio */}
+            {lawyer.bio && (
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-medium mb-2">Biografi</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{lawyer.bio}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Education */}
+            {lawyer.education && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-medium">Pendidikan</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{lawyer.education}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Certifications */}
+            {certifications.length > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-medium">Sertifikasi</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {certifications.map((cert) => (
+                      <div key={cert.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{cert.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {cert.issuer && `${cert.issuer} • `}{cert.year || ''}
+                          </p>
+                        </div>
+                        {cert.file_url && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(cert.file_url!, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Licenses */}
+            {licenses.length > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-medium">Lisensi</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {licenses.map((license) => (
+                      <div key={license.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{license.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {license.license_number && `No. ${license.license_number}`}
+                            {license.issuer && ` • ${license.issuer}`}
+                          </p>
+                        </div>
+                        {license.file_url && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(license.file_url!, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

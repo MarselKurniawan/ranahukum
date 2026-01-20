@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
+import { LawyerCredentialsForm } from "@/components/LawyerCredentialsForm";
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
@@ -258,6 +259,9 @@ export default function LawyerProfile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Credentials - Bio, Certifications, Licenses */}
+        <LawyerCredentialsForm />
 
         {/* Pricing Notice */}
         <Card className="bg-muted/50">
