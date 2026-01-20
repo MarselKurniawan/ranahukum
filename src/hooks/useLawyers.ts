@@ -25,6 +25,7 @@ export interface DbLawyer {
   education?: string | null;
   interview_consent?: boolean;
   quiz_completed?: boolean;
+  bio?: string | null;
 }
 
 // Hook for public lawyer listing - only approved & available lawyers

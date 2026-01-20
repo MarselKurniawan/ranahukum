@@ -191,6 +191,59 @@ export type Database = {
           },
         ]
       }
+      lawyer_certifications: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          file_url: string | null
+          id: string
+          issuer: string | null
+          lawyer_id: string
+          name: string
+          notes: string | null
+          reviewed_at: string | null
+          status: string | null
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          issuer?: string | null
+          lawyer_id: string
+          name: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          issuer?: string | null
+          lawyer_id?: string
+          name?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_certifications_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lawyer_documents: {
         Row: {
           document_type: string
@@ -286,6 +339,65 @@ export type Database = {
             columns: ["withdrawal_id"]
             isOneToOne: false
             referencedRelation: "lawyer_withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lawyer_licenses: {
+        Row: {
+          created_at: string
+          expiry_date: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          issue_date: string | null
+          issuer: string | null
+          lawyer_id: string
+          license_number: string | null
+          name: string
+          notes: string | null
+          reviewed_at: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer?: string | null
+          lawyer_id: string
+          license_number?: string | null
+          name: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer?: string | null
+          lawyer_id?: string
+          license_number?: string | null
+          name?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lawyer_licenses_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
             referencedColumns: ["id"]
           },
         ]
@@ -541,6 +653,7 @@ export type Database = {
       lawyers: {
         Row: {
           approval_status: string
+          bio: string | null
           consultation_count: number | null
           created_at: string
           education: string | null
@@ -573,6 +686,7 @@ export type Database = {
         }
         Insert: {
           approval_status?: string
+          bio?: string | null
           consultation_count?: number | null
           created_at?: string
           education?: string | null
@@ -605,6 +719,7 @@ export type Database = {
         }
         Update: {
           approval_status?: string
+          bio?: string | null
           consultation_count?: number | null
           created_at?: string
           education?: string | null

@@ -117,6 +117,17 @@ export default function LegalAssistanceChat() {
   const handleAcceptPrice = async () => {
     if (!pendingPriceOffer || !id) return;
 
+    // Check if identity is filled
+    if (!request?.identity_verified) {
+      toast({
+        title: "Lengkapi Data Diri Terlebih Dahulu",
+        description: "Anda harus mengisi data identitas sebelum menyetujui harga",
+        variant: "destructive"
+      });
+      setActiveTab("identity");
+      return;
+    }
+
     try {
       await acceptPrice.mutateAsync({
         requestId: id,
@@ -444,11 +455,21 @@ export default function LegalAssistanceChat() {
                   <p className="text-2xl font-bold text-warning mb-3">
                     Rp {pendingPriceOffer.toLocaleString('id-ID')}
                   </p>
+                  {!request?.identity_verified && (
+                    <p className="text-xs text-destructive mb-2">
+                      ⚠️ Isi data identitas dulu sebelum menyetujui
+                    </p>
+                  )}
                   <div className="flex gap-2 justify-center">
                     <Button variant="outline" size="sm">
                       Nego Lagi
                     </Button>
-                    <Button variant="gradient" size="sm" onClick={handleAcceptPrice}>
+                    <Button 
+                      variant="gradient" 
+                      size="sm" 
+                      onClick={handleAcceptPrice}
+                      disabled={!request?.identity_verified}
+                    >
                       <CheckCircle className="w-4 h-4 mr-1" />
                       Setuju
                     </Button>
