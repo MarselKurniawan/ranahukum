@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, Upload, FileText, Award, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,23 @@ import { useLawyerProfile, useUpdateLawyerProfile } from "@/hooks/useLawyerProfi
 
 export function LawyerCredentialsForm() {
   const { toast } = useToast();
-  const { data: profile } = useLawyerProfile();
+  const { data: profile, isLoading: loadingProfile } = useLawyerProfile();
   const updateProfile = useUpdateLawyerProfile();
   const { data: certifications = [], isLoading: loadingCerts } = useLawyerCertifications();
   const { data: licenses = [], isLoading: loadingLicenses } = useLawyerLicenses();
   const addCertification = useAddCertification();
   const addLicense = useAddLicense();
 
-  const [bio, setBio] = useState(profile?.bio || "");
+  const [bio, setBio] = useState("");
+  const [bioInitialized, setBioInitialized] = useState(false);
+
+  // Sync bio state when profile loads
+  useEffect(() => {
+    if (profile && !bioInitialized) {
+      setBio(profile.bio || "");
+      setBioInitialized(true);
+    }
+  }, [profile, bioInitialized]);
   const [showCertDialog, setShowCertDialog] = useState(false);
   const [showLicenseDialog, setShowLicenseDialog] = useState(false);
   const certFileRef = useRef<HTMLInputElement>(null);
