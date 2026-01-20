@@ -52,8 +52,12 @@ export default function TransactionHistory() {
     fetchReviewedLawyers();
   }, [user]);
 
-  const completedConsultations = consultations?.filter(c => c.status === 'completed') || [];
-  const activeConsultations = consultations?.filter(c => c.status !== 'completed' && c.status !== 'cancelled') || [];
+  const completedConsultations = consultations?.filter(c => 
+    ['completed', 'cancelled', 'rejected', 'expired'].includes(c.status)
+  ) || [];
+  const activeConsultations = consultations?.filter(c => 
+    ['pending', 'accepted', 'active'].includes(c.status)
+  ) || [];
 
   // Assistance requests filtering
   const activeAssistance = assistanceRequests.filter(r => 
@@ -74,6 +78,8 @@ export default function TransactionHistory() {
       active: { label: "Berlangsung", variant: "default" },
       completed: { label: "Selesai", variant: "outline" },
       cancelled: { label: "Dibatalkan", variant: "destructive" },
+      rejected: { label: "Ditolak", variant: "destructive" },
+      expired: { label: "Kedaluwarsa", variant: "outline" },
     };
     const config = variants[status] || { label: status, variant: "secondary" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
