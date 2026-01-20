@@ -28,9 +28,10 @@ export default function LawyerConsultationDetail() {
 
   // Get client and lawyer info
   const client = consultation ? (consultation as { profiles?: { full_name: string | null } }).profiles : null;
-  const isAnonymousConsultation = consultation ? (consultation as { is_anonymous?: boolean }).is_anonymous : false;
-  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (client?.full_name || 'Pengguna Anonim');
-  const displayInitial = isAnonymousConsultation ? 'A' : (client?.full_name?.[0] || 'U');
+  const isAnonymousConsultation = consultation ? (consultation as { is_anonymous?: boolean }).is_anonymous === true : false;
+  const clientName = client?.full_name;
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
+  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
   const lawyerId = consultation?.lawyer_id;
   const clientId = consultation?.client_id;
 
