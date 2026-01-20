@@ -504,6 +504,50 @@ export default function LawyerAssistanceChat() {
       {/* In Progress - Show documents tab and update status */}
       {request.status === 'in_progress' && (
         <div className="sticky bottom-0 bg-card border-t border-border p-4 space-y-3">
+          {/* Document Status Checklist - Show when documents are incomplete */}
+          {(!request.identity_verified || !request.surat_kuasa_url || !request.meeting_verified) && !showDocumentsTab && (
+            <Card className="border-warning/30 bg-warning/5">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-2 text-warning">
+                  <AlertTriangle className="w-4 h-4" />
+                  <p className="text-xs font-medium">Berkas yang diperlukan sebelum selesai:</p>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    {request.identity_verified ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-success" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    <span className={request.identity_verified ? "text-muted-foreground line-through" : ""}>
+                      Identitas Klien (diisi oleh klien)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {request.surat_kuasa_url ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-success" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    <span className={request.surat_kuasa_url ? "text-muted-foreground line-through" : ""}>
+                      Surat Kuasa
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {request.meeting_verified ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-success" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    <span className={request.meeting_verified ? "text-muted-foreground line-through" : ""}>
+                      Bukti Pertemuan & Tanda Tangan Basah
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {/* Documents Toggle */}
           {showDocumentsTab ? (
             <div className="space-y-4">
@@ -523,10 +567,12 @@ export default function LawyerAssistanceChat() {
                   <TabsTrigger value="surat-kuasa" className="text-xs">
                     <FileSignature className="w-3 h-3 mr-1" />
                     Surat Kuasa
+                    {request.surat_kuasa_url && <CheckCircle className="w-3 h-3 ml-1 text-success" />}
                   </TabsTrigger>
                   <TabsTrigger value="bukti-pertemuan" className="text-xs">
                     <Camera className="w-3 h-3 mr-1" />
                     Bukti Pertemuan
+                    {request.meeting_verified && <CheckCircle className="w-3 h-3 ml-1 text-success" />}
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="surat-kuasa" className="mt-3">
@@ -573,7 +619,7 @@ export default function LawyerAssistanceChat() {
                   Upload Dokumen
                   {(request.surat_kuasa_url || request.meeting_verified) && (
                     <Badge variant="secondary" className="ml-1 text-[10px]">
-                      {request.surat_kuasa_url && request.meeting_verified ? '2' : '1'}
+                      {request.surat_kuasa_url && request.meeting_verified ? '✓ 2' : '1/2'}
                     </Badge>
                   )}
                 </Button>
