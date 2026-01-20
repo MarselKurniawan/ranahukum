@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export default function TransactionHistory() {
   const navigate = useNavigate();
@@ -274,10 +275,20 @@ export default function TransactionHistory() {
     </Card>
   );
 
-  const AssistanceCard = ({ request, showActions = false }: { request: any; showActions?: boolean }) => (
+  const AssistanceCard = ({ request, showActions = false }: { request: any; showActions?: boolean }) => {
+    const isTerminalStatus = ['rejected', 'cancelled'].includes(request.status);
+    
+    return (
     <Card 
-      className="mb-3 cursor-pointer hover:shadow-elevated transition-all"
-      onClick={() => navigate(`/legal-assistance/chat/${request.id}`)}
+      className={cn(
+        "mb-3 transition-all",
+        !isTerminalStatus && "cursor-pointer hover:shadow-elevated"
+      )}
+      onClick={() => {
+        if (!isTerminalStatus) {
+          navigate(`/legal-assistance/chat/${request.id}`);
+        }
+      }}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
@@ -367,7 +378,8 @@ export default function TransactionHistory() {
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <MobileLayout showBottomNav={false}>

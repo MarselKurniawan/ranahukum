@@ -177,9 +177,10 @@ export default function LawyerDashboard() {
 
   const RequestCard = ({ request }: { request: Consultation }) => {
     // Check if consultation is anonymous
-    const isAnonymousConsultation = (request as { is_anonymous?: boolean }).is_anonymous;
-    const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (request.profiles?.full_name || 'Pengguna Anonim');
-    const displayInitial = isAnonymousConsultation ? 'A' : (request.profiles?.full_name?.[0] || 'U');
+    const isAnonymousConsultation = (request as { is_anonymous?: boolean }).is_anonymous === true;
+    const clientName = request.profiles?.full_name;
+    const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
+    const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
     
     return (
       <Card className="animate-fade-in">
