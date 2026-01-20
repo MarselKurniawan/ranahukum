@@ -29,10 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer role fetch with setTimeout to prevent deadlock
+        // Defer role/profile fetch with setTimeout to prevent deadlock
         if (session?.user) {
           setTimeout(() => {
             fetchUserRole(session.user.id);
+          }, 0);
+          setTimeout(() => {
+            ensureProfileRow(session.user);
           }, 0);
         } else {
           setRole(null);
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserRole(session.user.id);
+        ensureProfileRow(session.user);
       }
       setLoading(false);
     });
@@ -83,6 +87,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching role:', error);
+    }
+  };
+
+  const ensureProfileRow = async (authUser: User) => {
+    try {
+      const metaFullName = (authUser.user_metadata as { full_name?: string } | null)?.full_name;
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
+      const nextFullName = profile?.full_name || metaFullName || null;
+      const nextEmail = profile?.email || authUser.email || null;
+
+      // Create/update profile row if missing or incomplete
+      if (!profile || profile.full_name !== nextFullName || profile.email !== nextEmail) {
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert(
+            {
+              user_id: authUser.id,
+              full_name: nextFullName,
+              email: nextEmail,
+            },
+            { onConflict: 'user_id' }
+          );
+
+        if (upsertError) {
+          console.error('Error upserting profile:', upsertError);
+        }
+      }
+    } catch (e) {
+      console.error('Error ensuring profile row:', e);
     }
   };
 
@@ -146,6 +190,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           suspended: true 
         };
       }
+    }
+
+    if (data?.user) {
+      await ensureProfileRow(data.user);
     }
 
     return { error: null, suspended: false };
