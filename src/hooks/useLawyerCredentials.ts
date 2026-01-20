@@ -198,6 +198,46 @@ export function useAddLicense() {
   });
 }
 
+// Delete certification (only pending/rejected)
+export function useDeleteCertification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('lawyer_certifications')
+        .delete()
+        .eq('id', id)
+        .in('status', ['pending', 'rejected']);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lawyer-certifications'] });
+    }
+  });
+}
+
+// Delete license (only pending/rejected)
+export function useDeleteLicense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('lawyer_licenses')
+        .delete()
+        .eq('id', id)
+        .in('status', ['pending', 'rejected']);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lawyer-licenses'] });
+    }
+  });
+}
+
 // Superadmin: Get all pending credentials
 export function usePendingCredentials() {
   return useQuery({
