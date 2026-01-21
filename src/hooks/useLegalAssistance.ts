@@ -16,6 +16,7 @@ export interface LegalAssistanceRequest {
   payment_status: string;
   created_at: string;
   updated_at: string;
+  display_id?: string | null;
   // Client identity fields
   client_name: string | null;
   client_address: string | null;

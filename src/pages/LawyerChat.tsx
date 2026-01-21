@@ -334,7 +334,14 @@ export default function LawyerChat() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-sm">{displayName}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-sm">{displayName}</h2>
+                {consultation.display_id && (
+                  <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                    {consultation.display_id}
+                  </span>
+                )}
+              </div>
               <Badge 
                 variant={consultation.status === 'active' ? 'success' : 'secondary'} 
                 className="text-[10px]"
