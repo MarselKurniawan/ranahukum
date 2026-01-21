@@ -15,6 +15,7 @@ export interface Consultation {
   lawyer_notes: string | null;
   created_at: string;
   is_anonymous?: boolean;
+  display_id?: string | null;
   lawyers?: {
     name: string;
     image_url: string | null;

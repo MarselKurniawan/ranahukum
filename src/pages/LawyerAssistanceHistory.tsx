@@ -61,8 +61,9 @@ export default function LawyerAssistanceHistory() {
     ['pending', 'negotiating', 'agreed', 'in_progress'].includes(r.status)
   );
   
+  // Only show completed items in history - not cancelled/rejected
   const completedRequests = requests.filter(r => 
-    ['completed', 'cancelled', 'rejected'].includes(r.status)
+    r.status === 'completed'
   );
 
   const filterRequests = (reqs: typeof requests) => {
@@ -89,9 +90,16 @@ export default function LawyerAssistanceHistory() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h4 className="font-medium text-sm truncate">
-                  {request.client?.full_name || 'Client'}
-                </h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium text-sm truncate">
+                    {request.client?.full_name || 'Client'}
+                  </h4>
+                  {request.display_id && (
+                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {request.display_id}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground line-clamp-1">
                   {request.case_description}
                 </p>

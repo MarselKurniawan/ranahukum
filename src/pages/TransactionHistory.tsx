@@ -52,19 +52,20 @@ export default function TransactionHistory() {
     fetchReviewedLawyers();
   }, [user]);
 
+  // Only show completed consultations in history - rejected/cancelled/expired should not appear
   const completedConsultations = consultations?.filter(c => 
-    ['completed', 'cancelled', 'rejected', 'expired'].includes(c.status)
+    c.status === 'completed'
   ) || [];
   const activeConsultations = consultations?.filter(c => 
     ['pending', 'accepted', 'active'].includes(c.status)
   ) || [];
 
-  // Assistance requests filtering
+  // Assistance requests filtering - only completed in history
   const activeAssistance = assistanceRequests.filter(r => 
     ['pending', 'negotiating', 'agreed', 'in_progress'].includes(r.status)
   );
   const completedAssistance = assistanceRequests.filter(r => 
-    ['completed', 'cancelled', 'rejected'].includes(r.status)
+    r.status === 'completed'
   );
 
   const formatDate = (dateString: string) => {
@@ -197,7 +198,14 @@ export default function TransactionHistory() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-sm truncate">{consultation.lawyers?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm truncate">{consultation.lawyers?.name}</h3>
+                  {consultation.display_id && (
+                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {consultation.display_id}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground line-clamp-1">{consultation.topic}</p>
               </div>
               {getStatusBadge(consultation.status)}
@@ -305,7 +313,14 @@ export default function TransactionHistory() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-sm truncate">{request.lawyer?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm truncate">{request.lawyer?.name}</h3>
+                  {request.display_id && (
+                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {request.display_id}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground line-clamp-2">{request.case_description}</p>
               </div>
               {getAssistanceStatusBadge(request.status)}

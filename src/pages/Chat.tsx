@@ -288,7 +288,14 @@ export default function Chat() {
                 )}
               </div>
               <div>
-                <h2 className="font-semibold text-sm">{lawyer?.name}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-sm">{lawyer?.name}</h2>
+                  {consultation.display_id && (
+                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      {consultation.display_id}
+                    </span>
+                  )}
+                </div>
                 {isCompleted ? (
                   <p className="text-xs text-muted-foreground">Konsultasi Selesai</p>
                 ) : (

@@ -266,9 +266,16 @@ export default function LegalAssistanceChat() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-sm truncate">
-              {isClient ? request.lawyer?.name : request.client?.full_name || 'Client'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-sm truncate">
+                {isClient ? request.lawyer?.name : request.client?.full_name || 'Client'}
+              </h2>
+              {request.display_id && (
+                <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                  {request.display_id}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(request.status)}
             </div>
