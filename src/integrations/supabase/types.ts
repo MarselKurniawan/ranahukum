@@ -49,6 +49,7 @@ export type Database = {
           cancelled_by: string | null
           client_id: string
           created_at: string
+          display_id: string | null
           ended_at: string | null
           id: string
           is_anonymous: boolean
@@ -67,6 +68,7 @@ export type Database = {
           cancelled_by?: string | null
           client_id: string
           created_at?: string
+          display_id?: string | null
           ended_at?: string | null
           id?: string
           is_anonymous?: boolean
@@ -85,6 +87,7 @@ export type Database = {
           cancelled_by?: string | null
           client_id?: string
           created_at?: string
+          display_id?: string | null
           ended_at?: string | null
           id?: string
           is_anonymous?: boolean
@@ -822,6 +825,7 @@ export type Database = {
           client_religion: string | null
           created_at: string
           current_stage: string | null
+          display_id: string | null
           id: string
           identity_verified: boolean | null
           identity_verified_at: string | null
@@ -859,6 +863,7 @@ export type Database = {
           client_religion?: string | null
           created_at?: string
           current_stage?: string | null
+          display_id?: string | null
           id?: string
           identity_verified?: boolean | null
           identity_verified_at?: string | null
@@ -896,6 +901,7 @@ export type Database = {
           client_religion?: string | null
           created_at?: string
           current_stage?: string | null
+          display_id?: string | null
           id?: string
           identity_verified?: boolean | null
           identity_verified_at?: string | null
