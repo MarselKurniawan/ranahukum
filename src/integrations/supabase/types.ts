@@ -1396,6 +1396,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      month_to_roman: { Args: { month_num: number }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "lawyer" | "user" | "superadmin"
