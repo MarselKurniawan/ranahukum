@@ -293,6 +293,17 @@ export default function LawyerAssistanceChat() {
               {getStatusBadge(request.status)}
             </div>
           </div>
+          {/* Cancel Button - only during negotiation phase */}
+          {(request.status === 'pending' || request.status === 'negotiating') && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setShowCancelDialog(true)}
+            >
+              <XCircle className="w-5 h-5" />
+            </Button>
+          )}
         </div>
 
         {/* Warning Banner */}
