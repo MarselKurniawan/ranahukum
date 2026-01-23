@@ -360,7 +360,17 @@ export function useCreateAssistanceRequest() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ lawyerId, caseDescription }: { lawyerId: string; caseDescription: string }) => {
+    mutationFn: async ({ 
+      lawyerId, 
+      caseDescription,
+      clientCity,
+      clientDistrict
+    }: { 
+      lawyerId: string; 
+      caseDescription: string;
+      clientCity?: string;
+      clientDistrict?: string;
+    }) => {
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -369,6 +379,8 @@ export function useCreateAssistanceRequest() {
           client_id: user.id,
           lawyer_id: lawyerId,
           case_description: caseDescription,
+          client_city: clientCity || null,
+          client_district: clientDistrict || null,
           status: 'pending'
         })
         .select()

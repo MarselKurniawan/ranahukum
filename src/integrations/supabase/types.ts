@@ -819,6 +819,8 @@ export type Database = {
           case_type: string | null
           client_address: string | null
           client_age: number | null
+          client_city: string | null
+          client_district: string | null
           client_id: string
           client_name: string | null
           client_nik: string | null
@@ -857,6 +859,8 @@ export type Database = {
           case_type?: string | null
           client_address?: string | null
           client_age?: number | null
+          client_city?: string | null
+          client_district?: string | null
           client_id: string
           client_name?: string | null
           client_nik?: string | null
@@ -895,6 +899,8 @@ export type Database = {
           case_type?: string | null
           client_address?: string | null
           client_age?: number | null
+          client_city?: string | null
+          client_district?: string | null
           client_id?: string
           client_name?: string | null
           client_nik?: string | null
