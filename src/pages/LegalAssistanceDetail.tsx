@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useLawyer } from "@/hooks/useLawyers";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateAssistanceRequest } from "@/hooks/useLegalAssistance";
+import { LocationSelector } from "@/components/LocationSelector";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 export default function LegalAssistanceDetail() {
   const { id } = useParams();
@@ -31,6 +33,8 @@ export default function LegalAssistanceDetail() {
   const createRequest = useCreateAssistanceRequest();
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [caseDescription, setCaseDescription] = useState("");
+  const [clientCity, setClientCity] = useState("");
+  const [clientDistrict, setClientDistrict] = useState("");
 
   if (isLoading) {
     return (
@@ -60,6 +64,16 @@ export default function LegalAssistanceDetail() {
       return;
     }
 
+    if (!clientCity) {
+      toast.error("Mohon pilih kota/kabupaten");
+      return;
+    }
+
+    if (!clientDistrict) {
+      toast.error("Mohon pilih kecamatan");
+      return;
+    }
+
     if (!user) {
       toast.error("Silakan login terlebih dahulu");
       navigate('/auth');
@@ -69,11 +83,15 @@ export default function LegalAssistanceDetail() {
     try {
       const result = await createRequest.mutateAsync({
         lawyerId: lawyer.id,
-        caseDescription: caseDescription.trim()
+        caseDescription: caseDescription.trim(),
+        clientCity,
+        clientDistrict
       });
       toast.success("Permintaan berhasil dikirim! Anda akan diarahkan ke chat.");
       setShowRequestDialog(false);
       setCaseDescription("");
+      setClientCity("");
+      setClientDistrict("");
       navigate(`/legal-assistance/chat/${result.id}`);
     } catch (error) {
       toast.error("Gagal mengirim permintaan");
@@ -233,11 +251,19 @@ export default function LegalAssistanceDetail() {
             </p>
           </div>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            {/* Location Selector */}
+            <LocationSelector
+              city={clientCity}
+              district={clientDistrict}
+              onCityChange={setClientCity}
+              onDistrictChange={setClientDistrict}
+            />
+
             <div>
-              <label className="text-sm font-medium mb-2 block">
+              <Label className="mb-2 block">
                 Deskripsi Kasus *
-              </label>
+              </Label>
               <Textarea
                 value={caseDescription}
                 onChange={(e) => setCaseDescription(e.target.value)}
