@@ -1,10 +1,11 @@
-import { Home, Search, MessageCircle, User, Briefcase } from "lucide-react";
+import { Home, Search, MessageCircle, User, Briefcase, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Beranda", path: "/" },
   { icon: Search, label: "Cari", path: "/search" },
+  { icon: Users, label: "Tatap Muka", path: "/face-to-face" },
   { icon: Briefcase, label: "Dampingi", path: "/legal-assistance" },
   { icon: MessageCircle, label: "Konsultasi", path: "/consultations" },
   { icon: User, label: "Profil", path: "/profile" },

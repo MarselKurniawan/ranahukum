@@ -109,6 +109,136 @@ export type Database = {
           },
         ]
       }
+      face_to_face_messages: {
+        Row: {
+          content: string
+          created_at: string
+          file_url: string | null
+          id: string
+          is_schedule_accepted: boolean | null
+          message_type: string
+          proposed_date: string | null
+          proposed_location: string | null
+          proposed_time: string | null
+          request_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_schedule_accepted?: boolean | null
+          message_type?: string
+          proposed_date?: string | null
+          proposed_location?: string | null
+          proposed_time?: string | null
+          request_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_schedule_accepted?: boolean | null
+          message_type?: string
+          proposed_date?: string | null
+          proposed_location?: string | null
+          proposed_time?: string | null
+          request_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "face_to_face_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "face_to_face_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      face_to_face_requests: {
+        Row: {
+          agreed_price: number | null
+          auto_expired: boolean | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          case_description: string
+          case_type: string | null
+          client_id: string
+          created_at: string
+          display_id: string | null
+          id: string
+          lawyer_id: string
+          meeting_confirmed_at: string | null
+          meeting_date: string | null
+          meeting_location: string | null
+          meeting_notes: string | null
+          meeting_time: string | null
+          payment_status: string
+          proposed_price: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agreed_price?: number | null
+          auto_expired?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          case_description: string
+          case_type?: string | null
+          client_id: string
+          created_at?: string
+          display_id?: string | null
+          id?: string
+          lawyer_id: string
+          meeting_confirmed_at?: string | null
+          meeting_date?: string | null
+          meeting_location?: string | null
+          meeting_notes?: string | null
+          meeting_time?: string | null
+          payment_status?: string
+          proposed_price?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agreed_price?: number | null
+          auto_expired?: boolean | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          case_description?: string
+          case_type?: string | null
+          client_id?: string
+          created_at?: string
+          display_id?: string | null
+          id?: string
+          lawyer_id?: string
+          meeting_confirmed_at?: string | null
+          meeting_date?: string | null
+          meeting_location?: string | null
+          meeting_notes?: string | null
+          meeting_time?: string | null
+          payment_status?: string
+          proposed_price?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "face_to_face_requests_lawyer_id_fkey"
+            columns: ["lawyer_id"]
+            isOneToOne: false
+            referencedRelation: "lawyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_messages: {
         Row: {
           content: string
@@ -661,6 +791,7 @@ export type Database = {
           created_at: string
           education: string | null
           experience_years: number | null
+          face_to_face_price: number | null
           id: string
           image_url: string | null
           interview_consent: boolean | null
@@ -694,6 +825,7 @@ export type Database = {
           created_at?: string
           education?: string | null
           experience_years?: number | null
+          face_to_face_price?: number | null
           id?: string
           image_url?: string | null
           interview_consent?: boolean | null
@@ -727,6 +859,7 @@ export type Database = {
           created_at?: string
           education?: string | null
           experience_years?: number | null
+          face_to_face_price?: number | null
           id?: string
           image_url?: string | null
           interview_consent?: boolean | null
