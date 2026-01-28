@@ -44,6 +44,8 @@ import SuperAdminPendampinganChat from "./pages/SuperAdminPendampinganChat";
 import FaceToFace from "./pages/FaceToFace";
 import FaceToFaceChat from "./pages/FaceToFaceChat";
 import FaceToFaceLawyerDetail from "./pages/FaceToFaceLawyerDetail";
+import LawyerFaceToFace from "./pages/LawyerFaceToFace";
+import LawyerFaceToFaceChat from "./pages/LawyerFaceToFaceChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +93,9 @@ const App = () => (
             <Route path="/face-to-face" element={<FaceToFace />} />
             <Route path="/face-to-face/lawyer/:id" element={<FaceToFaceLawyerDetail />} />
             <Route path="/face-to-face/chat/:id" element={<FaceToFaceChat />} />
+            {/* Lawyer Face to Face Routes */}
+            <Route path="/lawyer/face-to-face" element={<LawyerFaceToFace />} />
+            <Route path="/lawyer/face-to-face/chat/:id" element={<LawyerFaceToFaceChat />} />
             {/* Super Admin Routes */}
             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
             <Route path="/admin/lawyer/:id" element={<SuperAdminLawyerDetail />} />

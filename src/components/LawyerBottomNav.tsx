@@ -1,10 +1,11 @@
-import { Home, MessageCircle, User } from "lucide-react";
+import { Home, MessageCircle, User, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/lawyer/dashboard" },
   { icon: MessageCircle, label: "Konsultasi", path: "/lawyer/consultations" },
+  { icon: Users, label: "Tatap Muka", path: "/lawyer/face-to-face" },
   { icon: User, label: "Profil", path: "/lawyer/profile" },
 ];
 
