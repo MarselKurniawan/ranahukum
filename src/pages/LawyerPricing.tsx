@@ -14,6 +14,7 @@ import { useLawyerProfile } from "@/hooks/useLawyerProfile";
 import { useLawyerPriceRequests, useCreatePriceRequest } from "@/hooks/useLawyerPriceRequests";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { useToast } from "@/hooks/use-toast";
+import { FaceToFaceActivationCard } from "@/components/FaceToFaceActivationCard";
 
 export default function LawyerPricing() {
   const navigate = useNavigate();
@@ -187,6 +188,9 @@ export default function LawyerPricing() {
             </CardContent>
           </Card>
         )}
+
+        {/* Face to Face Activation */}
+        {profile?.is_verified && <FaceToFaceActivationCard />}
 
         {/* Request History */}
         <Card>
