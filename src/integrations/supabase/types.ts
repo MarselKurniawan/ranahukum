@@ -791,7 +791,12 @@ export type Database = {
           created_at: string
           education: string | null
           experience_years: number | null
+          face_to_face_enabled: boolean | null
           face_to_face_price: number | null
+          face_to_face_rejected_at: string | null
+          face_to_face_rejection_count: number | null
+          face_to_face_requested_at: string | null
+          face_to_face_status: string | null
           id: string
           image_url: string | null
           interview_consent: boolean | null
@@ -825,7 +830,12 @@ export type Database = {
           created_at?: string
           education?: string | null
           experience_years?: number | null
+          face_to_face_enabled?: boolean | null
           face_to_face_price?: number | null
+          face_to_face_rejected_at?: string | null
+          face_to_face_rejection_count?: number | null
+          face_to_face_requested_at?: string | null
+          face_to_face_status?: string | null
           id?: string
           image_url?: string | null
           interview_consent?: boolean | null
@@ -859,7 +869,12 @@ export type Database = {
           created_at?: string
           education?: string | null
           experience_years?: number | null
+          face_to_face_enabled?: boolean | null
           face_to_face_price?: number | null
+          face_to_face_rejected_at?: string | null
+          face_to_face_rejection_count?: number | null
+          face_to_face_requested_at?: string | null
+          face_to_face_status?: string | null
           id?: string
           image_url?: string | null
           interview_consent?: boolean | null

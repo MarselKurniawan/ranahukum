@@ -119,6 +119,10 @@ import {
   useCompletePendampinganInterview,
   useCancelPendampinganInterview
 } from "@/hooks/usePendampinganRequest";
+import {
+  useAllFaceToFaceRequests,
+  useApproveFaceToFaceActivation
+} from "@/hooks/useFaceToFaceActivation";
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -157,6 +161,10 @@ export default function SuperAdminDashboard() {
   const approvePendampingan = useApprovePendampingan();
   const completePendampinganInterview = useCompletePendampinganInterview();
   const cancelPendampinganInterview = useCancelPendampinganInterview();
+
+  // Face-to-face activation requests
+  const { data: faceToFaceRequests = [] } = useAllFaceToFaceRequests();
+  const approveFaceToFace = useApproveFaceToFaceActivation();
 
   // Notification management hooks
   const { data: allNotifications = [] } = useAllNotifications();
@@ -1246,6 +1254,83 @@ export default function SuperAdminDashboard() {
                   <div className="text-center py-8">
                     <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
                     <p className="text-sm text-muted-foreground">Tidak ada permintaan aktivasi pendampingan</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Face-to-Face Activation Requests */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Permintaan Aktivasi Tatap Muka
+                  {faceToFaceRequests.length > 0 && (
+                    <Badge variant="warning">{faceToFaceRequests.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {faceToFaceRequests.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {faceToFaceRequests.map((lawyer: any) => (
+                      <div key={lawyer.id} className="p-4 border rounded-lg">
+                        <div className="flex gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={lawyer.image_url || undefined} />
+                            <AvatarFallback>{lawyer.name?.[0] || 'L'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{lawyer.name}</h4>
+                            <p className="text-xs text-muted-foreground">{lawyer.location}</p>
+                            <Badge variant="warning" className="text-[10px] mt-2">
+                              Menunggu Review
+                            </Badge>
+                            {lawyer.face_to_face_requested_at && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Diajukan: {new Date(lawyer.face_to_face_requested_at).toLocaleDateString('id-ID')}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => navigate(`/admin/lawyer/${lawyer.id}`)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Detail
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs text-destructive"
+                                onClick={() => approveFaceToFace.mutate({ lawyerId: lawyer.id, approve: false })}
+                                disabled={approveFaceToFace.isPending}
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                Tolak
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 text-xs"
+                                onClick={() => approveFaceToFace.mutate({ lawyerId: lawyer.id, approve: true })}
+                                disabled={approveFaceToFace.isPending}
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Setujui
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-success/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">Tidak ada permintaan aktivasi tatap muka</p>
                   </div>
                 )}
               </CardContent>
