@@ -28,6 +28,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { CancelRequestDialog } from "@/components/CancelRequestDialog";
 import { useCancelConsultation } from "@/hooks/useCancelRequest";
+import { VoiceCallButton } from "@/components/VoiceCallButton";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 function VoicePlayer({ src }: { src: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -309,6 +312,25 @@ export default function LawyerChat() {
   const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
+  const clientId = consultation.client_id;
+
+  // Fetch client's phone number from profiles
+  const { data: clientProfile } = useQuery({
+    queryKey: ['client-profile-phone', clientId],
+    queryFn: async () => {
+      if (!clientId || isAnonymousConsultation) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, whatsapp')
+        .eq('user_id', clientId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!clientId && !isAnonymousConsultation
+  });
+
+  const clientPhone = clientProfile?.whatsapp || clientProfile?.phone || '';
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -353,6 +375,16 @@ export default function LawyerChat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Voice Call Button */}
+            {consultation.status === 'active' && !isAnonymousConsultation && (
+              <VoiceCallButton
+                consultationId={id!}
+                receiverId={clientId}
+                receiverPhone={clientPhone}
+                isLawyer={true}
+                disabled={isCompleted}
+              />
+            )}
             {/* Consultation Timer */}
             <div className="flex items-center gap-2 bg-secondary px-3 py-1.5 rounded-full">
               <Clock className="w-4 h-4 text-primary" />
