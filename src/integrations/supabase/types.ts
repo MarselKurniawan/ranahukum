@@ -1390,6 +1390,65 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_call_sessions: {
+        Row: {
+          call_fee: number | null
+          caller_id: string
+          consultation_id: string | null
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          is_paid: boolean | null
+          notes: string | null
+          phone_number: string
+          receiver_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          call_fee?: number | null
+          caller_id: string
+          consultation_id?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          phone_number: string
+          receiver_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          call_fee?: number | null
+          caller_id?: string
+          consultation_id?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          phone_number?: string
+          receiver_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_sessions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -14,6 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CancelRequestDialog } from "@/components/CancelRequestDialog";
 import { useCancelConsultation } from "@/hooks/useCancelRequest";
 import { useToast } from "@/hooks/use-toast";
+import { VoiceCallButton } from "@/components/VoiceCallButton";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 function VoicePlayer({ src }: { src: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -258,6 +261,24 @@ export default function Chat() {
   const lawyer = consultation.lawyers;
   const lawyerUserId = (lawyer as { user_id?: string })?.user_id;
 
+  // Fetch lawyer's phone number from profiles
+  const { data: lawyerProfile } = useQuery({
+    queryKey: ['lawyer-profile-phone', lawyerUserId],
+    queryFn: async () => {
+      if (!lawyerUserId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, whatsapp')
+        .eq('user_id', lawyerUserId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!lawyerUserId
+  });
+
+  const lawyerPhone = lawyerProfile?.whatsapp || lawyerProfile?.phone || '';
+
   return (
     <MobileLayout showBottomNav={false}>
       {/* Hidden file input */}
@@ -305,6 +326,16 @@ export default function Chat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Voice Call Button */}
+            {consultation.status === 'active' && lawyerUserId && (
+              <VoiceCallButton
+                consultationId={id!}
+                receiverId={lawyerUserId}
+                receiverPhone={lawyerPhone}
+                isLawyer={false}
+                disabled={isCompleted}
+              />
+            )}
             {/* Consultation Timer */}
             <div className="flex items-center gap-1.5 bg-secondary px-2.5 py-1.5 rounded-full">
               <Clock className="w-3.5 h-3.5 text-primary" />
