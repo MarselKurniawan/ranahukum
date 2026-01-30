@@ -296,9 +296,7 @@ export default function SuperAdminDashboard() {
     try {
       await approvePriceRequest.mutateAsync({
         requestId: request.id,
-        approve,
-        lawyerId: request.lawyer_id,
-        newPrice: request.requested_price
+        approve
       });
       toast({
         title: approve ? "Permintaan Disetujui" : "Permintaan Ditolak"

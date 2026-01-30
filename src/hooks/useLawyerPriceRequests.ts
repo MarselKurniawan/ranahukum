@@ -48,16 +48,28 @@ export function useCreatePriceRequest() {
   const { data: profile } = useLawyerProfile();
 
   return useMutation({
-    mutationFn: async ({ requestedPrice, notes }: { requestedPrice: number; notes?: string }) => {
+    mutationFn: async ({ 
+      requestedPrice, 
+      notes, 
+      requestType = 'pendampingan' 
+    }: { 
+      requestedPrice: number; 
+      notes?: string;
+      requestType?: 'pendampingan' | 'face_to_face';
+    }) => {
       if (!profile) throw new Error('No lawyer profile');
+
+      const currentPrice = requestType === 'face_to_face' 
+        ? profile.face_to_face_price || 0 
+        : profile.pendampingan_price || 0;
 
       const { data, error } = await supabase
         .from('lawyer_price_requests')
         .insert({
           lawyer_id: profile.id,
-          request_type: 'pendampingan_price',
+          request_type: requestType,
           requested_price: requestedPrice,
-          current_price: profile.pendampingan_price || 0,
+          current_price: currentPrice,
           notes
         })
         .select()
@@ -110,36 +122,27 @@ export function useApprovePriceRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ requestId, approve, lawyerId, newPrice }: { 
+    mutationFn: async ({ requestId, approve, notes }: { 
       requestId: string; 
       approve: boolean;
-      lawyerId: string;
-      newPrice: number;
+      notes?: string;
     }) => {
-      // Update the request status
+      // Update the request status - the trigger will auto-update lawyer's price if approved
       const { error: requestError } = await supabase
         .from('lawyer_price_requests')
         .update({
           status: approve ? 'approved' : 'rejected',
-          reviewed_at: new Date().toISOString()
+          reviewed_at: new Date().toISOString(),
+          notes: notes || null
         })
         .eq('id', requestId);
 
       if (requestError) throw requestError;
-
-      // If approved, update the lawyer's price
-      if (approve) {
-        const { error: lawyerError } = await supabase
-          .from('lawyers')
-          .update({ pendampingan_price: newPrice })
-          .eq('id', lawyerId);
-
-        if (lawyerError) throw lawyerError;
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-price-requests'] });
       queryClient.invalidateQueries({ queryKey: ['all-lawyers'] });
+      queryClient.invalidateQueries({ queryKey: ['lawyer-profile'] });
     }
   });
 }
