@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX, Ban } from "lucide-react";
+import { ArrowLeft, CreditCard, Clock, CheckCircle, AlertCircle, UserX, Ban, MessageCircle, Phone } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
 import { useCreateConsultation } from "@/hooks/useConsultations";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,34 +25,48 @@ const paymentMethods = [
   { id: "card", name: "Kartu Kredit/Debit", icon: "💳" },
 ];
 
+type ConsultationType = 'chat_only' | 'chat_call';
+
 export default function Booking() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
-  const { data: chatPriceSetting, isLoading: isPriceLoading } = useAppSetting('chat_consultation_price');
+  
+  // Get pricing settings
+  const { data: chatOnlyPriceSetting, isLoading: isLoadingChatOnly } = useAppSetting('chat_only_price');
+  const { data: chatCallPriceSetting, isLoading: isLoadingChatCall } = useAppSetting('chat_call_price');
+  const { data: anonymousFeeSetting, isLoading: isLoadingAnonymous } = useAppSetting('anonymous_fee');
   const { data: platformFeeSetting } = useAppSetting('platform_fee_chat');
+  
   const createConsultation = useCreateConsultation();
   const clientSuspension = useClientSuspension();
   
-  // Get consultation price from global settings
-  const consultationPrice = chatPriceSetting 
-    ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
-    : 50000;
+  // Get prices from settings
+  const chatOnlyPrice = (chatOnlyPriceSetting?.value as { amount?: number })?.amount || 50000;
+  const chatCallPrice = (chatCallPriceSetting?.value as { amount?: number })?.amount || 100000;
+  const anonymousFee = (anonymousFeeSetting?.value as { amount?: number })?.amount || 25000;
   
   // Get platform fee from settings
   const platformFeeConfig = platformFeeSetting?.value as { type?: 'fixed' | 'percentage'; amount?: number } | undefined;
   const feeType = platformFeeConfig?.type || 'fixed';
   const feeValue = platformFeeConfig?.amount || 5000;
-  const { platformFee, totalAmount } = calculatePlatformFee(consultationPrice, feeType, feeValue);
   
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [consultationType, setConsultationType] = useState<ConsultationType>('chat_only');
+
+  // Calculate total price
+  const basePrice = consultationType === 'chat_only' ? chatOnlyPrice : chatCallPrice;
+  const anonymousCharge = isAnonymous ? anonymousFee : 0;
+  const subtotal = basePrice + anonymousCharge;
+  const { platformFee, totalAmount } = calculatePlatformFee(subtotal, feeType, feeValue);
 
   // Check if client is suspended
   const isClientSuspended = clientSuspension?.isActive;
+  const isPriceLoading = isLoadingChatOnly || isLoadingChatCall || isLoadingAnonymous;
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -116,8 +131,6 @@ export default function Booking() {
     );
   }
 
-  // Platform fee is now calculated above using settings
-
   const handlePayment = async () => {
     if (!user) {
       navigate('/auth', { state: { returnTo: `/booking/${id}` } });
@@ -149,7 +162,12 @@ export default function Booking() {
         lawyerId: lawyer.id,
         topic: topic.trim(),
         price: totalAmount,
-        isAnonymous: isAnonymous
+        isAnonymous: isAnonymous,
+        consultationType: consultationType,
+        basePrice: basePrice,
+        callPrice: consultationType === 'chat_call' ? chatCallPrice - chatOnlyPrice : 0,
+        anonymousFee: anonymousCharge,
+        isCallEnabled: consultationType === 'chat_call'
       });
 
       toast({
@@ -208,22 +226,96 @@ export default function Booking() {
           </CardContent>
         </Card>
 
+        {/* Consultation Type Selection */}
+        <h2 className="font-semibold mb-3">Pilih Paket Konsultasi</h2>
+        <RadioGroup
+          value={consultationType}
+          onValueChange={(value) => setConsultationType(value as ConsultationType)}
+          className="space-y-3 mb-4"
+        >
+          <Card 
+            className={`cursor-pointer transition-all ${
+              consultationType === 'chat_only' 
+                ? "ring-2 ring-primary border-primary" 
+                : "hover:border-primary/50"
+            }`}
+            onClick={() => setConsultationType('chat_only')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <RadioGroupItem value="chat_only" id="chat_only" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4 text-primary" />
+                      <Label htmlFor="chat_only" className="font-medium cursor-pointer">
+                        Chat Saja
+                      </Label>
+                    </div>
+                    <span className="font-semibold text-primary">
+                      Rp {chatOnlyPrice.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Konsultasi via chat teks, kirim dokumen & voice note
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`cursor-pointer transition-all ${
+              consultationType === 'chat_call' 
+                ? "ring-2 ring-primary border-primary" 
+                : "hover:border-primary/50"
+            }`}
+            onClick={() => setConsultationType('chat_call')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <RadioGroupItem value="chat_call" id="chat_call" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-success" />
+                      <Label htmlFor="chat_call" className="font-medium cursor-pointer">
+                        Chat + Telepon
+                      </Label>
+                    </div>
+                    <span className="font-semibold text-primary">
+                      Rp {chatCallPrice.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Termasuk fitur telepon langsung dengan pengacara
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </RadioGroup>
+
         {/* Anonymous Toggle */}
         <Card className="mb-4 border-muted">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                <UserX className="w-5 h-5 text-muted-foreground" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                  <UserX className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Konsultasi Anonim</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sembunyikan identitas Anda (+Rp {anonymousFee.toLocaleString("id-ID")})
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-sm">Konsultasi Anonim</p>
-                <p className="text-xs text-muted-foreground">Sembunyikan identitas Anda dari pengacara</p>
-              </div>
+              <Switch
+                checked={isAnonymous}
+                onCheckedChange={setIsAnonymous}
+              />
             </div>
-            <Switch
-              checked={isAnonymous}
-              onCheckedChange={setIsAnonymous}
-            />
           </CardContent>
         </Card>
 
@@ -272,9 +364,17 @@ export default function Booking() {
             <h3 className="font-semibold mb-3">Ringkasan Pembayaran</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Biaya Konsultasi</span>
-                <span>Rp {consultationPrice.toLocaleString("id-ID")}</span>
+                <span className="text-muted-foreground">
+                  {consultationType === 'chat_only' ? 'Paket Chat' : 'Paket Chat + Telepon'}
+                </span>
+                <span>Rp {basePrice.toLocaleString("id-ID")}</span>
               </div>
+              {isAnonymous && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Biaya Anonim</span>
+                  <span>Rp {anonymousCharge.toLocaleString("id-ID")}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
                   Biaya Platform {feeType === 'percentage' ? `(${feeValue}%)` : ''}
@@ -309,7 +409,7 @@ export default function Booking() {
           ) : (
             <>
               <CreditCard className="w-5 h-5" />
-              Bayar Sekarang
+              Bayar Rp {totalAmount.toLocaleString("id-ID")}
             </>
           )}
         </Button>

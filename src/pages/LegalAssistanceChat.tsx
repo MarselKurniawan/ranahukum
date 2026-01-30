@@ -262,13 +262,13 @@ export default function LegalAssistanceChat() {
           <Avatar className="w-10 h-10">
             <AvatarImage src={isClient ? request.lawyer?.image_url || undefined : request.client?.avatar_url || undefined} />
             <AvatarFallback>
-              {(isClient ? request.lawyer?.name : request.client?.full_name)?.[0] || '?'}
+              {(isClient ? request.lawyer?.name : request.client?.full_name)?.[0] || 'K'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-sm truncate">
-                {isClient ? request.lawyer?.name : request.client?.full_name || 'Client'}
+                {isClient ? request.lawyer?.name : (request.client?.full_name || 'Klien')}
               </h2>
               {request.display_id && (
                 <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">

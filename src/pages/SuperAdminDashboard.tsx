@@ -109,6 +109,7 @@ import {
 import { PriceSettingsCard } from "@/components/PriceSettingsCard";
 import { PlatformFeeSettingsCard } from "@/components/PlatformFeeSettingsCard";
 import { VoiceCallFeeSettingsCard } from "@/components/VoiceCallFeeSettingsCard";
+import { ConsultationPriceSettingsCard } from "@/components/ConsultationPriceSettingsCard";
 import { SuspendDialog } from "@/components/SuspendDialog";
 import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
 import {
@@ -2220,6 +2221,9 @@ export default function SuperAdminDashboard() {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Consultation Package Pricing */}
+              <ConsultationPriceSettingsCard />
+              
               {/* Price Settings */}
               <PriceSettingsCard />
               

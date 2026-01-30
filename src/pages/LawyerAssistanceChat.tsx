@@ -275,13 +275,13 @@ export default function LawyerAssistanceChat() {
           <Avatar className="w-10 h-10">
             <AvatarImage src={request.client?.avatar_url || undefined} />
             <AvatarFallback>
-              {request.client?.full_name?.[0] || 'C'}
+              {request.client?.full_name?.[0] || 'K'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-sm truncate">
-                {request.client?.full_name || 'Client'}
+                {request.client?.full_name || 'Klien'}
               </h2>
               {request.display_id && (
                 <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
