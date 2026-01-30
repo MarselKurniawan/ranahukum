@@ -19,7 +19,17 @@ export interface DbLawyer {
   suspended_until?: string | null;
   suspend_reason?: string | null;
   pendampingan_price: number;
+  pendampingan_enabled?: boolean;
+  pendampingan_status?: string | null;
+  pendampingan_requested_at?: string | null;
+  pendampingan_rejected_at?: string | null;
+  pendampingan_rejection_count?: number;
   face_to_face_price?: number;
+  face_to_face_enabled?: boolean;
+  face_to_face_status?: string | null;
+  face_to_face_requested_at?: string | null;
+  face_to_face_rejected_at?: string | null;
+  face_to_face_rejection_count?: number;
   created_at: string;
   approval_status: string;
   submitted_at: string | null;
