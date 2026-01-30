@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Mic, Paperclip, Play, Pause, FileText, X, Clock, CheckCircle, Ban } from "lucide-react";
+import { ArrowLeft, Send, Mic, Paperclip, Play, Pause, FileText, X, Clock, CheckCircle, Ban, Phone } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { CancelRequestDialog } from "@/components/CancelRequestDialog";
 import { useCancelConsultation } from "@/hooks/useCancelRequest";
 import { useToast } from "@/hooks/use-toast";
 import { VoiceCallButton } from "@/components/VoiceCallButton";
+import { CallUpgradeButton } from "@/components/CallUpgradeButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -326,13 +327,21 @@ export default function Chat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Voice Call Button */}
-            {consultation.status === 'active' && lawyerUserId && (
+            {/* Voice Call Button - Only show if call is enabled */}
+            {consultation.status === 'active' && lawyerUserId && (consultation as { is_call_enabled?: boolean }).is_call_enabled && (
               <VoiceCallButton
                 consultationId={id!}
                 receiverId={lawyerUserId}
                 receiverPhone={lawyerPhone}
                 isLawyer={false}
+                disabled={isCompleted}
+              />
+            )}
+            {/* Upgrade to Call Button - Show if call is not enabled */}
+            {consultation.status === 'active' && !(consultation as { is_call_enabled?: boolean }).is_call_enabled && (
+              <CallUpgradeButton
+                consultationId={id!}
+                isCallEnabled={(consultation as { is_call_enabled?: boolean }).is_call_enabled || false}
                 disabled={isCompleted}
               />
             )}

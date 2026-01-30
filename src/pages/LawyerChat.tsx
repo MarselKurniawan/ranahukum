@@ -375,8 +375,8 @@ export default function LawyerChat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Voice Call Button */}
-            {consultation.status === 'active' && !isAnonymousConsultation && (
+            {/* Voice Call Button - Only show if call is enabled and not anonymous */}
+            {consultation.status === 'active' && !isAnonymousConsultation && (consultation as { is_call_enabled?: boolean }).is_call_enabled && (
               <VoiceCallButton
                 consultationId={id!}
                 receiverId={clientId}

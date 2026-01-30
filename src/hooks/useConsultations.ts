@@ -230,7 +230,27 @@ export function useCreateConsultation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ lawyerId, topic, price, isAnonymous = false }: { lawyerId: string; topic: string; price: number; isAnonymous?: boolean }) => {
+    mutationFn: async ({ 
+      lawyerId, 
+      topic, 
+      price, 
+      isAnonymous = false,
+      consultationType = 'chat_only',
+      basePrice = 0,
+      callPrice = 0,
+      anonymousFee = 0,
+      isCallEnabled = false
+    }: { 
+      lawyerId: string; 
+      topic: string; 
+      price: number; 
+      isAnonymous?: boolean;
+      consultationType?: 'chat_only' | 'chat_call';
+      basePrice?: number;
+      callPrice?: number;
+      anonymousFee?: number;
+      isCallEnabled?: boolean;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -247,7 +267,12 @@ export function useCreateConsultation() {
             topic,
             price,
             status: 'pending',
-            is_anonymous: isAnonymous
+            is_anonymous: isAnonymous,
+            consultation_type: consultationType,
+            base_price: basePrice,
+            call_price: callPrice,
+            anonymous_fee: anonymousFee,
+            is_call_enabled: isCallEnabled
           })
           .select()
           .single();
