@@ -43,16 +43,23 @@ export type Database = {
       }
       consultations: {
         Row: {
+          anonymous_fee: number | null
           auto_expired: boolean | null
+          base_price: number | null
+          call_price: number | null
+          call_upgrade_at: string | null
+          call_upgrade_paid: boolean | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           client_id: string
+          consultation_type: string | null
           created_at: string
           display_id: string | null
           ended_at: string | null
           id: string
           is_anonymous: boolean
+          is_call_enabled: boolean | null
           lawyer_id: string
           lawyer_notes: string | null
           price: number
@@ -62,16 +69,23 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anonymous_fee?: number | null
           auto_expired?: boolean | null
+          base_price?: number | null
+          call_price?: number | null
+          call_upgrade_at?: string | null
+          call_upgrade_paid?: boolean | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id: string
+          consultation_type?: string | null
           created_at?: string
           display_id?: string | null
           ended_at?: string | null
           id?: string
           is_anonymous?: boolean
+          is_call_enabled?: boolean | null
           lawyer_id: string
           lawyer_notes?: string | null
           price: number
@@ -81,16 +95,23 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anonymous_fee?: number | null
           auto_expired?: boolean | null
+          base_price?: number | null
+          call_price?: number | null
+          call_upgrade_at?: string | null
+          call_upgrade_paid?: boolean | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id?: string
+          consultation_type?: string | null
           created_at?: string
           display_id?: string | null
           ended_at?: string | null
           id?: string
           is_anonymous?: boolean
+          is_call_enabled?: boolean | null
           lawyer_id?: string
           lawyer_notes?: string | null
           price?: number
