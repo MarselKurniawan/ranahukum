@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { LawyerCredentialsForm } from "@/components/LawyerCredentialsForm";
-import { LawyerBottomNav } from "@/components/LawyerBottomNav";
+import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ export default function LawyerProfile() {
 
   if (authLoading || isLoading || loadingSpecs) {
     return (
-      <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
+      <MobileLayout showBottomNav={false}>
         <div className="p-4 space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -145,14 +145,17 @@ export default function LawyerProfile() {
   }
 
   return (
-    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
+    <MobileLayout showBottomNav={false}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
-        <div className="flex items-center gap-3 p-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold">Edit Profil Lawyer</h1>
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-semibold">Edit Profil Lawyer</h1>
+          </div>
+          <LawyerSideMenu />
         </div>
       </div>
 

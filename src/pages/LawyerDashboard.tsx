@@ -11,14 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LawyerCalendar } from "@/components/LawyerCalendar";
-import { EarningsDashboard } from "@/components/EarningsDashboard";
 import { LawyerProfileAlert } from "@/components/LawyerProfileAlert";
 import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { PendampinganRequestCard } from "@/components/PendampinganRequestCard";
-import { LawyerBottomNav } from "@/components/LawyerBottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -313,7 +310,7 @@ export default function LawyerDashboard() {
   const isSuspended = lawyerProfile?.is_suspended && lawyerProfile?.suspended_until;
 
   return (
-    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
+    <MobileLayout showBottomNav={false}>
       {/* Suspension Banner */}
       {isLawyerSuspended && (
         <div className="px-4 pt-4">
@@ -442,13 +439,11 @@ export default function LawyerDashboard() {
           </Card>
         )}
 
-        {/* Main Tabs */}
+        {/* Main Tabs - Chat & Dampingan only */}
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="w-full mb-4 grid grid-cols-4">
-            <TabsTrigger value="requests" className="text-xs">Konsultasi</TabsTrigger>
+          <TabsList className="w-full mb-4 grid grid-cols-2">
+            <TabsTrigger value="requests" className="text-xs">Konsultasi Chat</TabsTrigger>
             <TabsTrigger value="assistance" className="text-xs">Pendampingan</TabsTrigger>
-            <TabsTrigger value="calendar" className="text-xs">Jadwal</TabsTrigger>
-            <TabsTrigger value="earnings" className="text-xs">Pendapatan</TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests">
@@ -510,14 +505,6 @@ export default function LawyerDashboard() {
           <TabsContent value="assistance" className="space-y-4">
             <PendampinganRequestCard />
             <LawyerAssistanceList />
-          </TabsContent>
-
-          <TabsContent value="calendar">
-            <LawyerCalendar />
-          </TabsContent>
-
-          <TabsContent value="earnings">
-            <EarningsDashboard lawyerId={lawyerProfile?.id} />
           </TabsContent>
         </Tabs>
       </div>

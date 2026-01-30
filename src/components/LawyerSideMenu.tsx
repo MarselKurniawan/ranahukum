@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Menu, X, Home, User, LogOut, Settings, 
-  FileText, Banknote, ChevronRight 
+  FileText, Banknote, ChevronRight, Calendar, TrendingUp, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,9 +17,13 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useLawyerProfile } from "@/hooks/useLawyerProfile";
 import { cn } from "@/lib/utils";
+import { useLawyerFaceToFaceRequests } from "@/hooks/useFaceToFace";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/lawyer/dashboard" },
+  { icon: Users, label: "Tatap Muka", path: "/lawyer/face-to-face" },
+  { icon: Calendar, label: "Jadwal", path: "/lawyer/schedule" },
+  { icon: TrendingUp, label: "Pendapatan", path: "/lawyer/earnings" },
   { icon: User, label: "Profil Saya", path: "/lawyer/profile" },
   { icon: Banknote, label: "Pengaturan Harga", path: "/lawyer/pricing" },
   { icon: FileText, label: "Dokumen Verifikasi", path: "/lawyer/documents" },
@@ -31,6 +35,10 @@ export function LawyerSideMenu() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { data: profile } = useLawyerProfile();
+  const { data: faceToFaceRequests = [] } = useLawyerFaceToFaceRequests();
+  
+  // Count pending face-to-face requests
+  const pendingF2FCount = faceToFaceRequests.filter(r => r.status === 'pending').length;
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -78,21 +86,31 @@ export function LawyerSideMenu() {
         {/* Menu Items */}
         <div className="py-2">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || 
+              (item.path === "/lawyer/dashboard" && location.pathname.startsWith("/lawyer/chat/")) ||
+              (item.path === "/lawyer/face-to-face" && location.pathname.startsWith("/lawyer/face-to-face"));
             const Icon = item.icon;
+            const showBadge = item.path === "/lawyer/face-to-face" && pendingF2FCount > 0;
             
             return (
               <button
                 key={item.path}
                 onClick={() => handleNavigate(item.path)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors relative",
                   isActive 
                     ? "bg-primary/10 text-primary font-medium" 
                     : "hover:bg-muted text-foreground"
                 )}
               >
-                <Icon className="w-5 h-5" />
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
+                      {pendingF2FCount > 9 ? '9+' : pendingF2FCount}
+                    </span>
+                  )}
+                </div>
                 <span className="flex-1 text-left">{item.label}</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>

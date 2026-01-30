@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LawyerBottomNav } from "@/components/LawyerBottomNav";
+import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { useLawyerFaceToFaceRequests, useUpdateFaceToFaceRequest } from "@/hooks/useFaceToFace";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -185,7 +185,7 @@ export default function LawyerFaceToFace() {
 
   if (isLoading) {
     return (
-      <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
+      <MobileLayout showBottomNav={false}>
         <div className="p-4 space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -196,19 +196,22 @@ export default function LawyerFaceToFace() {
   }
 
   return (
-    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
+    <MobileLayout showBottomNav={false}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10 p-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/lawyer/dashboard")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="font-semibold">Layanan Tatap Muka</h1>
-            <p className="text-xs text-muted-foreground">
-              Kelola permintaan pertemuan dari klien
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/lawyer/dashboard")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="font-semibold">Layanan Tatap Muka</h1>
+              <p className="text-xs text-muted-foreground">
+                Kelola permintaan pertemuan dari klien
+              </p>
+            </div>
           </div>
+          <LawyerSideMenu />
         </div>
       </div>
 
