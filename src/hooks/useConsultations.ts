@@ -234,21 +234,42 @@ export function useCreateConsultation() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('consultations')
-        .insert({
-          client_id: user.id,
-          lawyer_id: lawyerId,
-          topic,
-          price,
-          status: 'pending',
-          is_anonymous: isAnonymous
-        })
-        .select()
-        .single();
+      // Retry logic for handling race condition on display_id generation
+      const maxRetries = 3;
+      let lastError: Error | null = null;
 
-      if (error) throw error;
-      return data;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const { data, error } = await supabase
+          .from('consultations')
+          .insert({
+            client_id: user.id,
+            lawyer_id: lawyerId,
+            topic,
+            price,
+            status: 'pending',
+            is_anonymous: isAnonymous
+          })
+          .select()
+          .single();
+
+        if (!error) {
+          return data;
+        }
+
+        // Check if it's a duplicate key error on display_id
+        if (error.code === '23505' && error.message?.includes('display_id')) {
+          console.warn(`Consultation insert retry ${attempt + 1}/${maxRetries} due to display_id conflict`);
+          lastError = error;
+          // Small delay before retry
+          await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+          continue;
+        }
+
+        // For other errors, throw immediately
+        throw error;
+      }
+
+      throw lastError || new Error('Failed to create consultation after retries');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultations'] });

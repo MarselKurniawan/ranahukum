@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSpecializationTypes } from "@/hooks/useSpecializationTypes";
 import { useAppSetting } from "@/hooks/useLegalAssistance";
 import { LawyerCredentialsForm } from "@/components/LawyerCredentialsForm";
+import { LawyerBottomNav } from "@/components/LawyerBottomNav";
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
@@ -133,7 +134,7 @@ export default function LawyerProfile() {
 
   if (authLoading || isLoading || loadingSpecs) {
     return (
-      <MobileLayout showBottomNav={false}>
+      <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
         <div className="p-4 space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -144,7 +145,7 @@ export default function LawyerProfile() {
   }
 
   return (
-    <MobileLayout showBottomNav={false}>
+    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
         <div className="flex items-center gap-3 p-4">
