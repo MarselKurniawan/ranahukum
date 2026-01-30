@@ -18,6 +18,7 @@ import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { PendampinganRequestCard } from "@/components/PendampinganRequestCard";
+import { LawyerBottomNav } from "@/components/LawyerBottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -312,7 +313,7 @@ export default function LawyerDashboard() {
   const isSuspended = lawyerProfile?.is_suspended && lawyerProfile?.suspended_until;
 
   return (
-    <MobileLayout showBottomNav={false}>
+    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
       {/* Suspension Banner */}
       {isLawyerSuspended && (
         <div className="px-4 pt-4">

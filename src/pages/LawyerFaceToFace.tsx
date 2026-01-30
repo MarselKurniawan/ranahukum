@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LawyerBottomNav } from "@/components/LawyerBottomNav";
 import { useLawyerFaceToFaceRequests, useUpdateFaceToFaceRequest } from "@/hooks/useFaceToFace";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -184,7 +185,7 @@ export default function LawyerFaceToFace() {
 
   if (isLoading) {
     return (
-      <MobileLayout showBottomNav={false}>
+      <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
         <div className="p-4 space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -195,7 +196,7 @@ export default function LawyerFaceToFace() {
   }
 
   return (
-    <MobileLayout showBottomNav={false}>
+    <MobileLayout showBottomNav={false} customBottomNav={<LawyerBottomNav />}>
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10 p-4">
         <div className="flex items-center gap-3">
