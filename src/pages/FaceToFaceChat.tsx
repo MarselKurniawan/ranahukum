@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Send, Mic, Paperclip, Calendar, MapPin, Clock,
-  Play, Pause, FileText, X, CheckCircle, Ban, Phone
+  ArrowLeft, Send, Calendar, MapPin, Clock,
+  CheckCircle, Ban, Banknote, AlertTriangle, CreditCard
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +36,8 @@ import {
   useSendFaceToFaceMessage,
   useUpdateFaceToFaceRequest,
   useAcceptScheduleProposal,
+  useAcceptFaceToFacePrice,
+  useUpdateFaceToFacePayment,
   FaceToFaceMessage
 } from "@/hooks/useFaceToFace";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,14 +61,18 @@ export default function FaceToFaceChat() {
   const sendMessage = useSendFaceToFaceMessage();
   const updateRequest = useUpdateFaceToFaceRequest();
   const acceptSchedule = useAcceptScheduleProposal();
+  const acceptPrice = useAcceptFaceToFacePrice();
+  const updatePayment = useUpdateFaceToFacePayment();
 
   const [inputValue, setInputValue] = useState("");
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleLocation, setScheduleLocation] = useState("");
+  const [pendingPriceOffer, setPendingPriceOffer] = useState<number | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -77,17 +84,45 @@ export default function FaceToFaceChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Check for pending price offers
+  useEffect(() => {
+    const lastPriceMessage = [...messages].reverse().find(m => m.message_type === "price_offer");
+    if (lastPriceMessage && request?.status === 'negotiating' && lastPriceMessage.sender_id !== user?.id) {
+      // Parse price from message content
+      const priceMatch = lastPriceMessage.content.match(/Rp\s*([\d.,]+)/);
+      if (priceMatch) {
+        const price = parseInt(priceMatch[1].replace(/\./g, '').replace(/,/g, ''));
+        setPendingPriceOffer(price);
+      }
+    } else if (request?.proposed_price && request?.status === 'negotiating') {
+      // Check if the last price was offered by the other party
+      const lastPriceMsg = [...messages].reverse().find(m => m.message_type === "price_offer");
+      if (lastPriceMsg && lastPriceMsg.sender_id !== user?.id) {
+        setPendingPriceOffer(request.proposed_price);
+      } else {
+        setPendingPriceOffer(null);
+      }
+    } else {
+      setPendingPriceOffer(null);
+    }
+  }, [messages, request, user]);
+
   const handleSend = async () => {
     if (!inputValue.trim() || !id) return;
 
     const content = inputValue;
     setInputValue("");
 
-    await sendMessage.mutateAsync({
-      requestId: id,
-      content,
-      messageType: "text",
-    });
+    try {
+      await sendMessage.mutateAsync({
+        requestId: id,
+        content,
+        messageType: "text",
+      });
+    } catch (error) {
+      toast({ title: "Gagal mengirim pesan", variant: "destructive" });
+      setInputValue(content);
+    }
   };
 
   const handleSendScheduleProposal = async () => {
@@ -96,40 +131,69 @@ export default function FaceToFaceChat() {
       return;
     }
 
-    await sendMessage.mutateAsync({
-      requestId: id,
-      content: `📅 Usulan Jadwal Pertemuan:\n\nTanggal: ${format(scheduleDate, "dd MMMM yyyy", { locale: localeId })}\nWaktu: ${scheduleTime}\nLokasi: ${scheduleLocation}`,
-      messageType: "schedule_proposal",
-      proposedDate: format(scheduleDate, "yyyy-MM-dd"),
-      proposedTime: scheduleTime,
-      proposedLocation: scheduleLocation,
-    });
-
-    // Update request status to negotiating if still pending
-    if (request?.status === "pending") {
-      await updateRequest.mutateAsync({
-        id,
-        status: "negotiating",
+    try {
+      await sendMessage.mutateAsync({
+        requestId: id,
+        content: `📅 Usulan Jadwal Pertemuan:\n\nTanggal: ${format(scheduleDate, "dd MMMM yyyy", { locale: localeId })}\nWaktu: ${scheduleTime}\nLokasi: ${scheduleLocation}`,
+        messageType: "schedule_proposal",
+        proposedDate: format(scheduleDate, "yyyy-MM-dd"),
+        proposedTime: scheduleTime,
+        proposedLocation: scheduleLocation,
       });
-    }
 
-    setShowScheduleDialog(false);
-    setScheduleDate(undefined);
-    setScheduleTime("");
-    setScheduleLocation("");
-    toast({ title: "Usulan jadwal dikirim" });
+      setShowScheduleDialog(false);
+      setScheduleDate(undefined);
+      setScheduleTime("");
+      setScheduleLocation("");
+      toast({ title: "Usulan jadwal dikirim" });
+    } catch (error) {
+      toast({ title: "Gagal mengirim usulan jadwal", variant: "destructive" });
+    }
   };
 
   const handleAcceptSchedule = async (message: FaceToFaceMessage) => {
     if (!message.proposed_date || !message.proposed_time || !message.proposed_location) return;
 
-    await acceptSchedule.mutateAsync({
-      messageId: message.id,
-      requestId: id!,
-      date: message.proposed_date,
-      time: message.proposed_time,
-      location: message.proposed_location,
-    });
+    try {
+      await acceptSchedule.mutateAsync({
+        messageId: message.id,
+        requestId: id!,
+        date: message.proposed_date,
+        time: message.proposed_time,
+        location: message.proposed_location,
+      });
+    } catch (error) {
+      toast({ title: "Gagal menerima jadwal", variant: "destructive" });
+    }
+  };
+
+  const handleAcceptPrice = async () => {
+    if (!pendingPriceOffer || !id) return;
+
+    try {
+      await acceptPrice.mutateAsync({
+        requestId: id,
+        agreedPrice: pendingPriceOffer,
+      });
+      setShowPaymentDialog(true);
+    } catch (error) {
+      toast({ title: "Gagal menyetujui harga", variant: "destructive" });
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!id) return;
+
+    try {
+      await updatePayment.mutateAsync({
+        requestId: id,
+        paymentStatus: "paid",
+      });
+      setShowPaymentDialog(false);
+      toast({ title: "Pembayaran berhasil! Silakan tentukan jadwal pertemuan." });
+    } catch (error) {
+      toast({ title: "Gagal memproses pembayaran", variant: "destructive" });
+    }
   };
 
   const handleCancelRequest = async () => {
@@ -138,17 +202,21 @@ export default function FaceToFaceChat() {
       return;
     }
 
-    await updateRequest.mutateAsync({
-      id,
-      status: "cancelled",
-      cancel_reason: cancelReason,
-      cancelled_by: user?.id,
-      cancelled_at: new Date().toISOString(),
-    });
+    try {
+      await updateRequest.mutateAsync({
+        id,
+        status: "cancelled",
+        cancel_reason: cancelReason,
+        cancelled_by: user?.id,
+        cancelled_at: new Date().toISOString(),
+      });
 
-    toast({ title: "Permintaan dibatalkan" });
-    setShowCancelDialog(false);
-    navigate("/face-to-face");
+      toast({ title: "Permintaan dibatalkan" });
+      setShowCancelDialog(false);
+      navigate("/face-to-face");
+    } catch (error) {
+      toast({ title: "Gagal membatalkan", variant: "destructive" });
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -158,12 +226,22 @@ export default function FaceToFaceChat() {
     });
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; className: string }> = {
       pending: { label: "Menunggu", className: "bg-yellow-500/10 text-yellow-600" },
-      negotiating: { label: "Negosiasi", className: "bg-blue-500/10 text-blue-600" },
-      accepted: { label: "Diterima", className: "bg-green-500/10 text-green-600" },
+      negotiating: { label: "Negosiasi Harga", className: "bg-blue-500/10 text-blue-600" },
+      agreed: { label: "Harga Disepakati", className: "bg-green-500/10 text-green-600" },
+      in_progress: { label: "Menentukan Jadwal", className: "bg-primary/10 text-primary" },
       scheduled: { label: "Terjadwal", className: "bg-primary/10 text-primary" },
+      met: { label: "Sudah Bertemu", className: "bg-success/10 text-success" },
       completed: { label: "Selesai", className: "bg-gray-500/10 text-gray-600" },
       cancelled: { label: "Dibatalkan", className: "bg-red-500/10 text-red-600" },
     };
@@ -173,7 +251,12 @@ export default function FaceToFaceChat() {
 
   const isLawyer = request?.lawyers?.user_id === user?.id;
   const isClient = request?.client_id === user?.id;
-  const canChat = ["pending", "negotiating", "accepted"].includes(request?.status || "");
+  
+  // Chat is enabled for: pending, negotiating, agreed, in_progress, scheduled, met
+  const canChat = !["completed", "cancelled"].includes(request?.status || "");
+  
+  // Can schedule only after payment (in_progress or later)
+  const canSchedule = ["in_progress", "scheduled", "met"].includes(request?.status || "") && request?.payment_status === "paid";
 
   if (loadingRequest || loadingMessages) {
     return (
@@ -228,32 +311,97 @@ export default function FaceToFaceChat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {canChat && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowScheduleDialog(true)}
-                  className="text-xs"
-                >
-                  <Calendar className="w-3.5 h-3.5 mr-1" />
-                  Jadwalkan
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowCancelDialog(true)}
-                  className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                >
-                  <Ban className="w-4 h-4" />
-                </Button>
-              </>
+            {canSchedule && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowScheduleDialog(true)}
+                className="text-xs"
+              >
+                <Calendar className="w-3.5 h-3.5 mr-1" />
+                Jadwalkan
+              </Button>
+            )}
+            {(request.status === "pending" || request.status === "negotiating") && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowCancelDialog(true)}
+                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Ban className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </div>
 
+        {/* Warning Banner */}
+        <div className="px-4 pb-3">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2 flex gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive/80">
+              Pembayaran di luar aplikasi akan mengakibatkan banned permanen.
+            </p>
+          </div>
+        </div>
+
+        {/* Agreed Price Info */}
+        {request.agreed_price && (
+          <div className="px-4 pb-3">
+            <Card className="border-success/20 bg-success/5">
+              <CardContent className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Harga Disepakati</p>
+                    <p className="text-sm font-bold text-success">
+                      {formatCurrency(request.agreed_price)}
+                    </p>
+                  </div>
+                </div>
+                {request.payment_status === 'unpaid' && isClient && (
+                  <Button size="sm" variant="gradient" onClick={() => setShowPaymentDialog(true)}>
+                    Bayar Sekarang
+                  </Button>
+                )}
+                {request.payment_status === 'paid' && (
+                  <Badge variant="outline" className="border-success text-success">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Lunas
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Pending Price Offer (for client) */}
+        {pendingPriceOffer && isClient && request.status === "negotiating" && (
+          <div className="px-4 pb-3">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Penawaran Harga</p>
+                      <p className="text-sm font-bold text-primary">
+                        {formatCurrency(pendingPriceOffer)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={handleAcceptPrice} disabled={acceptPrice.isPending}>
+                    <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                    Terima
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Schedule Info (if scheduled) */}
-        {request.status === "scheduled" && request.meeting_date && (
+        {request.meeting_date && request.payment_status === "paid" && (
           <div className="px-4 pb-3">
             <div className="bg-primary/10 rounded-lg p-3 space-y-1">
               <p className="text-xs font-medium text-primary">📅 Jadwal Pertemuan</p>
@@ -282,12 +430,13 @@ export default function FaceToFaceChat() {
         <div className="space-y-3">
           {messages.length === 0 && (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              Mulai percakapan untuk membahas jadwal dan lokasi pertemuan
+              Mulai negosiasi harga dengan lawyer
             </div>
           )}
           {messages.map((message) => {
             const isCurrentUser = message.sender_id === user?.id;
             const isScheduleProposal = message.message_type === "schedule_proposal";
+            const isPriceOffer = message.message_type === "price_offer";
 
             return (
               <div
@@ -303,13 +452,20 @@ export default function FaceToFaceChat() {
                     isCurrentUser
                       ? "bg-primary text-primary-foreground rounded-br-md"
                       : "bg-secondary text-secondary-foreground rounded-bl-md",
-                    isScheduleProposal && "border-2 border-dashed border-primary/50"
+                    (isScheduleProposal || isPriceOffer) && "border-2 border-dashed border-primary/50"
                   )}
                 >
+                  {isPriceOffer && (
+                    <div className="flex items-center gap-1 mb-1 text-xs opacity-80">
+                      <Banknote className="w-3 h-3" />
+                      <span>Penawaran Harga</span>
+                    </div>
+                  )}
+                  
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   
                   {/* Accept button for schedule proposal (only for non-sender) */}
-                  {isScheduleProposal && !isCurrentUser && !message.is_schedule_accepted && canChat && (
+                  {isScheduleProposal && !isCurrentUser && !message.is_schedule_accepted && canSchedule && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -377,12 +533,7 @@ export default function FaceToFaceChat() {
       {!canChat && (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-muted/95 backdrop-blur-lg border-t border-border p-4 z-50">
           <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            {request.status === "scheduled" ? (
-              <>
-                <Calendar className="w-5 h-5 text-primary" />
-                <p className="text-sm">Jadwal pertemuan sudah dikonfirmasi</p>
-              </>
-            ) : request.status === "completed" ? (
+            {request.status === "completed" ? (
               <>
                 <CheckCircle className="w-5 h-5 text-success" />
                 <p className="text-sm">Pertemuan sudah selesai</p>
@@ -471,6 +622,45 @@ export default function FaceToFaceChat() {
         </DialogContent>
       </Dialog>
 
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pembayaran</DialogTitle>
+            <DialogDescription>
+              Lakukan pembayaran untuk melanjutkan proses tatap muka
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">Total Pembayaran</p>
+                  <p className="text-xl font-bold text-primary">
+                    {formatCurrency(request?.agreed_price || 0)}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Biaya konsultasi tatap muka dengan {lawyer?.name}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={handlePayment}
+              disabled={updatePayment.isPending}
+              className="w-full"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              {updatePayment.isPending ? "Memproses..." : "Bayar Sekarang"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Cancel Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent className="max-w-sm">
@@ -481,15 +671,16 @@ export default function FaceToFaceChat() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            <Label>Alasan Pembatalan</Label>
-            <Textarea
-              placeholder="Masukkan alasan..."
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              className="mt-2"
-              rows={3}
-            />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Alasan Pembatalan</Label>
+              <Textarea
+                placeholder="Jelaskan alasan pembatalan..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
 
           <DialogFooter className="flex gap-2">
@@ -506,7 +697,7 @@ export default function FaceToFaceChat() {
               disabled={!cancelReason.trim() || updateRequest.isPending}
               className="flex-1"
             >
-              Batalkan
+              {updateRequest.isPending ? "Membatalkan..." : "Batalkan"}
             </Button>
           </DialogFooter>
         </DialogContent>

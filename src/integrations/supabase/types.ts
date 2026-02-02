@@ -196,7 +196,9 @@ export type Database = {
           lawyer_id: string
           meeting_confirmed_at: string | null
           meeting_date: string | null
+          meeting_evidence_url: string | null
           meeting_location: string | null
+          meeting_met_at: string | null
           meeting_notes: string | null
           meeting_time: string | null
           payment_status: string
@@ -219,7 +221,9 @@ export type Database = {
           lawyer_id: string
           meeting_confirmed_at?: string | null
           meeting_date?: string | null
+          meeting_evidence_url?: string | null
           meeting_location?: string | null
+          meeting_met_at?: string | null
           meeting_notes?: string | null
           meeting_time?: string | null
           payment_status?: string
@@ -242,7 +246,9 @@ export type Database = {
           lawyer_id?: string
           meeting_confirmed_at?: string | null
           meeting_date?: string | null
+          meeting_evidence_url?: string | null
           meeting_location?: string | null
+          meeting_met_at?: string | null
           meeting_notes?: string | null
           meeting_time?: string | null
           payment_status?: string

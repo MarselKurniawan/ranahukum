@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Calendar, Clock, MapPin, 
-  CheckCircle, User, AlertCircle, FileText 
+  CheckCircle, User, AlertCircle, FileText, Banknote,
+  Camera, X
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,11 @@ import {
   useFaceToFaceMessages,
   useSendFaceToFaceMessage,
   useUpdateFaceToFaceRequest,
+  useConfirmMeeting,
+  useCompleteFaceToFace,
 } from "@/hooks/useFaceToFace";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -39,19 +43,28 @@ export default function LawyerFaceToFaceChat() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: request, isLoading: isLoadingRequest } = useFaceToFaceRequest(id || "");
   const { data: messages = [], isLoading: isLoadingMessages } = useFaceToFaceMessages(id || "");
   const sendMessage = useSendFaceToFaceMessage();
   const updateRequest = useUpdateFaceToFaceRequest();
+  const confirmMeeting = useConfirmMeeting();
+  const completeFaceToFace = useCompleteFaceToFace();
 
   const [newMessage, setNewMessage] = useState("");
+  const [showPriceDialog, setShowPriceDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showMeetingDialog, setShowMeetingDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [priceOffer, setPriceOffer] = useState("");
+  const [priceNote, setPriceNote] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,6 +85,38 @@ export default function LawyerFaceToFaceChat() {
       setNewMessage("");
     } catch (error) {
       toast.error("Gagal mengirim pesan");
+    }
+  };
+
+  const handleSendPriceOffer = async () => {
+    if (!priceOffer || !id) {
+      toast.error("Masukkan harga penawaran");
+      return;
+    }
+
+    const price = parseInt(priceOffer.replace(/\D/g, ""));
+    if (isNaN(price) || price <= 0) {
+      toast.error("Harga tidak valid");
+      return;
+    }
+
+    try {
+      const content = `💰 Penawaran Harga: Rp ${price.toLocaleString("id-ID")}${priceNote ? `\n\n${priceNote}` : ""}`;
+      
+      await sendMessage.mutateAsync({
+        requestId: id,
+        content,
+        messageType: "price_offer",
+        isPriceOffer: true,
+        offeredPrice: price,
+      });
+
+      setShowPriceDialog(false);
+      setPriceOffer("");
+      setPriceNote("");
+      toast.success("Penawaran harga terkirim");
+    } catch (error) {
+      toast.error("Gagal mengirim penawaran");
     }
   };
 
@@ -104,17 +149,65 @@ export default function LawyerFaceToFaceChat() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("legal-assistance-docs")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("legal-assistance-docs")
+        .getPublicUrl(filePath);
+
+      setEvidenceUrl(publicUrl);
+      toast.success("Foto berhasil diunggah");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Gagal mengunggah foto");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleConfirmMeeting = async () => {
+    if (!id) return;
+
+    try {
+      await confirmMeeting.mutateAsync({
+        requestId: id,
+        evidenceUrl: evidenceUrl || undefined,
+        notes: meetingNotes || undefined,
+      });
+      setShowMeetingDialog(false);
+      setEvidenceUrl("");
+      setMeetingNotes("");
+    } catch (error) {
+      toast.error("Gagal mengkonfirmasi pertemuan");
+    }
+  };
+
   const handleCompleteSession = async () => {
     if (!id) return;
 
     try {
-      await updateRequest.mutateAsync({
-        id,
-        status: "completed",
-        meeting_notes: meetingNotes || undefined,
+      await completeFaceToFace.mutateAsync({
+        requestId: id,
+        notes: meetingNotes || undefined,
       });
       setShowCompleteDialog(false);
-      toast.success("Pertemuan ditandai selesai");
+      toast.success("Pertemuan berhasil diselesaikan");
     } catch (error) {
       toast.error("Gagal menyelesaikan pertemuan");
     }
@@ -159,10 +252,23 @@ export default function LawyerFaceToFaceChat() {
   const isCompleted = request.status === "completed";
   const isCancelled = request.status === "cancelled";
   const isReadOnly = isCompleted || isCancelled;
+  const isPaid = request.payment_status === "paid";
+  const canSchedule = isPaid && ["in_progress", "scheduled"].includes(request.status);
+  const canConfirmMeeting = request.status === "scheduled" && isPaid;
+  const canComplete = request.status === "met";
 
   return (
     <MobileLayout showBottomNav={false}>
       <div className="flex flex-col h-screen">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+
         {/* Header */}
         <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10 p-4">
           <div className="flex items-center gap-3">
@@ -199,9 +305,25 @@ export default function LawyerFaceToFaceChat() {
                 </div>
               </div>
 
-              {request.status === "scheduled" && request.meeting_date && (
+              {/* Agreed Price */}
+              {request.agreed_price && (
                 <div className="mt-3 p-2 bg-success/10 rounded-lg border border-success/20">
-                  <p className="text-xs font-medium text-success mb-1">Jadwal Dikonfirmasi</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-success">Harga Disepakati</p>
+                      <p className="text-sm font-bold text-success">{formatCurrency(request.agreed_price)}</p>
+                    </div>
+                    <Badge variant={isPaid ? "outline" : "secondary"} className={isPaid ? "border-success text-success" : ""}>
+                      {isPaid ? "Lunas" : "Belum Bayar"}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Schedule Info */}
+              {request.meeting_date && isPaid && (
+                <div className="mt-3 p-2 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-xs font-medium text-primary mb-1">📅 Jadwal Pertemuan</p>
                   <div className="space-y-0.5 text-xs">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />
@@ -222,6 +344,16 @@ export default function LawyerFaceToFaceChat() {
                   </div>
                 </div>
               )}
+
+              {/* Meeting Evidence */}
+              {request.meeting_met_at && (
+                <div className="mt-3 p-2 bg-success/10 rounded-lg border border-success/20">
+                  <p className="text-xs font-medium text-success mb-1">✅ Sudah Bertemu</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(request.meeting_met_at), "dd MMM yyyy, HH:mm", { locale: localeId })}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -232,13 +364,14 @@ export default function LawyerFaceToFaceChat() {
             <div className="text-center py-8">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Mulai diskusi dengan klien tentang jadwal pertemuan
+                Mulai diskusi dengan klien. Tawarkan harga terlebih dahulu.
               </p>
             </div>
           ) : (
             messages.map((message) => {
               const isOwn = message.sender_id === user?.id;
               const isScheduleProposal = message.message_type === "schedule_proposal";
+              const isPriceOffer = message.message_type === "price_offer";
 
               return (
                 <div
@@ -254,13 +387,19 @@ export default function LawyerFaceToFaceChat() {
                       isOwn
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted rounded-bl-md",
-                      isScheduleProposal && "border-2 border-primary/30"
+                      (isScheduleProposal || isPriceOffer) && "border-2 border-primary/30"
                     )}
                   >
                     {isScheduleProposal && (
                       <div className="flex items-center gap-1 mb-1">
                         <Calendar className="w-3 h-3" />
                         <span className="text-xs font-medium">Proposal Jadwal</span>
+                      </div>
+                    )}
+                    {isPriceOffer && (
+                      <div className="flex items-center gap-1 mb-1">
+                        <Banknote className="w-3 h-3" />
+                        <span className="text-xs font-medium">Penawaran Harga</span>
                       </div>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -288,20 +427,46 @@ export default function LawyerFaceToFaceChat() {
         {!isReadOnly && (
           <div className="border-t border-border bg-card p-3 space-y-2">
             {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                onClick={() => setShowScheduleDialog(true)}
-              >
-                <Calendar className="w-4 h-4 mr-1" />
-                Ajukan Jadwal
-              </Button>
-              {request.status === "scheduled" && (
+            <div className="flex gap-2 flex-wrap">
+              {/* Price offer - only if not agreed yet */}
+              {!request.agreed_price && (
                 <Button 
-                  size="sm" 
-                  className="flex-1"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowPriceDialog(true)}
+                >
+                  <Banknote className="w-4 h-4 mr-1" />
+                  Tawarkan Harga
+                </Button>
+              )}
+
+              {/* Schedule - only after payment */}
+              {canSchedule && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowScheduleDialog(true)}
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Ajukan Jadwal
+                </Button>
+              )}
+
+              {/* Confirm meeting */}
+              {canConfirmMeeting && (
+                <Button 
+                  size="sm"
+                  onClick={() => setShowMeetingDialog(true)}
+                >
+                  <Camera className="w-4 h-4 mr-1" />
+                  Sudah Bertemu
+                </Button>
+              )}
+
+              {/* Complete */}
+              {canComplete && (
+                <Button 
+                  size="sm"
                   onClick={() => setShowCompleteDialog(true)}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
@@ -338,6 +503,58 @@ export default function LawyerFaceToFaceChat() {
           </div>
         )}
       </div>
+
+      {/* Price Offer Dialog */}
+      <Dialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Tawarkan Harga</DialogTitle>
+            <DialogDescription>
+              Tentukan harga untuk konsultasi tatap muka ini
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Harga (Rp)</Label>
+              <Input
+                type="text"
+                placeholder="Contoh: 500000"
+                value={priceOffer}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setPriceOffer(value);
+                }}
+              />
+              {priceOffer && (
+                <p className="text-xs text-muted-foreground">
+                  = {formatCurrency(parseInt(priceOffer) || 0)}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Catatan (Opsional)</Label>
+              <Textarea
+                placeholder="Tambahkan catatan untuk klien..."
+                value={priceNote}
+                onChange={(e) => setPriceNote(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleSendPriceOffer}
+              disabled={!priceOffer || sendMessage.isPending}
+              className="w-full"
+            >
+              Kirim Penawaran
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Schedule Proposal Dialog */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
@@ -406,6 +623,76 @@ export default function LawyerFaceToFaceChat() {
         </DialogContent>
       </Dialog>
 
+      {/* Confirm Meeting Dialog */}
+      <Dialog open={showMeetingDialog} onOpenChange={setShowMeetingDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pertemuan</DialogTitle>
+            <DialogDescription>
+              Upload bukti pertemuan dengan klien (foto bersama)
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Bukti Pertemuan (Foto)</Label>
+              {evidenceUrl ? (
+                <div className="relative">
+                  <img 
+                    src={evidenceUrl} 
+                    alt="Bukti pertemuan" 
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6"
+                    onClick={() => setEvidenceUrl("")}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full h-32 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <div className="text-center">
+                    <Camera className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {isUploading ? "Mengunggah..." : "Klik untuk upload foto"}
+                    </span>
+                  </div>
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Catatan (Opsional)</Label>
+              <Textarea
+                placeholder="Catatan tentang pertemuan..."
+                value={meetingNotes}
+                onChange={(e) => setMeetingNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleConfirmMeeting}
+              disabled={confirmMeeting.isPending}
+              className="w-full"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Konfirmasi Pertemuan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Complete Session Dialog */}
       <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
         <DialogContent className="max-w-sm">
@@ -431,7 +718,7 @@ export default function LawyerFaceToFaceChat() {
           <DialogFooter>
             <Button 
               onClick={handleCompleteSession}
-              disabled={updateRequest.isPending}
+              disabled={completeFaceToFace.isPending}
               className="w-full"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
