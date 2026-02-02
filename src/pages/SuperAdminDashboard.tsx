@@ -106,9 +106,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PriceSettingsCard } from "@/components/PriceSettingsCard";
 import { PlatformFeeSettingsCard } from "@/components/PlatformFeeSettingsCard";
-import { VoiceCallFeeSettingsCard } from "@/components/VoiceCallFeeSettingsCard";
 import { ConsultationPriceSettingsCard } from "@/components/ConsultationPriceSettingsCard";
 import { SuspendDialog } from "@/components/SuspendDialog";
 import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
@@ -2223,12 +2221,6 @@ export default function SuperAdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Consultation Package Pricing */}
               <ConsultationPriceSettingsCard />
-              
-              {/* Price Settings */}
-              <PriceSettingsCard />
-              
-              {/* Voice Call Fee Settings */}
-              <VoiceCallFeeSettingsCard />
               
               {/* Platform Fee Chat */}
               <PlatformFeeSettingsCard
