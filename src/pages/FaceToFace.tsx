@@ -41,8 +41,10 @@ export default function FaceToFace() {
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending: { label: "Menunggu", variant: "secondary" },
       negotiating: { label: "Negosiasi", variant: "default" },
-      accepted: { label: "Diterima", variant: "default" },
+      agreed: { label: "Harga Sepakat", variant: "default" },
+      in_progress: { label: "Menentukan Jadwal", variant: "default" },
       scheduled: { label: "Terjadwal", variant: "default" },
+      met: { label: "Sudah Bertemu", variant: "default" },
       completed: { label: "Selesai", variant: "outline" },
       cancelled: { label: "Dibatalkan", variant: "destructive" },
       rejected: { label: "Ditolak", variant: "destructive" },

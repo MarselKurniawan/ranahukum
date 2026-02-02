@@ -19,6 +19,8 @@ export interface FaceToFaceRequest {
   meeting_location: string | null;
   meeting_notes: string | null;
   meeting_confirmed_at: string | null;
+  meeting_evidence_url: string | null;
+  meeting_met_at: string | null;
   cancel_reason: string | null;
   cancelled_by: string | null;
   cancelled_at: string | null;
@@ -52,6 +54,8 @@ export interface FaceToFaceMessage {
   proposed_time: string | null;
   proposed_location: string | null;
   is_schedule_accepted: boolean | null;
+  is_price_offer?: boolean;
+  offered_price?: number | null;
   created_at: string;
 }
 
@@ -66,6 +70,7 @@ export function useFaceToFaceLawyers() {
         .eq("is_verified", true)
         .eq("is_available", true)
         .eq("is_suspended", false)
+        .eq("face_to_face_enabled", true)
         .gt("face_to_face_price", 0)
         .order("rating", { ascending: false });
 
@@ -157,7 +162,18 @@ export function useFaceToFaceRequest(id: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceToFaceRequest;
+      
+      // Fetch client profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, whatsapp")
+        .eq("user_id", data.client_id)
+        .single();
+
+      return {
+        ...data,
+        profiles: profile
+      } as FaceToFaceRequest;
     },
     enabled: !!id,
   });
@@ -219,11 +235,14 @@ export function useUpdateFaceToFaceRequest() {
       status?: string;
       proposed_price?: number;
       agreed_price?: number;
+      payment_status?: string;
       meeting_date?: string;
       meeting_time?: string;
       meeting_location?: string;
       meeting_notes?: string;
       meeting_confirmed_at?: string;
+      meeting_evidence_url?: string;
+      meeting_met_at?: string;
       cancel_reason?: string;
       cancelled_by?: string;
       cancelled_at?: string;
@@ -242,6 +261,143 @@ export function useUpdateFaceToFaceRequest() {
       queryClient.invalidateQueries({ queryKey: ["face-to-face-request", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["client-face-to-face-requests"] });
       queryClient.invalidateQueries({ queryKey: ["lawyer-face-to-face-requests"] });
+    },
+  });
+}
+
+// Accept price offer
+export function useAcceptFaceToFacePrice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      agreedPrice,
+    }: {
+      requestId: string;
+      agreedPrice: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("face_to_face_requests")
+        .update({
+          agreed_price: agreedPrice,
+          status: "agreed",
+        })
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["face-to-face-request", variables.requestId] });
+      queryClient.invalidateQueries({ queryKey: ["face-to-face-messages", variables.requestId] });
+      toast.success("Harga disepakati!");
+    },
+  });
+}
+
+// Update payment status
+export function useUpdateFaceToFacePayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      paymentStatus,
+    }: {
+      requestId: string;
+      paymentStatus: string;
+    }) => {
+      const updateData: Record<string, unknown> = { payment_status: paymentStatus };
+      
+      // If paid, move to in_progress
+      if (paymentStatus === "paid") {
+        updateData.status = "in_progress";
+      }
+
+      const { data, error } = await supabase
+        .from("face_to_face_requests")
+        .update(updateData)
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["face-to-face-request", variables.requestId] });
+      toast.success("Pembayaran berhasil!");
+    },
+  });
+}
+
+// Confirm meeting (lawyer marks that they met)
+export function useConfirmMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      evidenceUrl,
+      notes,
+    }: {
+      requestId: string;
+      evidenceUrl?: string;
+      notes?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("face_to_face_requests")
+        .update({
+          status: "met",
+          meeting_met_at: new Date().toISOString(),
+          meeting_evidence_url: evidenceUrl,
+          meeting_notes: notes,
+        })
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["face-to-face-request", variables.requestId] });
+      toast.success("Pertemuan berhasil dikonfirmasi!");
+    },
+  });
+}
+
+// Complete face-to-face
+export function useCompleteFaceToFace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      notes,
+    }: {
+      requestId: string;
+      notes?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("face_to_face_requests")
+        .update({
+          status: "completed",
+          meeting_notes: notes,
+        })
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["face-to-face-request", variables.requestId] });
+      toast.success("Pertemuan berhasil diselesaikan!");
     },
   });
 }
@@ -279,6 +435,8 @@ export function useSendFaceToFaceMessage() {
       proposedDate,
       proposedTime,
       proposedLocation,
+      isPriceOffer,
+      offeredPrice,
     }: {
       requestId: string;
       content: string;
@@ -287,6 +445,8 @@ export function useSendFaceToFaceMessage() {
       proposedDate?: string;
       proposedTime?: string;
       proposedLocation?: string;
+      isPriceOffer?: boolean;
+      offeredPrice?: number;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -297,20 +457,35 @@ export function useSendFaceToFaceMessage() {
           sender_id: user.id,
           content,
           message_type: messageType,
-          file_url: fileUrl,
-          proposed_date: proposedDate,
-          proposed_time: proposedTime,
-          proposed_location: proposedLocation,
+          file_url: fileUrl || null,
+          proposed_date: proposedDate || null,
+          proposed_time: proposedTime || null,
+          proposed_location: proposedLocation || null,
         })
         .select()
         .single();
 
       if (error) throw error;
+      
+      // If this is a price offer, also update the request
+      if (isPriceOffer && offeredPrice) {
+        await supabase
+          .from("face_to_face_requests")
+          .update({ 
+            proposed_price: offeredPrice,
+            status: "negotiating"
+          })
+          .eq("id", requestId);
+      }
+
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["face-to-face-messages", variables.requestId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["face-to-face-request", variables.requestId],
       });
     },
   });
