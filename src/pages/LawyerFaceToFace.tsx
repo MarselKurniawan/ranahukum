@@ -80,7 +80,7 @@ export default function LawyerFaceToFace() {
               </div>
               <div>
                 <p className="font-medium text-sm">
-                  {request.profiles?.full_name || "Klien"}
+                  {request.profiles?.full_name || "Pengguna"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {request.display_id || request.id.slice(0, 8)}

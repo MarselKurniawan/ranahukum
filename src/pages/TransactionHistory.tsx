@@ -52,20 +52,24 @@ export default function TransactionHistory() {
     fetchReviewedLawyers();
   }, [user]);
 
-  // Only show completed consultations in history - rejected/cancelled/expired should not appear
-  const completedConsultations = consultations?.filter(c => 
-    c.status === 'completed'
-  ) || [];
+  // Active consultations (pending, accepted, active)
   const activeConsultations = consultations?.filter(c => 
     ['pending', 'accepted', 'active'].includes(c.status)
   ) || [];
+  
+  // Completed/finished consultations (completed, cancelled, rejected, expired)
+  const completedConsultations = consultations?.filter(c => 
+    ['completed', 'cancelled', 'rejected', 'expired'].includes(c.status)
+  ) || [];
 
-  // Assistance requests filtering - only completed in history
+  // Active assistance requests
   const activeAssistance = assistanceRequests.filter(r => 
     ['pending', 'negotiating', 'agreed', 'in_progress'].includes(r.status)
   );
+  
+  // Completed/finished assistance requests (completed, cancelled, rejected)
   const completedAssistance = assistanceRequests.filter(r => 
-    r.status === 'completed'
+    ['completed', 'cancelled', 'rejected'].includes(r.status)
   );
 
   const formatDate = (dateString: string) => {
@@ -258,7 +262,7 @@ export default function TransactionHistory() {
               </div>
             )}
 
-            {!showReviewButton && consultation.status !== 'completed' && consultation.status !== 'cancelled' && (
+            {!showReviewButton && !['completed', 'cancelled', 'rejected', 'expired'].includes(consultation.status) && (
               <div className="mt-3 pt-3 border-t border-border">
                 {consultation.status === 'pending' ? (
                   <Button
@@ -281,6 +285,15 @@ export default function TransactionHistory() {
                     Lanjut Chat
                   </Button>
                 )}
+              </div>
+            )}
+
+            {/* Show cancelled/rejected/expired reason if available */}
+            {['cancelled', 'rejected', 'expired'].includes(consultation.status) && consultation.cancel_reason && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium">Alasan:</span> {consultation.cancel_reason}
+                </p>
               </div>
             )}
           </div>

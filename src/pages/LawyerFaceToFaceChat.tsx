@@ -171,7 +171,7 @@ export default function LawyerFaceToFaceChat() {
             </Button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold truncate">Klien</p>
+                <p className="font-semibold truncate">{request.profiles?.full_name || 'Pengguna'}</p>
                 <Badge variant="outline" className="text-xs shrink-0">
                   {request.display_id || "Tatap Muka"}
                 </Badge>

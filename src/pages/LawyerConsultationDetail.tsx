@@ -30,8 +30,9 @@ export default function LawyerConsultationDetail() {
   const client = consultation ? (consultation as { profiles?: { full_name: string | null } }).profiles : null;
   const isAnonymousConsultation = consultation ? (consultation as { is_anonymous?: boolean }).is_anonymous === true : false;
   const clientName = client?.full_name;
-  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
-  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
+  // When not anonymous, show actual name; when anonymous, show 'Pengguna Anonim'
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Pengguna');
+  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'P');
   const lawyerId = consultation?.lawyer_id;
   const clientId = consultation?.client_id;
 

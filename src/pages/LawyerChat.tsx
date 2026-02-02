@@ -341,8 +341,9 @@ export default function LawyerChat() {
 
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
   const clientName = client?.full_name;
-  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
-  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
+  // When not anonymous, show actual name; when anonymous, show 'Pengguna Anonim'
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Pengguna');
+  const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'P');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
 
