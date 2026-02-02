@@ -123,6 +123,28 @@ export default function LawyerChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // IMPORTANT: Hooks must be called unconditionally.
+  const isAnonymousConsultation = (consultation as { is_anonymous?: boolean } | null | undefined)?.is_anonymous === true;
+  const clientId = consultation?.client_id;
+
+  // Fetch client's phone number from profiles
+  const { data: clientProfile } = useQuery({
+    queryKey: ['client-profile-phone', clientId],
+    queryFn: async () => {
+      if (!clientId || isAnonymousConsultation) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, whatsapp')
+        .eq('user_id', clientId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!clientId && !isAnonymousConsultation
+  });
+
+  const clientPhone = clientProfile?.whatsapp || clientProfile?.phone || '';
+
   useEffect(() => {
     if (!authLoading && (!user || role !== 'lawyer')) {
       toast({
@@ -186,19 +208,31 @@ export default function LawyerChat() {
     const content = inputValue;
     setInputValue("");
 
-    await sendMessage.mutateAsync({
-      consultationId: id,
-      content,
-      messageType: 'text'
-    });
+    try {
+      await sendMessage.mutateAsync({
+        consultationId: id,
+        content,
+        messageType: 'text'
+      });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast({ title: "Gagal mengirim pesan", variant: "destructive" });
+      setInputValue(content);
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await sendFileMessage(file);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      try {
+        await sendFileMessage(file);
+      } catch (error) {
+        console.error("Failed to send file message:", error);
+        toast({ title: "Gagal mengirim file", variant: "destructive" });
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     }
   };
@@ -306,31 +340,11 @@ export default function LawyerChat() {
   }
 
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
-  const isAnonymousConsultation = (consultation as { is_anonymous?: boolean }).is_anonymous === true;
   const clientName = client?.full_name;
   const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName || 'Klien');
   const displayInitial = isAnonymousConsultation ? 'A' : (clientName?.[0] || 'K');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
-  const clientId = consultation.client_id;
-
-  // Fetch client's phone number from profiles
-  const { data: clientProfile } = useQuery({
-    queryKey: ['client-profile-phone', clientId],
-    queryFn: async () => {
-      if (!clientId || isAnonymousConsultation) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('phone, whatsapp')
-        .eq('user_id', clientId)
-        .single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!clientId && !isAnonymousConsultation
-  });
-
-  const clientPhone = clientProfile?.whatsapp || clientProfile?.phone || '';
 
   return (
     <MobileLayout showBottomNav={false}>

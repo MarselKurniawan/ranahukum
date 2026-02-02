@@ -107,6 +107,28 @@ export default function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // IMPORTANT: Hooks must be called unconditionally.
+  // We compute IDs safely and keep queries enabled only when data exists.
+  const lawyerUserId = (consultation?.lawyers as { user_id?: string } | undefined)?.user_id;
+
+  // Fetch lawyer's phone number from profiles
+  const { data: lawyerProfile } = useQuery({
+    queryKey: ['lawyer-profile-phone', lawyerUserId],
+    queryFn: async () => {
+      if (!lawyerUserId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, whatsapp')
+        .eq('user_id', lawyerUserId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!lawyerUserId
+  });
+
+  const lawyerPhone = lawyerProfile?.whatsapp || lawyerProfile?.phone || '';
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -159,11 +181,18 @@ export default function Chat() {
     const content = inputValue;
     setInputValue("");
 
-    await sendMessage.mutateAsync({
-      consultationId: id,
-      content,
-      messageType: 'text'
-    });
+    try {
+      await sendMessage.mutateAsync({
+        consultationId: id,
+        content,
+        messageType: 'text'
+      });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast({ title: "Gagal mengirim pesan", variant: "destructive" });
+      // Restore input so user doesn't lose their message
+      setInputValue(content);
+    }
   };
 
   const handleCancelConsultation = async (reason: string) => {
@@ -184,10 +213,16 @@ export default function Chat() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await sendFileMessage(file);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      try {
+        await sendFileMessage(file);
+      } catch (error) {
+        console.error("Failed to send file message:", error);
+        toast({ title: "Gagal mengirim file", variant: "destructive" });
+      } finally {
+        // Reset input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     }
   };
@@ -260,25 +295,6 @@ export default function Chat() {
   }
 
   const lawyer = consultation.lawyers;
-  const lawyerUserId = (lawyer as { user_id?: string })?.user_id;
-
-  // Fetch lawyer's phone number from profiles
-  const { data: lawyerProfile } = useQuery({
-    queryKey: ['lawyer-profile-phone', lawyerUserId],
-    queryFn: async () => {
-      if (!lawyerUserId) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('phone, whatsapp')
-        .eq('user_id', lawyerUserId)
-        .single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!lawyerUserId
-  });
-
-  const lawyerPhone = lawyerProfile?.whatsapp || lawyerProfile?.phone || '';
 
   return (
     <MobileLayout showBottomNav={false}>
