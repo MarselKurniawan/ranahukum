@@ -33,18 +33,18 @@ export default function Booking() {
   const { user } = useAuth();
   const { data: lawyer, isLoading } = useLawyer(id || '');
   
-  // Get pricing settings
-  const { data: chatOnlyPriceSetting, isLoading: isLoadingChatOnly } = useAppSetting('chat_only_price');
-  const { data: chatCallPriceSetting, isLoading: isLoadingChatCall } = useAppSetting('chat_call_price');
+  // Get pricing settings - simplified
+  const { data: chatPriceSetting, isLoading: isLoadingChat } = useAppSetting('chat_only_price');
+  const { data: callFeeSetting, isLoading: isLoadingCall } = useAppSetting('call_upgrade_price');
   const { data: anonymousFeeSetting, isLoading: isLoadingAnonymous } = useAppSetting('anonymous_fee');
   const { data: platformFeeSetting } = useAppSetting('platform_fee_chat');
   
   const createConsultation = useCreateConsultation();
   const clientSuspension = useClientSuspension();
   
-  // Get prices from settings
-  const chatOnlyPrice = (chatOnlyPriceSetting?.value as { amount?: number })?.amount || 50000;
-  const chatCallPrice = (chatCallPriceSetting?.value as { amount?: number })?.amount || 100000;
+  // Get prices from settings - simplified scheme
+  const chatPrice = (chatPriceSetting?.value as { amount?: number })?.amount || 50000;
+  const callFee = (callFeeSetting?.value as { amount?: number })?.amount || 50000;
   const anonymousFee = (anonymousFeeSetting?.value as { amount?: number })?.amount || 25000;
   
   // Get platform fee from settings
@@ -58,15 +58,16 @@ export default function Booking() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [consultationType, setConsultationType] = useState<ConsultationType>('chat_only');
 
-  // Calculate total price
-  const basePrice = consultationType === 'chat_only' ? chatOnlyPrice : chatCallPrice;
+  // Calculate total price - simplified: chat + call (if selected) + anonymous (if selected)
+  const basePrice = chatPrice;
+  const callCharge = consultationType === 'chat_call' ? callFee : 0;
   const anonymousCharge = isAnonymous ? anonymousFee : 0;
-  const subtotal = basePrice + anonymousCharge;
+  const subtotal = basePrice + callCharge + anonymousCharge;
   const { platformFee, totalAmount } = calculatePlatformFee(subtotal, feeType, feeValue);
 
   // Check if client is suspended
   const isClientSuspended = clientSuspension?.isActive;
-  const isPriceLoading = isLoadingChatOnly || isLoadingChatCall || isLoadingAnonymous;
+  const isPriceLoading = isLoadingChat || isLoadingCall || isLoadingAnonymous;
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -165,7 +166,7 @@ export default function Booking() {
         isAnonymous: isAnonymous,
         consultationType: consultationType,
         basePrice: basePrice,
-        callPrice: consultationType === 'chat_call' ? chatCallPrice - chatOnlyPrice : 0,
+        callPrice: callCharge,
         anonymousFee: anonymousCharge,
         isCallEnabled: consultationType === 'chat_call'
       });
@@ -245,17 +246,17 @@ export default function Booking() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="chat_only" id="chat_only" className="mt-1" />
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4 text-primary" />
-                      <Label htmlFor="chat_only" className="font-medium cursor-pointer">
-                        Chat Saja
-                      </Label>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-primary" />
+                        <Label htmlFor="chat_only" className="font-medium cursor-pointer">
+                          Chat Saja
+                        </Label>
+                      </div>
+                      <span className="font-semibold text-primary">
+                        Rp {chatPrice.toLocaleString("id-ID")}
+                      </span>
                     </div>
-                    <span className="font-semibold text-primary">
-                      Rp {chatOnlyPrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Konsultasi via chat teks, kirim dokumen & voice note
                   </p>
@@ -276,20 +277,20 @@ export default function Booking() {
               <div className="flex items-start gap-3">
                 <RadioGroupItem value="chat_call" id="chat_call" className="mt-1" />
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-success" />
-                      <Label htmlFor="chat_call" className="font-medium cursor-pointer">
-                        Chat + Telepon
-                      </Label>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-success" />
+                        <Label htmlFor="chat_call" className="font-medium cursor-pointer">
+                          Chat + Telepon
+                        </Label>
+                      </div>
+                      <span className="font-semibold text-primary">
+                        Rp {(chatPrice + callFee).toLocaleString("id-ID")}
+                      </span>
                     </div>
-                    <span className="font-semibold text-primary">
-                      Rp {chatCallPrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Termasuk fitur telepon langsung dengan pengacara
-                  </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Chat Rp {chatPrice.toLocaleString("id-ID")} + Telepon Rp {callFee.toLocaleString("id-ID")}
+                    </p>
                 </div>
               </div>
             </CardContent>
@@ -364,11 +365,15 @@ export default function Booking() {
             <h3 className="font-semibold mb-3">Ringkasan Pembayaran</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {consultationType === 'chat_only' ? 'Paket Chat' : 'Paket Chat + Telepon'}
-                </span>
+                <span className="text-muted-foreground">Konsultasi Chat</span>
                 <span>Rp {basePrice.toLocaleString("id-ID")}</span>
               </div>
+              {consultationType === 'chat_call' && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Fitur Telepon</span>
+                  <span>Rp {callCharge.toLocaleString("id-ID")}</span>
+                </div>
+              )}
               {isAnonymous && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Biaya Anonim</span>

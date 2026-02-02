@@ -107,7 +107,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlatformFeeSettingsCard } from "@/components/PlatformFeeSettingsCard";
-import { ConsultationPriceSettingsCard } from "@/components/ConsultationPriceSettingsCard";
+import { ChatPriceSettingsCard } from "@/components/ChatPriceSettingsCard";
+import { CallFeeSettingsCard } from "@/components/CallFeeSettingsCard";
+import { AnonymousFeeSettingsCard } from "@/components/AnonymousFeeSettingsCard";
 import { SuspendDialog } from "@/components/SuspendDialog";
 import { useCreateInterviewSession, useAllInterviewSessions } from "@/hooks/useInterviewChat";
 import {
@@ -2219,8 +2221,14 @@ export default function SuperAdminDashboard() {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6 mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Consultation Package Pricing */}
-              <ConsultationPriceSettingsCard />
+              {/* Chat Price */}
+              <ChatPriceSettingsCard />
+              
+              {/* Call Fee */}
+              <CallFeeSettingsCard />
+              
+              {/* Anonymous Fee */}
+              <AnonymousFeeSettingsCard />
               
               {/* Platform Fee Chat */}
               <PlatformFeeSettingsCard
