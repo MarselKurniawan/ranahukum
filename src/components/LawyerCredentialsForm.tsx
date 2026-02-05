@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Upload, FileText, Award, Loader2, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
+import { Plus, Upload, FileText, Award, Loader2, CheckCircle, XCircle, Clock, Trash2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ export function LawyerCredentialsForm() {
   const [bio, setBio] = useState("");
   const [bioInitialized, setBioInitialized] = useState(false);
   const [bioError, setBioError] = useState("");
+  const [isBioModified, setIsBioModified] = useState(false);
   
   const MIN_BIO_LENGTH = 50;
 
@@ -58,6 +59,7 @@ export function LawyerCredentialsForm() {
     if (profile && !bioInitialized) {
       setBio(profile.bio || "");
       setBioInitialized(true);
+      setIsBioModified(false);
     }
   }, [profile, bioInitialized]);
   const [showCertDialog, setShowCertDialog] = useState(false);
@@ -97,23 +99,37 @@ export function LawyerCredentialsForm() {
   const handleBioChange = (value: string) => {
     setBio(value);
     validateBio(value);
+    // Mark as modified only if different from original
+    setIsBioModified(value !== (profile?.bio || ""));
   };
 
   const handleSaveBio = async () => {
+    // Check if there's actually a change
+    if (!isBioModified) {
+      return; // Don't show any toast, just do nothing
+    }
+    
+    // Empty bio is allowed (to clear it)
+    if (bio.length === 0) {
+      try {
+        await updateProfile.mutateAsync({ bio: "" });
+        toast({ title: "Biografi berhasil dihapus" });
+        setIsBioModified(false);
+      } catch (error) {
+        toast({ title: "Gagal menyimpan biografi", variant: "destructive" });
+      }
+      return;
+    }
+    
     if (!validateBio(bio)) {
       toast({ title: `Biografi minimal ${MIN_BIO_LENGTH} karakter`, variant: "destructive" });
       return;
     }
-    
-    // Don't save if bio hasn't changed
-    if (bio === profile?.bio) {
-      toast({ title: "Tidak ada perubahan" });
-      return;
-    }
-    
+
     try {
       await updateProfile.mutateAsync({ bio });
       toast({ title: "Biografi berhasil disimpan" });
+      setIsBioModified(false);
     } catch (error) {
       toast({ title: "Gagal menyimpan biografi", variant: "destructive" });
     }
@@ -217,11 +233,13 @@ export function LawyerCredentialsForm() {
             variant="outline" 
             size="sm" 
             onClick={handleSaveBio}
-            disabled={updateProfile.isPending || (bio.length > 0 && bio.length < MIN_BIO_LENGTH)}
+            disabled={updateProfile.isPending || !isBioModified || (bio.length > 0 && bio.length < MIN_BIO_LENGTH)}
           >
             {updateProfile.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
             Simpan Biografi
           </Button>
         </CardContent>
