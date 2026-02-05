@@ -16,7 +16,10 @@ import { toast } from "sonner";
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: "Menunggu", color: "bg-warning/10 text-warning border-warning/20", icon: <Clock className="w-3 h-3" /> },
   negotiating: { label: "Negosiasi", color: "bg-primary/10 text-primary border-primary/20", icon: <MessageCircle className="w-3 h-3" /> },
+  agreed: { label: "Harga Sepakat", color: "bg-success/10 text-success border-success/20", icon: <CheckCircle className="w-3 h-3" /> },
+  in_progress: { label: "Menentukan Jadwal", color: "bg-primary/10 text-primary border-primary/20", icon: <Calendar className="w-3 h-3" /> },
   scheduled: { label: "Terjadwal", color: "bg-success/10 text-success border-success/20", icon: <Calendar className="w-3 h-3" /> },
+  met: { label: "Sudah Bertemu", color: "bg-success/10 text-success border-success/20", icon: <CheckCircle className="w-3 h-3" /> },
   completed: { label: "Selesai", color: "bg-muted text-muted-foreground border-muted", icon: <CheckCircle className="w-3 h-3" /> },
   cancelled: { label: "Dibatalkan", color: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="w-3 h-3" /> },
   expired: { label: "Kadaluarsa", color: "bg-muted text-muted-foreground border-muted", icon: <AlertCircle className="w-3 h-3" /> },
@@ -29,7 +32,7 @@ export default function LawyerFaceToFace() {
   const [activeTab, setActiveTab] = useState("active");
 
   const activeRequests = requests.filter(r => 
-    ["pending", "negotiating", "scheduled"].includes(r.status)
+    ["pending", "negotiating", "agreed", "in_progress", "scheduled", "met"].includes(r.status)
   );
   const historyRequests = requests.filter(r => 
     ["completed", "cancelled", "expired"].includes(r.status)
@@ -157,7 +160,7 @@ export default function LawyerFaceToFace() {
                 </Button>
               </>
             )}
-            {["negotiating", "scheduled"].includes(request.status) && (
+            {["negotiating", "agreed", "in_progress", "scheduled", "met"].includes(request.status) && (
               <Button 
                 size="sm" 
                 className="w-full"

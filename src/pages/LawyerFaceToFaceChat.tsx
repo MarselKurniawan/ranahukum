@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Calendar, Clock, MapPin, 
   CheckCircle, User, AlertCircle, FileText, Banknote,
-  Camera, X
+  Camera, X, Paperclip, Loader2
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,8 @@ export default function LawyerFaceToFaceChat() {
   const [meetingNotes, setMeetingNotes] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -372,6 +374,8 @@ export default function LawyerFaceToFaceChat() {
               const isOwn = message.sender_id === user?.id;
               const isScheduleProposal = message.message_type === "schedule_proposal";
               const isPriceOffer = message.message_type === "price_offer";
+              const isFile = message.message_type === "file";
+              const fileUrl = message.file_url;
 
               return (
                 <div
@@ -400,6 +404,28 @@ export default function LawyerFaceToFaceChat() {
                       <div className="flex items-center gap-1 mb-1">
                         <Banknote className="w-3 h-3" />
                         <span className="text-xs font-medium">Penawaran Harga</span>
+                      </div>
+                    )}
+                    {/* File/Image display */}
+                    {isFile && fileUrl && (
+                      <div className="mb-2">
+                        {fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <img 
+                            src={fileUrl} 
+                            alt="Attachment" 
+                            className="max-w-full rounded-lg cursor-pointer"
+                            onClick={() => window.open(fileUrl, '_blank')}
+                          />
+                        ) : (
+                          <a 
+                            href={fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs underline"
+                          >
+                            📎 Lihat File
+                          </a>
+                        )}
                       </div>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -477,6 +503,61 @@ export default function LawyerFaceToFaceChat() {
 
             {/* Message Input */}
             <div className="flex gap-2">
+              <input
+                ref={chatFileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !id) return;
+                  
+                  setIsSendingFile(true);
+                  try {
+                    const fileExt = file.name.split('.').pop();
+                    const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
+
+                    const { error: uploadError } = await supabase.storage
+                      .from('chat-files')
+                      .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage
+                      .from('chat-files')
+                      .getPublicUrl(filePath);
+
+                    const isImage = file.type.startsWith('image/');
+                    const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
+
+                    await sendMessage.mutateAsync({
+                      requestId: id,
+                      content,
+                      messageType: "file",
+                      fileUrl: urlData.publicUrl,
+                    });
+
+                    toast.success("File berhasil dikirim");
+                  } catch (error) {
+                    toast.error("Gagal mengirim file");
+                  } finally {
+                    setIsSendingFile(false);
+                    if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => chatFileInputRef.current?.click()}
+                disabled={isSendingFile}
+              >
+                {isSendingFile ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Paperclip className="w-4 h-4" />
+                )}
+              </Button>
               <Input
                 placeholder="Ketik pesan..."
                 value={newMessage}

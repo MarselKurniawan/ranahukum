@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Send, Calendar, MapPin, Clock,
-  CheckCircle, Ban, Banknote, AlertTriangle, CreditCard
+  CheckCircle, Ban, Banknote, AlertTriangle, Paperclip, Loader2
 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PaymentMethodDialog } from "@/components/PaymentMethodDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   useFaceToFaceRequest, 
   useFaceToFaceMessages, 
@@ -73,6 +75,8 @@ export default function FaceToFaceChat() {
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleLocation, setScheduleLocation] = useState("");
   const [pendingPriceOffer, setPendingPriceOffer] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -216,6 +220,44 @@ export default function FaceToFaceChat() {
       navigate("/face-to-face");
     } catch (error) {
       toast({ title: "Gagal membatalkan", variant: "destructive" });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('chat-files')
+        .getPublicUrl(filePath);
+
+      const isImage = file.type.startsWith('image/');
+      const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
+
+      await sendMessage.mutateAsync({
+        requestId: id,
+        content,
+        messageType: "file",
+        fileUrl: urlData.publicUrl,
+      });
+
+      toast({ title: "File berhasil dikirim" });
+    } catch (error) {
+      toast({ title: "Gagal mengirim file", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -437,6 +479,8 @@ export default function FaceToFaceChat() {
             const isCurrentUser = message.sender_id === user?.id;
             const isScheduleProposal = message.message_type === "schedule_proposal";
             const isPriceOffer = message.message_type === "price_offer";
+            const isFile = message.message_type === "file";
+            const fileUrl = message.file_url;
 
             return (
               <div
@@ -462,6 +506,29 @@ export default function FaceToFaceChat() {
                     </div>
                   )}
                   
+                  {/* File/Image display */}
+                  {isFile && fileUrl && (
+                    <div className="mb-2">
+                      {fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        <img 
+                          src={fileUrl} 
+                          alt="Attachment" 
+                          className="max-w-full rounded-lg cursor-pointer"
+                          onClick={() => window.open(fileUrl, '_blank')}
+                        />
+                      ) : (
+                        <a 
+                          href={fileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs underline"
+                        >
+                          📎 Lihat File
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   
                   {/* Accept button for schedule proposal (only for non-sender) */}
@@ -506,7 +573,27 @@ export default function FaceToFaceChat() {
       {/* Input */}
       {canChat && (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-3 z-50">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Paperclip className="w-5 h-5" />
+              )}
+            </Button>
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -622,44 +709,14 @@ export default function FaceToFaceChat() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Pembayaran</DialogTitle>
-            <DialogDescription>
-              Lakukan pembayaran untuk melanjutkan proses tatap muka
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">Total Pembayaran</p>
-                  <p className="text-xl font-bold text-primary">
-                    {formatCurrency(request?.agreed_price || 0)}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Biaya konsultasi tatap muka dengan {lawyer?.name}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <DialogFooter>
-            <Button
-              onClick={handlePayment}
-              disabled={updatePayment.isPending}
-              className="w-full"
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              {updatePayment.isPending ? "Memproses..." : "Bayar Sekarang"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Payment Method Dialog */}
+      <PaymentMethodDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        amount={request?.agreed_price || 0}
+        onConfirmPayment={handlePayment}
+        isPending={updatePayment.isPending}
+      />
 
       {/* Cancel Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
