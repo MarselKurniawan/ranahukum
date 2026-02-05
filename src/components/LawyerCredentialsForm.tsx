@@ -49,6 +49,9 @@ export function LawyerCredentialsForm() {
 
   const [bio, setBio] = useState("");
   const [bioInitialized, setBioInitialized] = useState(false);
+  const [bioError, setBioError] = useState("");
+  
+  const MIN_BIO_LENGTH = 50;
 
   // Sync bio state when profile loads
   useEffect(() => {
@@ -82,7 +85,32 @@ export function LawyerCredentialsForm() {
     file: null as File | null
   });
 
+  const validateBio = (value: string) => {
+    if (value.length > 0 && value.length < MIN_BIO_LENGTH) {
+      setBioError(`Minimal ${MIN_BIO_LENGTH} karakter (${value.length}/${MIN_BIO_LENGTH})`);
+      return false;
+    }
+    setBioError("");
+    return true;
+  };
+
+  const handleBioChange = (value: string) => {
+    setBio(value);
+    validateBio(value);
+  };
+
   const handleSaveBio = async () => {
+    if (!validateBio(bio)) {
+      toast({ title: `Biografi minimal ${MIN_BIO_LENGTH} karakter`, variant: "destructive" });
+      return;
+    }
+    
+    // Don't save if bio hasn't changed
+    if (bio === profile?.bio) {
+      toast({ title: "Tidak ada perubahan" });
+      return;
+    }
+    
     try {
       await updateProfile.mutateAsync({ bio });
       toast({ title: "Biografi berhasil disimpan" });
@@ -175,15 +203,21 @@ export function LawyerCredentialsForm() {
         <CardContent className="space-y-3">
           <Textarea
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            onChange={(e) => handleBioChange(e.target.value)}
             placeholder="Ceritakan tentang pengalaman dan keahlian hukum Anda..."
             rows={4}
           />
+          {bioError && (
+            <p className="text-xs text-destructive">{bioError}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {bio.length} karakter (minimal {MIN_BIO_LENGTH})
+          </p>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleSaveBio}
-            disabled={updateProfile.isPending}
+            disabled={updateProfile.isPending || (bio.length > 0 && bio.length < MIN_BIO_LENGTH)}
           >
             {updateProfile.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
