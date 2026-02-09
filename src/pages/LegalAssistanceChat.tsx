@@ -268,7 +268,7 @@ export default function LegalAssistanceChat() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-sm truncate">
-                {isClient ? request.lawyer?.name : (request.client?.full_name || 'Klien')}
+                {isClient ? request.lawyer?.name : (request.client?.full_name || 'Memuat...')}
               </h2>
               {request.display_id && (
                 <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
@@ -463,9 +463,20 @@ export default function LegalAssistanceChat() {
                     Rp {pendingPriceOffer.toLocaleString('id-ID')}
                   </p>
                   {!request?.identity_verified && (
-                    <p className="text-xs text-destructive mb-2">
-                      ⚠️ Isi data identitas dulu sebelum menyetujui
-                    </p>
+                    <div className="mb-3 space-y-2">
+                      <p className="text-xs text-destructive">
+                        ⚠️ Isi data identitas dulu sebelum menyetujui
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-warning text-warning hover:bg-warning/10"
+                        onClick={() => setActiveTab("identity")}
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1" />
+                        Isi Data Identitas
+                      </Button>
+                    </div>
                   )}
                   <div className="flex gap-2 justify-center">
                     <Button variant="outline" size="sm">

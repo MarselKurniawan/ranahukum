@@ -309,40 +309,38 @@ export default function Chat() {
 
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
-        <div className="flex items-center justify-between p-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <img
-                  src={lawyer?.image_url || '/placeholder.svg'}
-                  alt={lawyer?.name || 'Lawyer'}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                {!isCompleted && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card" />
+        <div className="flex items-center gap-2 p-3">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="relative shrink-0">
+              <img
+                src={lawyer?.image_url || '/placeholder.svg'}
+                alt={lawyer?.name || 'Lawyer'}
+                className="w-9 h-9 rounded-full object-cover"
+              />
+              {!isCompleted && (
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success rounded-full border-2 border-card" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="font-semibold text-sm truncate">{lawyer?.name}</h2>
+                {consultation.display_id && (
+                  <span className="text-[10px] font-mono text-primary bg-primary/10 px-1 py-0.5 rounded shrink-0">
+                    {consultation.display_id}
+                  </span>
                 )}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-sm">{lawyer?.name}</h2>
-                  {consultation.display_id && (
-                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                      {consultation.display_id}
-                    </span>
-                  )}
-                </div>
-                {isCompleted ? (
-                  <p className="text-xs text-muted-foreground">Konsultasi Selesai</p>
-                ) : (
-                  <p className="text-xs text-success">Online</p>
-                )}
-              </div>
+              {isCompleted ? (
+                <p className="text-xs text-muted-foreground">Konsultasi Selesai</p>
+              ) : (
+                <p className="text-xs text-success">Online</p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Voice Call Button - Only show if call is enabled */}
             {consultation.status === 'active' && lawyerUserId && (consultation as { is_call_enabled?: boolean }).is_call_enabled && (
               <VoiceCallButton
@@ -362,7 +360,7 @@ export default function Chat() {
               />
             )}
             {/* Consultation Timer */}
-            <div className="flex items-center gap-1.5 bg-secondary px-2.5 py-1.5 rounded-full">
+            <div className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-full">
               <Clock className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-medium">{elapsedTime}</span>
             </div>
@@ -372,10 +370,10 @@ export default function Chat() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCancelDialog(true)}
-                className="text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                className="text-xs h-8 px-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
               >
                 <Ban className="w-3.5 h-3.5 mr-1" />
-                Batalkan
+                Batal
               </Button>
             )}
           </div>
