@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, MessageCircle, Briefcase, Award, MapPin, Ban, FileText, GraduationCap, ExternalLink } from "lucide-react";
+import { ArrowLeft, Star, MessageCircle, Briefcase, Award, MapPin, Ban, FileText, GraduationCap, ExternalLink, Users } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -320,18 +320,37 @@ export default function LawyerDetail() {
                   </span>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <Button 
+                variant="gradient" 
+                className="rounded-xl gap-2"
+                onClick={() => navigate(`/booking/${lawyer.id}`)}
+                disabled={!lawyer.is_available}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {lawyer.is_available ? "Konsultasi" : "Offline"}
+              </Button>
+            </div>
+            {lawyer.face_to_face_enabled && lawyer.face_to_face_price && lawyer.face_to_face_price > 0 && (
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div>
+                  <p className="text-xs text-muted-foreground">Tatap Muka</p>
+                  <p className="text-lg font-bold text-primary">
+                    Rp {(lawyer.face_to_face_price || 0).toLocaleString("id-ID")}
+                    <span className="text-xs text-muted-foreground font-normal">
+                      /sesi
+                    </span>
+                  </p>
+                </div>
                 <Button 
-                  variant="gradient" 
-                  className="rounded-xl gap-2"
-                  onClick={() => navigate(`/booking/${lawyer.id}`)}
-                  disabled={!lawyer.is_available}
+                  variant="outline" 
+                  className="rounded-xl gap-2 border-primary text-primary hover:bg-primary/10"
+                  onClick={() => navigate(`/face-to-face/lawyer/${lawyer.id}`)}
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  {lawyer.is_available ? "Mulai Konsultasi" : "Sedang Offline"}
+                  <Users className="w-4 h-4" />
+                  Tatap Muka
                 </Button>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>

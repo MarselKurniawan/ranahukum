@@ -395,7 +395,18 @@ export default function LegalAssistanceChat() {
         )}
       </div>
 
-      {/* Messages */}
+      {/* Tabs for Chat / Identity */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        {(request.status === 'negotiating' || request.status === 'pending') && !request.identity_verified && (
+          <div className="px-4 pt-2">
+            <TabsList className="w-full">
+              <TabsTrigger value="chat" className="flex-1">Chat</TabsTrigger>
+              <TabsTrigger value="identity" className="flex-1">Data Identitas</TabsTrigger>
+            </TabsList>
+          </div>
+        )}
+
+        <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
       <ScrollArea ref={scrollRef} className="flex-1 p-4" style={{ height: 'calc(100vh - 280px)' }}>
         <div className="space-y-4">
           {/* Case Description Card */}
@@ -498,6 +509,32 @@ export default function LegalAssistanceChat() {
           )}
         </div>
       </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="identity" className="flex-1 mt-0 overflow-auto p-4">
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-1">Data Identitas Klien</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Lengkapi data identitas Anda untuk melanjutkan proses pendampingan
+              </p>
+              <ClientIdentityForm
+                initialData={{
+                  client_name: request.client_name || '',
+                  client_address: request.client_address || '',
+                  client_age: request.client_age || undefined,
+                  client_religion: request.client_religion || '',
+                  client_nik: request.client_nik || '',
+                  case_type: request.case_type || '',
+                }}
+                onSubmit={handleSubmitIdentity}
+                isSubmitting={updateIdentity.isPending}
+                isVerified={request.identity_verified || false}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Input Area */}
       {(request.status === 'pending' || request.status === 'negotiating') && (
