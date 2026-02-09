@@ -360,36 +360,34 @@ export default function LawyerChat() {
 
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border z-10">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <Avatar className="w-10 h-10">
-              <AvatarFallback>
-                {displayInitial}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-sm">{displayName}</h2>
-                {consultation.display_id && (
-                  <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                    {consultation.display_id}
-                  </span>
-                )}
-              </div>
-              <Badge 
-                variant={consultation.status === 'active' ? 'success' : 'secondary'} 
-                className="text-[10px]"
-              >
-                {consultation.status === 'active' ? 'Konsultasi Aktif' : 
-                 consultation.status === 'completed' ? 'Selesai' : 
-                 consultation.status}
-              </Badge>
+        <div className="flex items-center gap-2 p-3">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <Avatar className="w-9 h-9 shrink-0">
+            <AvatarFallback className="text-sm">
+              {displayInitial}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-semibold text-sm truncate">{displayName}</h2>
+              {consultation.display_id && (
+                <span className="text-[10px] font-mono text-primary bg-primary/10 px-1 py-0.5 rounded shrink-0">
+                  {consultation.display_id}
+                </span>
+              )}
             </div>
+            <Badge 
+              variant={consultation.status === 'active' ? 'success' : 'secondary'} 
+              className="text-[10px]"
+            >
+              {consultation.status === 'active' ? 'Konsultasi Aktif' : 
+               consultation.status === 'completed' ? 'Selesai' : 
+               consultation.status}
+            </Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Voice Call Button - Only show if call is enabled and not anonymous */}
             {consultation.status === 'active' && !isAnonymousConsultation && (consultation as { is_call_enabled?: boolean }).is_call_enabled && (
               <VoiceCallButton
@@ -401,9 +399,9 @@ export default function LawyerChat() {
               />
             )}
             {/* Consultation Timer */}
-            <div className="flex items-center gap-2 bg-secondary px-3 py-1.5 rounded-full">
-              <Clock className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">{elapsedTime}</span>
+            <div className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-full">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium">{elapsedTime}</span>
             </div>
             {/* End Consultation Button */}
             {consultation.status === 'active' && (
@@ -411,9 +409,9 @@ export default function LawyerChat() {
                 variant="destructive" 
                 size="sm"
                 onClick={() => setShowEndDialog(true)}
-                className="text-xs"
+                className="text-xs h-8 px-2"
               >
-                <XCircle className="w-4 h-4 mr-1" />
+                <XCircle className="w-3.5 h-3.5 mr-1" />
                 Akhiri
               </Button>
             )}
@@ -423,7 +421,7 @@ export default function LawyerChat() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCancelDialog(true)}
-                className="text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                className="text-xs h-8 px-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
               >
                 <Ban className="w-3.5 h-3.5 mr-1" />
                 Batalkan
@@ -432,8 +430,8 @@ export default function LawyerChat() {
           </div>
         </div>
 
-        <div className="px-4 pb-3">
-          <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+        <div className="px-3 pb-2">
+          <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-1.5 truncate">
             📋 Topik: {consultation.topic}
           </p>
         </div>

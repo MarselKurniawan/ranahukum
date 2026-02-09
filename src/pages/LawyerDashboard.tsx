@@ -16,6 +16,7 @@ import { LawyerSideMenu } from "@/components/LawyerSideMenu";
 import { LawyerAssistanceList } from "@/components/LawyerAssistanceList";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { PendampinganRequestCard } from "@/components/PendampinganRequestCard";
+import { LawyerFaceToFaceList } from "@/components/LawyerFaceToFaceList";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLawyerConsultations, useUpdateConsultation, Consultation } from "@/hooks/useConsultations";
@@ -440,11 +441,12 @@ export default function LawyerDashboard() {
           </Card>
         )}
 
-        {/* Main Tabs - Chat & Dampingan only */}
+        {/* Main Tabs - Chat, Dampingan & Tatap Muka */}
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="w-full mb-4 grid grid-cols-2">
-            <TabsTrigger value="requests" className="text-xs">Konsultasi Chat</TabsTrigger>
+          <TabsList className="w-full mb-4 grid grid-cols-3">
+            <TabsTrigger value="requests" className="text-xs">Chat</TabsTrigger>
             <TabsTrigger value="assistance" className="text-xs">Pendampingan</TabsTrigger>
+            <TabsTrigger value="face-to-face" className="text-xs">Tatap Muka</TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests">
@@ -506,6 +508,10 @@ export default function LawyerDashboard() {
           <TabsContent value="assistance" className="space-y-4">
             <PendampinganRequestCard />
             <LawyerAssistanceList />
+          </TabsContent>
+
+          <TabsContent value="face-to-face" className="space-y-4">
+            <LawyerFaceToFaceList />
           </TabsContent>
         </Tabs>
       </div>

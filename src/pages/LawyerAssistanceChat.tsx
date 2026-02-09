@@ -281,7 +281,7 @@ export default function LawyerAssistanceChat() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-sm truncate">
-                {request.client?.full_name || 'Pengguna'}
+                {request.client?.full_name || 'Memuat...'}
               </h2>
               {request.display_id && (
                 <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
