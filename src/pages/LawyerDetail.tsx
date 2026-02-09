@@ -28,6 +28,7 @@ export default function LawyerDetail() {
   const { data: licenses = [] } = useApprovedLicenses(id || '');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [refreshReviews, setRefreshReviews] = useState(0);
+  const [selectedService, setSelectedService] = useState<'chat' | 'face_to_face'>('chat');
 
   // Check if client is suspended
   const isClientSuspended = clientSuspension?.isActive;
@@ -36,6 +37,8 @@ export default function LawyerDetail() {
   const consultationPrice = chatPriceSetting 
     ? (chatPriceSetting.value as { amount?: number })?.amount || 50000 
     : 50000;
+
+  const hasFaceToFace = lawyer?.face_to_face_enabled && lawyer?.face_to_face_price && lawyer.face_to_face_price > 0;
 
   if (isLoading) {
     return (
@@ -310,45 +313,46 @@ export default function LawyerDetail() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
-                <p className="text-lg font-bold text-primary">
-                  Rp {consultationPrice.toLocaleString("id-ID")}
-                  <span className="text-xs text-muted-foreground font-normal">
-                    /sesi
-                  </span>
-                </p>
-              </div>
-              <Button 
-                variant="gradient" 
-                className="rounded-xl gap-2"
-                onClick={() => navigate(`/booking/${lawyer.id}`)}
-                disabled={!lawyer.is_available}
-              >
-                <MessageCircle className="w-4 h-4" />
-                {lawyer.is_available ? "Konsultasi" : "Offline"}
-              </Button>
-            </div>
-            {lawyer.face_to_face_enabled && lawyer.face_to_face_price && lawyer.face_to_face_price > 0 && (
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <div>
-                  <p className="text-xs text-muted-foreground">Tatap Muka</p>
-                  <p className="text-lg font-bold text-primary">
+            {hasFaceToFace ? (
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => setSelectedService('chat')}
+                  className={`flex-1 p-2.5 rounded-xl border text-center transition-all ${
+                    selectedService === 'chat'
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                      : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <MessageCircle className={`w-4 h-4 mx-auto mb-1 ${selectedService === 'chat' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className={`text-xs font-medium ${selectedService === 'chat' ? 'text-primary' : 'text-muted-foreground'}`}>Konsultasi Chat</p>
+                  <p className={`text-sm font-bold ${selectedService === 'chat' ? 'text-primary' : 'text-foreground'}`}>
+                    Rp {consultationPrice.toLocaleString("id-ID")}
+                  </p>
+                </button>
+                <button
+                  onClick={() => setSelectedService('face_to_face')}
+                  className={`flex-1 p-2.5 rounded-xl border text-center transition-all ${
+                    selectedService === 'face_to_face'
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                      : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <Users className={`w-4 h-4 mx-auto mb-1 ${selectedService === 'face_to_face' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className={`text-xs font-medium ${selectedService === 'face_to_face' ? 'text-primary' : 'text-muted-foreground'}`}>Tatap Muka</p>
+                  <p className={`text-sm font-bold ${selectedService === 'face_to_face' ? 'text-primary' : 'text-foreground'}`}>
                     Rp {(lawyer.face_to_face_price || 0).toLocaleString("id-ID")}
-                    <span className="text-xs text-muted-foreground font-normal">
-                      /sesi
-                    </span>
+                  </p>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Biaya Konsultasi</p>
+                  <p className="text-lg font-bold text-primary">
+                    Rp {consultationPrice.toLocaleString("id-ID")}
+                    <span className="text-xs text-muted-foreground font-normal">/sesi</span>
                   </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="rounded-xl gap-2 border-primary text-primary hover:bg-primary/10"
-                  onClick={() => navigate(`/face-to-face/lawyer/${lawyer.id}`)}
-                >
-                  <Users className="w-4 h-4" />
-                  Tatap Muka
-                </Button>
               </div>
             )}
           </>
