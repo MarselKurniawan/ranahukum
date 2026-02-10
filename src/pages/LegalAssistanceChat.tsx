@@ -23,6 +23,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -79,6 +89,7 @@ export default function LegalAssistanceChat() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [pendingPriceOffer, setPendingPriceOffer] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("chat");
+  const [showNegoAlert, setShowNegoAlert] = useState(false);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -490,7 +501,7 @@ export default function LegalAssistanceChat() {
                     </div>
                   )}
                   <div className="flex gap-2 justify-center">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setShowNegoAlert(true)}>
                       Nego Lagi
                     </Button>
                     <Button 
@@ -590,6 +601,36 @@ export default function LegalAssistanceChat() {
           </div>
         </div>
       )}
+
+      {/* Nego Lagi Alert */}
+      <AlertDialog open={showNegoAlert} onOpenChange={setShowNegoAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ajukan Negosiasi Ulang?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Lawyer akan menerima pemberitahuan bahwa Anda ingin melakukan negosiasi ulang terhadap harga yang ditawarkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              if (!id) return;
+              try {
+                await sendMessage.mutateAsync({
+                  requestId: id,
+                  content: `⚠️ Klien meminta negosiasi ulang untuk penawaran harga Rp ${(pendingPriceOffer || 0).toLocaleString('id-ID')}`,
+                });
+                setPendingPriceOffer(null);
+                toast({ title: "Permintaan negosiasi ulang terkirim" });
+              } catch {
+                toast({ title: "Gagal mengirim permintaan", variant: "destructive" });
+              }
+            }}>
+              Ya, Nego Lagi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
