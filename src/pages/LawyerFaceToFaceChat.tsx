@@ -28,6 +28,7 @@ import {
   useFaceToFaceMessages,
   useSendFaceToFaceMessage,
   useUpdateFaceToFaceRequest,
+  useAcceptScheduleProposal,
   useConfirmMeeting,
   useCompleteFaceToFace,
 } from "@/hooks/useFaceToFace";
@@ -49,6 +50,7 @@ export default function LawyerFaceToFaceChat() {
   const { data: messages = [], isLoading: isLoadingMessages } = useFaceToFaceMessages(id || "");
   const sendMessage = useSendFaceToFaceMessage();
   const updateRequest = useUpdateFaceToFaceRequest();
+  const acceptSchedule = useAcceptScheduleProposal();
   const confirmMeeting = useConfirmMeeting();
   const completeFaceToFace = useCompleteFaceToFace();
 
@@ -130,19 +132,9 @@ export default function LawyerFaceToFaceChat() {
 
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const content = `📅 Jadwal Pertemuan Dikonfirmasi:\n\n📆 Tanggal: ${format(selectedDate, "EEEE, dd MMMM yyyy", { locale: localeId })}\n⏰ Waktu: ${selectedTime}\n📍 Lokasi: ${selectedLocation}`;
+      const isReschedule = !!request?.meeting_date;
+      const content = `📅 ${isReschedule ? 'Reschedule' : 'Usulan'} Jadwal Pertemuan:\n\n📆 Tanggal: ${format(selectedDate, "EEEE, dd MMMM yyyy", { locale: localeId })}\n⏰ Waktu: ${selectedTime}\n📍 Lokasi: ${selectedLocation}`;
 
-      // Lawyer directly saves the schedule to the request
-      await updateRequest.mutateAsync({
-        id,
-        status: "scheduled",
-        meeting_date: dateStr,
-        meeting_time: selectedTime,
-        meeting_location: selectedLocation,
-        meeting_confirmed_at: new Date().toISOString(),
-      });
-
-      // Send confirmation message in chat
       await sendMessage.mutateAsync({
         requestId: id,
         content,
@@ -156,9 +148,26 @@ export default function LawyerFaceToFaceChat() {
       setSelectedDate(undefined);
       setSelectedTime("");
       setSelectedLocation("");
-      toast.success("Jadwal pertemuan berhasil disimpan");
+      toast.success("Usulan jadwal terkirim, menunggu konfirmasi klien");
     } catch (error) {
-      toast.error("Gagal menyimpan jadwal");
+      toast.error("Gagal mengirim usulan jadwal");
+    }
+  };
+
+  const handleAcceptSchedule = async (message: { id: string; proposed_date: string | null; proposed_time: string | null; proposed_location: string | null }) => {
+    if (!message.proposed_date || !message.proposed_time || !message.proposed_location || !id) return;
+
+    try {
+      await acceptSchedule.mutateAsync({
+        messageId: message.id,
+        requestId: id,
+        date: message.proposed_date,
+        time: message.proposed_time,
+        location: message.proposed_location,
+      });
+      toast.success("Jadwal pertemuan dikonfirmasi");
+    } catch (error) {
+      toast.error("Gagal mengkonfirmasi jadwal");
     }
   };
 
@@ -266,7 +275,7 @@ export default function LawyerFaceToFaceChat() {
   const isCancelled = request.status === "cancelled";
   const isReadOnly = isCompleted || isCancelled;
   const isPaid = request.payment_status === "paid";
-  const canSchedule = isPaid && ["in_progress", "scheduled"].includes(request.status);
+  const canSchedule = isPaid && ["in_progress", "scheduled", "met"].includes(request.status);
   const canConfirmMeeting = (request.status === "scheduled" || (isPaid && request.meeting_date)) && !request.meeting_met_at;
   const canComplete = request.status === "met" || (request.meeting_met_at && request.status !== "completed" && request.status !== "cancelled");
 
@@ -446,10 +455,23 @@ export default function LawyerFaceToFaceChat() {
                     )}>
                       {format(new Date(message.created_at), "HH:mm")}
                     </p>
+                    {/* Accept button for schedule proposals from client */}
+                    {isScheduleProposal && !isOwn && !message.is_schedule_accepted && isPaid && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 w-full bg-background text-foreground"
+                        onClick={() => handleAcceptSchedule(message)}
+                        disabled={acceptSchedule.isPending}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                        Terima Jadwal
+                      </Button>
+                    )}
                     {isScheduleProposal && message.is_schedule_accepted && (
                       <div className="flex items-center gap-1 mt-1 text-xs text-success">
                         <CheckCircle className="w-3 h-3" />
-                        <span>Diterima</span>
+                        <span>Jadwal Dikonfirmasi</span>
                       </div>
                     )}
                   </div>
@@ -485,7 +507,7 @@ export default function LawyerFaceToFaceChat() {
                   onClick={() => setShowScheduleDialog(true)}
                 >
                   <Calendar className="w-4 h-4 mr-1" />
-                  Ajukan Jadwal
+                  {request.meeting_date ? "Reschedule" : "Ajukan Jadwal"}
                 </Button>
               )}
 
@@ -678,6 +700,7 @@ export default function LawyerFaceToFaceChat() {
                     onSelect={setSelectedDate}
                     disabled={(date) => date < new Date()}
                     initialFocus
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>

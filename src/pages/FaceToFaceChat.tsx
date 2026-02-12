@@ -361,7 +361,7 @@ export default function FaceToFaceChat() {
                 className="text-xs"
               >
                 <Calendar className="w-3.5 h-3.5 mr-1" />
-                Jadwalkan
+                {request.meeting_date ? "Reschedule" : "Jadwalkan"}
               </Button>
             )}
             {(request.status === "pending" || request.status === "negotiating") && (
@@ -664,6 +664,7 @@ export default function FaceToFaceChat() {
                     onSelect={setScheduleDate}
                     disabled={(date) => date < new Date()}
                     initialFocus
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
