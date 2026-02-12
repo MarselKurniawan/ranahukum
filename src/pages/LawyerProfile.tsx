@@ -159,112 +159,114 @@ export default function LawyerProfile() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 pb-32 space-y-4">
-        {/* Profile Photo */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Foto Profil *</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={formData.image_url || undefined} />
-                <AvatarFallback className="text-2xl">
-                  {formData.name?.[0] || 'L'}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
-              >
-                {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            <p className="text-xs text-muted-foreground text-center">
-              Foto profil wajib untuk verifikasi akun
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Basic Info */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Informasi Dasar</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nama Lengkap *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Nama lengkap Anda"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Lokasi *</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Contoh: Jakarta Selatan"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experience">Pengalaman (Tahun) *</Label>
-              <Input
-                id="experience"
-                type="number"
-                min="0"
-                value={formData.experience_years}
-                onChange={(e) => setFormData(prev => ({ ...prev, experience_years: parseInt(e.target.value) || 0 }))}
-                placeholder="Tahun pengalaman"
-                required
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Specialization */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Spesialisasi *</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">Pilih minimal 1 spesialisasi</p>
-            <div className="flex flex-wrap gap-2">
-              {specializationTypes.map((spec) => (
-                <Badge
-                  key={spec.id}
-                  variant={formData.specialization.includes(spec.name) ? "default" : "outline"}
-                  className="cursor-pointer transition-colors"
-                  onClick={() => toggleSpecialization(spec.name)}
+      <div className="p-4 pb-32 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Profile Photo */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Foto Profil *</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={formData.image_url || undefined} />
+                  <AvatarFallback className="text-2xl">
+                    {formData.name?.[0] || 'L'}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
                 >
-                  {spec.name}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Foto profil wajib untuk verifikasi akun
+              </p>
+            </CardContent>
+          </Card>
 
-        {/* Credentials - Bio, Certifications, Licenses */}
+          {/* Basic Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Informasi Dasar</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nama Lengkap *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Nama lengkap Anda"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Lokasi *</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Contoh: Jakarta Selatan"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="experience">Pengalaman (Tahun) *</Label>
+                <Input
+                  id="experience"
+                  type="number"
+                  min="0"
+                  value={formData.experience_years}
+                  onChange={(e) => setFormData(prev => ({ ...prev, experience_years: parseInt(e.target.value) || 0 }))}
+                  placeholder="Tahun pengalaman"
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Specialization */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Spesialisasi *</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">Pilih minimal 1 spesialisasi</p>
+              <div className="flex flex-wrap gap-2">
+                {specializationTypes.map((spec) => (
+                  <Badge
+                    key={spec.id}
+                    variant={formData.specialization.includes(spec.name) ? "default" : "outline"}
+                    className="cursor-pointer transition-colors"
+                    onClick={() => toggleSpecialization(spec.name)}
+                  >
+                    {spec.name}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+
+        {/* Credentials - Bio, Certifications, Licenses (OUTSIDE form to prevent submit conflicts) */}
         <LawyerCredentialsForm />
 
         {/* Pricing Notice */}
@@ -292,12 +294,12 @@ export default function LawyerProfile() {
             </Button>
           </CardContent>
         </Card>
-      </form>
+      </div>
 
       {/* Submit Button */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-lg border-t border-border p-4 z-40">
         <Button 
-          type="submit" 
+          type="button"
           variant="gradient" 
           className="w-full"
           disabled={updateProfile.isPending}
