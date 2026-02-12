@@ -249,7 +249,7 @@ export function LawyerCredentialsForm() {
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm">Sertifikasi</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setShowCertDialog(true)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowCertDialog(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Tambah
           </Button>
@@ -296,7 +296,7 @@ export function LawyerCredentialsForm() {
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm">Lisensi</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setShowLicenseDialog(true)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowLicenseDialog(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Tambah
           </Button>
@@ -395,10 +395,11 @@ export function LawyerCredentialsForm() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCertDialog(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowCertDialog(false)}>
               Batal
             </Button>
             <Button 
+              type="button"
               variant="gradient" 
               onClick={handleAddCertification}
               disabled={addCertification.isPending}
@@ -483,10 +484,11 @@ export function LawyerCredentialsForm() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLicenseDialog(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowLicenseDialog(false)}>
               Batal
             </Button>
             <Button 
+              type="button"
               variant="gradient" 
               onClick={handleAddLicense}
               disabled={addLicense.isPending}

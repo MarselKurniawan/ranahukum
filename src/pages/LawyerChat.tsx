@@ -341,9 +341,9 @@ export default function LawyerChat() {
 
   const client = (consultation as { profiles?: { full_name: string | null } }).profiles;
   const clientName = client?.full_name;
-  // When anonymous, show 'Pengguna Anonim'; otherwise show actual client name
-  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName && clientName.trim() ? clientName : 'Memuat...');
-  const displayInitial = isAnonymousConsultation ? 'A' : (clientName && clientName.trim() ? clientName[0].toUpperCase() : '?');
+  // When anonymous, show 'Pengguna Anonim'; otherwise show actual client name or 'Pengguna'
+  const displayName = isAnonymousConsultation ? 'Pengguna Anonim' : (clientName && clientName.trim() ? clientName : 'Pengguna');
+  const displayInitial = isAnonymousConsultation ? 'A' : (clientName && clientName.trim() ? clientName[0].toUpperCase() : 'P');
   const lawyerData = consultation.lawyers;
   const lawyerUserId = (lawyerData as { user_id?: string })?.user_id;
 
@@ -364,11 +364,7 @@ export default function LawyerChat() {
           <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <Avatar className="w-9 h-9 shrink-0">
-            <AvatarFallback className="text-sm">
-              {displayInitial}
-            </AvatarFallback>
-          </Avatar>
+          {/* Avatar hidden for privacy */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <h2 className="font-semibold text-sm truncate">{displayName}</h2>
@@ -382,10 +378,16 @@ export default function LawyerChat() {
               variant={consultation.status === 'active' ? 'success' : 'secondary'} 
               className="text-[10px]"
             >
-              {consultation.status === 'active' ? 'Konsultasi Aktif' : 
+            {consultation.status === 'active' ? 'Konsultasi Aktif' : 
                consultation.status === 'completed' ? 'Selesai' : 
                consultation.status}
             </Badge>
+            {/* Call upgrade notification for lawyer */}
+            {consultation.status === 'active' && (consultation as { is_call_enabled?: boolean }).is_call_enabled && !isAnonymousConsultation && (
+              <Badge variant="outline" className="text-[10px] border-success text-success">
+                📞 Call Aktif
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Voice Call Button - Only show if call is enabled and not anonymous */}
@@ -436,6 +438,28 @@ export default function LawyerChat() {
           </p>
         </div>
       </div>
+
+      {/* Call Upgrade Notification for Lawyer */}
+      {consultation.status === 'active' && (consultation as { is_call_enabled?: boolean }).is_call_enabled && !isAnonymousConsultation && (
+        <div className="mx-4 mt-2 p-3 bg-success/10 border border-success/30 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📞</span>
+            <div>
+              <p className="text-sm font-medium text-success">Fitur Telepon Aktif</p>
+              <p className="text-xs text-muted-foreground">Klien telah mengaktifkan fitur telepon</p>
+            </div>
+          </div>
+          {clientPhone && (
+            <VoiceCallButton
+              consultationId={id!}
+              receiverId={clientId}
+              receiverPhone={clientPhone}
+              isLawyer={true}
+              disabled={isCompleted}
+            />
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 p-4 pb-24 overflow-y-auto">

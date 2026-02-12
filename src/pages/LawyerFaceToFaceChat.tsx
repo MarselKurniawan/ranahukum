@@ -256,8 +256,8 @@ export default function LawyerFaceToFaceChat() {
   const isReadOnly = isCompleted || isCancelled;
   const isPaid = request.payment_status === "paid";
   const canSchedule = isPaid && ["in_progress", "scheduled"].includes(request.status);
-  const canConfirmMeeting = request.status === "scheduled" && isPaid;
-  const canComplete = request.status === "met";
+  const canConfirmMeeting = (request.status === "scheduled" || (isPaid && request.meeting_date)) && !request.meeting_met_at;
+  const canComplete = request.status === "met" || (request.meeting_met_at && request.status !== "completed" && request.status !== "cancelled");
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -279,7 +279,7 @@ export default function LawyerFaceToFaceChat() {
             </Button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold truncate">{request.profiles?.full_name || 'Pengguna'}</p>
+                <p className="font-semibold truncate">{request.profiles?.full_name && request.profiles.full_name.trim() ? request.profiles.full_name : 'Pengguna'}</p>
                 <Badge variant="outline" className="text-xs shrink-0">
                   {request.display_id || "Tatap Muka"}
                 </Badge>
