@@ -130,8 +130,19 @@ export default function LawyerFaceToFaceChat() {
 
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const content = `📅 Proposal Jadwal Pertemuan:\n\n📆 Tanggal: ${format(selectedDate, "EEEE, dd MMMM yyyy", { locale: localeId })}\n⏰ Waktu: ${selectedTime}\n📍 Lokasi: ${selectedLocation}`;
+      const content = `📅 Jadwal Pertemuan Dikonfirmasi:\n\n📆 Tanggal: ${format(selectedDate, "EEEE, dd MMMM yyyy", { locale: localeId })}\n⏰ Waktu: ${selectedTime}\n📍 Lokasi: ${selectedLocation}`;
 
+      // Lawyer directly saves the schedule to the request
+      await updateRequest.mutateAsync({
+        id,
+        status: "scheduled",
+        meeting_date: dateStr,
+        meeting_time: selectedTime,
+        meeting_location: selectedLocation,
+        meeting_confirmed_at: new Date().toISOString(),
+      });
+
+      // Send confirmation message in chat
       await sendMessage.mutateAsync({
         requestId: id,
         content,
@@ -145,9 +156,9 @@ export default function LawyerFaceToFaceChat() {
       setSelectedDate(undefined);
       setSelectedTime("");
       setSelectedLocation("");
-      toast.success("Proposal jadwal terkirim");
+      toast.success("Jadwal pertemuan berhasil disimpan");
     } catch (error) {
-      toast.error("Gagal mengirim proposal jadwal");
+      toast.error("Gagal menyimpan jadwal");
     }
   };
 
