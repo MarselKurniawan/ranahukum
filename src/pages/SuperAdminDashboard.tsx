@@ -725,7 +725,7 @@ export default function SuperAdminDashboard() {
               </Button>
               <div>
                 <h1 className="text-lg md:text-xl font-bold">Super Admin</h1>
-                <p className="text-primary-foreground/70 text-xs hidden md:block">Legal Connect Dashboard</p>
+                <p className="text-primary-foreground/70 text-xs hidden md:block">RanahHukum Dashboard</p>
               </div>
             </div>
             
