@@ -146,7 +146,7 @@ export default function LawyerQuiz() {
               <Scale className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-primary-foreground">Legal Connect</h1>
+              <h1 className="text-lg font-bold text-primary-foreground">RanahHukum</h1>
               <p className="text-primary-foreground/70 text-xs">Pertanyaan Verifikasi</p>
             </div>
           </div>
@@ -282,7 +282,7 @@ export default function LawyerQuiz() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground py-4">
-          Jawaban Anda akan ditinjau oleh tim Legal Connect
+          Jawaban Anda akan ditinjau oleh tim RanahHukum
         </p>
       </div>
     </MobileLayout>

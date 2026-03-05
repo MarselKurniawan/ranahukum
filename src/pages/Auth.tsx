@@ -190,7 +190,7 @@ export default function Auth() {
 
     toast({
       title: "Registrasi Berhasil",
-      description: "Selamat datang di Legal Connect!"
+      description: "Selamat datang di RanahHukum!"
     });
     
     setIsLoading(false);
@@ -344,7 +344,7 @@ export default function Auth() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-card/20 backdrop-blur-sm flex items-center justify-center">
             <Scale className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-primary-foreground">Legal Connect</h1>
+          <h1 className="text-2xl font-bold text-primary-foreground">RanahHukum</h1>
           <p className="text-primary-foreground/80 mt-1 text-sm">
             Konsultasi Hukum Online & Pendampingan Hukum Professional
           </p>
@@ -702,7 +702,7 @@ export default function Auth() {
                           htmlFor="interview-consent"
                           className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                         >
-                          Saya bersedia untuk menjalani proses verifikasi dan wawancara untuk memastikan kualifikasi sebagai konsultan hukum di Legal Connect
+                          Saya bersedia untuk menjalani proses verifikasi dan wawancara untuk memastikan kualifikasi sebagai konsultan hukum di RanahHukum
                         </label>
                       </div>
                       {errors.interviewConsent && (
