@@ -50,6 +50,7 @@ import LawyerSchedule from "./pages/LawyerSchedule";
 import LawyerEarnings from "./pages/LawyerEarnings";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/search" element={<Search />} />
             <Route path="/lawyer/:id" element={<LawyerDetail />} />
