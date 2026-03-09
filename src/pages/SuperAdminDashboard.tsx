@@ -877,6 +877,10 @@ export default function SuperAdminDashboard() {
               <TabsTrigger value="settings" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Pengaturan
               </TabsTrigger>
+              <TabsTrigger value="analytics" className="text-xs md:text-sm px-3 md:px-4 py-2">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Analitik
+              </TabsTrigger>
             </TabsList>
           </ScrollArea>
 
