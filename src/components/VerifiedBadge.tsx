@@ -1,4 +1,4 @@
-import { BadgeCheck, Shield, Sparkles } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VerifiedBadgeProps {
@@ -8,41 +8,26 @@ interface VerifiedBadgeProps {
 }
 
 export function VerifiedBadge({ size = "md", showLabel = true, className }: VerifiedBadgeProps) {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-5 h-5",
-    lg: "w-6 h-6"
+  const iconSize = {
+    sm: "w-3.5 h-3.5",
+    md: "w-4 h-4",
+    lg: "w-5 h-5"
   };
 
-  const containerClasses = {
-    sm: "gap-1 text-[10px]",
-    md: "gap-1.5 text-xs",
-    lg: "gap-2 text-sm"
+  const textSize = {
+    sm: "text-[10px]",
+    md: "text-xs",
+    lg: "text-sm"
   };
 
   return (
     <div className={cn(
-      "inline-flex items-center font-medium",
-      containerClasses[size],
+      "inline-flex items-center gap-1",
       className
     )}>
-      <div className="relative">
-        {/* Animated glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 rounded-full blur-sm opacity-60 animate-pulse" />
-        
-        {/* Badge background */}
-        <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 rounded-full p-0.5 shadow-lg">
-          <div className="bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full p-0.5">
-            <BadgeCheck className={cn(sizeClasses[size], "text-white drop-shadow-sm")} />
-          </div>
-        </div>
-        
-        {/* Sparkle accent */}
-        <Sparkles className="absolute -top-0.5 -right-0.5 w-2 h-2 text-yellow-400 drop-shadow animate-pulse" />
-      </div>
-      
+      <BadgeCheck className={cn(iconSize[size], "text-blue-500 fill-blue-500/20")} />
       {showLabel && (
-        <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent font-semibold">
+        <span className={cn(textSize[size], "font-medium text-blue-600")}>
           Terverifikasi
         </span>
       )}
@@ -50,22 +35,14 @@ export function VerifiedBadge({ size = "md", showLabel = true, className }: Veri
   );
 }
 
-// Alternative compact verified badge for card usage
 export function VerifiedBadgeCompact({ className }: { className?: string }) {
   return (
     <div className={cn(
-      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full",
-      "bg-gradient-to-r from-blue-500/10 to-cyan-500/10",
-      "border border-blue-400/30",
+      "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-200",
       className
     )}>
-      <div className="relative">
-        <div className="absolute inset-0 bg-blue-400 rounded-full blur-[2px] opacity-40" />
-        <Shield className="relative w-3 h-3 text-blue-500 fill-blue-500/20" />
-      </div>
-      <span className="text-[10px] font-semibold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-        Verified
-      </span>
+      <BadgeCheck className="w-3 h-3 text-blue-500" />
+      <span className="text-[10px] font-medium text-blue-600">Verified</span>
     </div>
   );
 }
