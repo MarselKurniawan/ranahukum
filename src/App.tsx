@@ -109,6 +109,8 @@ const App = () => (
             <Route path="/admin/assistance/:id" element={<SuperAdminAssistanceDetail />} />
             <Route path="/admin/interview/:id" element={<SuperAdminInterviewChat />} />
             <Route path="/admin/pendampingan-chat/:id" element={<SuperAdminPendampinganChat />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
