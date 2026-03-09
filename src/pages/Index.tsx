@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scale, Shield, MessageCircle, Clock, User, Bot, Bell } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
@@ -27,6 +27,14 @@ export default function Index() {
   const unreadAlertCount = useUnreadActivityAlertCount();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
+
+  // Redirect new users to onboarding
+  useEffect(() => {
+    const done = localStorage.getItem("ranahhukum_onboarding_done");
+    if (!done) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [navigate]);
 
   // Build specializations from database
   const specializations = useMemo(() => {
