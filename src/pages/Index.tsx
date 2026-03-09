@@ -28,6 +28,14 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>(["Semua"]);
 
+  // Redirect new users to onboarding
+  useEffect(() => {
+    const done = localStorage.getItem("ranahhukum_onboarding_done");
+    if (!done) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [navigate]);
+
   // Build specializations from database
   const specializations = useMemo(() => {
     return ["Semua", ...specializationTypes.map(s => s.name)];
