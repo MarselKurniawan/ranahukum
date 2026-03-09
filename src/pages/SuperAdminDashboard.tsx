@@ -2903,6 +2903,11 @@ export default function SuperAdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Analytics Tab */}
+      <TabsContent value="analytics" className="space-y-4 mt-0">
+        <PlatformAnalyticsCard />
+      </TabsContent>
     </div>
   );
 }
