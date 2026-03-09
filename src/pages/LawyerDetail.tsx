@@ -328,6 +328,13 @@ export default function LawyerDetail() {
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4 mt-4">
+            {/* Rating Summary */}
+            <RatingSummaryCard
+              lawyerId={lawyer.id}
+              avgRating={lawyer.rating || 0}
+              reviewCount={lawyer.review_count || 0}
+            />
+
             {/* Add Review Button */}
             {user && !showReviewForm && (
               <Button 
