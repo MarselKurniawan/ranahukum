@@ -48,6 +48,8 @@ import LawyerFaceToFace from "./pages/LawyerFaceToFace";
 import LawyerFaceToFaceChat from "./pages/LawyerFaceToFaceChat";
 import LawyerSchedule from "./pages/LawyerSchedule";
 import LawyerEarnings from "./pages/LawyerEarnings";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
