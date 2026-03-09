@@ -25,6 +25,7 @@ import { useLawyerSuspension } from "@/hooks/useSuspensionCheck";
 import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
+import { LawyerAnalyticsCard } from "@/components/LawyerAnalyticsCard";
 
 export default function LawyerDashboard() {
   const navigate = useNavigate();
