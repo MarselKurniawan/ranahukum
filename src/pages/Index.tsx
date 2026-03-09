@@ -191,6 +191,17 @@ export default function Index() {
         </div>
       </div>
 
+      {/* Footer Links */}
+      <div className="px-4 mb-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+        <button onClick={() => navigate('/terms')} className="hover:text-primary transition-colors">
+          Syarat & Ketentuan
+        </button>
+        <span>•</span>
+        <button onClick={() => navigate('/privacy')} className="hover:text-primary transition-colors">
+          Kebijakan Privasi
+        </button>
+      </div>
+
       {/* Legal Bot Floating Button */}
       <button
         onClick={() => navigate("/ai-assistant")}
