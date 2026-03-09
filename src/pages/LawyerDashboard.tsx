@@ -25,6 +25,7 @@ import { useLawyerSuspension } from "@/hooks/useSuspensionCheck";
 import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
+import { LawyerAnalyticsCard } from "@/components/LawyerAnalyticsCard";
 
 export default function LawyerDashboard() {
   const navigate = useNavigate();
@@ -443,10 +444,11 @@ export default function LawyerDashboard() {
 
         {/* Main Tabs - Chat, Dampingan & Tatap Muka */}
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="w-full mb-4 grid grid-cols-3">
+          <TabsList className="w-full mb-4 grid grid-cols-4">
             <TabsTrigger value="requests" className="text-xs">Chat</TabsTrigger>
-            <TabsTrigger value="assistance" className="text-xs">Pendampingan</TabsTrigger>
+            <TabsTrigger value="assistance" className="text-xs">Dampingan</TabsTrigger>
             <TabsTrigger value="face-to-face" className="text-xs">Tatap Muka</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs">Analitik</TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests">
@@ -512,6 +514,10 @@ export default function LawyerDashboard() {
 
           <TabsContent value="face-to-face" className="space-y-4">
             <LawyerFaceToFaceList />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <LawyerAnalyticsCard lawyerId={lawyerProfile?.id} />
           </TabsContent>
         </Tabs>
       </div>

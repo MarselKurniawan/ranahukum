@@ -80,6 +80,7 @@ import {
   useReviewCertification, 
   useReviewLicense 
 } from "@/hooks/useLawyerCredentials";
+import { PlatformAnalyticsCard } from "@/components/PlatformAnalyticsCard";
 import {
   useAllQuizQuestions, 
   useCreateQuizQuestion, 
@@ -876,6 +877,10 @@ export default function SuperAdminDashboard() {
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-xs md:text-sm px-3 md:px-4 py-2">
                 Pengaturan
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="text-xs md:text-sm px-3 md:px-4 py-2">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Analitik
               </TabsTrigger>
             </TabsList>
           </ScrollArea>
@@ -2898,6 +2903,11 @@ export default function SuperAdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Analytics Tab */}
+      <TabsContent value="analytics" className="space-y-4 mt-0">
+        <PlatformAnalyticsCard />
+      </TabsContent>
     </div>
   );
 }

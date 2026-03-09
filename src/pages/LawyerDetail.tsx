@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReviewList } from "@/components/ReviewList";
 import { ReviewForm } from "@/components/ReviewForm";
+import { RatingSummaryCard } from "@/components/RatingSummaryCard";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useAuth } from "@/hooks/useAuth";
@@ -327,6 +328,13 @@ export default function LawyerDetail() {
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4 mt-4">
+            {/* Rating Summary */}
+            <RatingSummaryCard
+              lawyerId={lawyer.id}
+              avgRating={lawyer.rating || 0}
+              reviewCount={lawyer.review_count || 0}
+            />
+
             {/* Add Review Button */}
             {user && !showReviewForm && (
               <Button 
