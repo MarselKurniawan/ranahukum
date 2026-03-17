@@ -145,20 +145,8 @@ export function useAddLicense() {
       let fileName: string | null = null;
 
       if (data.file) {
-        const fileExt = data.file.name.split('.').pop();
-        const path = `licenses/${profile.id}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('chat-files')
-          .upload(path, data.file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('chat-files')
-          .getPublicUrl(path);
-
-        fileUrl = urlData.publicUrl;
+        const folder = `licenses_${profile.id}`;
+        fileUrl = await uploadToExternalStorage(data.file, folder);
         fileName = data.file.name;
       }
 

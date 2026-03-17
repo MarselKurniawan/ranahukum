@@ -66,20 +66,9 @@ export function MeetingEvidenceForm({
   };
 
   const uploadFile = async (file: File, type: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${lawyerId}/${requestId}/${type}_${Date.now()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('legal-assistance-docs')
-      .upload(fileName, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
-      .from('legal-assistance-docs')
-      .getPublicUrl(fileName);
-
-    return data.publicUrl;
+    const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+    const folder = `legal-assistance_${lawyerId}_${requestId}_${type}`;
+    return await uploadToExternalStorage(file, folder);
   };
 
   const handleSubmit = async () => {

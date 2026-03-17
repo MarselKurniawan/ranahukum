@@ -72,18 +72,9 @@ export function SuratKuasaUpload({
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${lawyerId}/${requestId}/surat_kuasa_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('legal-assistance-docs')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('legal-assistance-docs')
-        .getPublicUrl(fileName);
+      const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+      const folder = `surat-kuasa_${lawyerId}_${requestId}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
 
       await onSubmit(data.publicUrl);
       toast.success("Surat Kuasa berhasil diunggah");
