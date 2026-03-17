@@ -545,14 +545,11 @@ export default function LawyerFaceToFaceChat() {
                     const isImage = file.type.startsWith('image/');
                     const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
 
-                    const isImage = file.type.startsWith('image/');
-                    const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
-
                     await sendMessage.mutateAsync({
                       requestId: id,
                       content,
                       messageType: "file",
-                      fileUrl: urlData.publicUrl,
+                      fileUrl: publicUrl,
                     });
 
                     toast.success("File berhasil dikirim");
