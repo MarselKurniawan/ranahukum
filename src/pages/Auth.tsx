@@ -303,12 +303,13 @@ export default function Auth() {
                 .insert({
                   lawyer_id: lawyerData.id,
                   document_type: doc.type,
-                  file_url: urlData.publicUrl,
+                  file_url: publicUrl,
                   file_name: doc.file.name,
                   status: 'pending'
                 });
+            } catch (uploadErr) {
+              console.error('Upload error:', uploadErr);
             }
-          }
         }
 
         // 6. Navigate to quiz
