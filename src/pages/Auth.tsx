@@ -293,17 +293,10 @@ export default function Auth() {
         // 5. Upload documents
         for (const doc of documents) {
           if (doc.file) {
-            const fileExt = doc.file.name.split('.').pop();
-            const fileName = `${lawyerData.id}/${doc.type}-${Date.now()}.${fileExt}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('chat-files')
-              .upload(`lawyer-documents/${fileName}`, doc.file);
-
-            if (!uploadError) {
-              const { data: urlData } = supabase.storage
-                .from('chat-files')
-                .getPublicUrl(`lawyer-documents/${fileName}`);
+            try {
+              const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+              const folder = `lawyer-documents_${lawyerData.id}`;
+              const publicUrl = await uploadToExternalStorage(doc.file, folder);
 
               await supabase
                 .from('lawyer_documents')
