@@ -310,6 +310,7 @@ export default function Auth() {
             } catch (uploadErr) {
               console.error('Upload error:', uploadErr);
             }
+          }
         }
 
         // 6. Navigate to quiz
