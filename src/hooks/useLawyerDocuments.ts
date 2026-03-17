@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLawyerProfile } from "./useLawyerProfile";
+import { uploadToExternalStorage } from "@/lib/externalStorage";
 
 export interface LawyerDocument {
   id: string;
@@ -56,20 +57,10 @@ export function useUploadLawyerDocument() {
     }) => {
       if (!profile) throw new Error('No lawyer profile');
 
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}/${documentType}-${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('chat-files')
-        .upload(`lawyer-documents/${fileName}`, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('chat-files')
-        .getPublicUrl(`lawyer-documents/${fileName}`);
+      // Upload file to external storage
+      const folder = `lawyer-documents_${profile.id}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
+      const urlData = { publicUrl };
 
       // Insert document record
       const { data, error } = await supabase

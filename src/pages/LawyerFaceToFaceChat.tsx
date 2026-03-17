@@ -177,18 +177,9 @@ export default function LawyerFaceToFaceChat() {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("legal-assistance-docs")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("legal-assistance-docs")
-        .getPublicUrl(filePath);
+      const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+      const folder = `face-to-face-evidence_${id}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
 
       setEvidenceUrl(publicUrl);
       toast.success("Foto berhasil diunggah");
@@ -547,18 +538,9 @@ export default function LawyerFaceToFaceChat() {
                   
                   setIsSendingFile(true);
                   try {
-                    const fileExt = file.name.split('.').pop();
-                    const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
-
-                    const { error: uploadError } = await supabase.storage
-                      .from('chat-files')
-                      .upload(filePath, file);
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: urlData } = supabase.storage
-                      .from('chat-files')
-                      .getPublicUrl(filePath);
+                    const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+                    const folder = `face-to-face-chat_${id}`;
+                    const publicUrl = await uploadToExternalStorage(file, folder);
 
                     const isImage = file.type.startsWith('image/');
                     const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
@@ -567,7 +549,7 @@ export default function LawyerFaceToFaceChat() {
                       requestId: id,
                       content,
                       messageType: "file",
-                      fileUrl: urlData.publicUrl,
+                      fileUrl: publicUrl,
                     });
 
                     toast.success("File berhasil dikirim");

@@ -75,21 +75,11 @@ export default function LawyerProfile() {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `lawyer-photos/${fileName}`;
+      const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+      const folder = `lawyer-photos_${user.id}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
 
-      const { error: uploadError } = await supabase.storage
-        .from('chat-files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('chat-files')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({ ...prev, image_url: urlData.publicUrl }));
+      setFormData(prev => ({ ...prev, image_url: publicUrl }));
       toast({
         title: "Berhasil",
         description: "Foto profil berhasil diunggah"
