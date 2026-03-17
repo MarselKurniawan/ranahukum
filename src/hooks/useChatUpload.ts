@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useSendMessage } from "./useMessages";
 import { toast } from "sonner";
+import { uploadToExternalStorage } from "@/lib/externalStorage";
 
 interface UseChatUploadOptions {
   consultationId: string;
@@ -25,20 +25,9 @@ export function useChatUpload({ consultationId }: UseChatUploadOptions) {
     setIsUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${consultationId}/${Date.now()}.${fileExt}`;
-
-      const { data, error: uploadError } = await supabase.storage
-        .from('chat-files')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('chat-files')
-        .getPublicUrl(data.path);
-
-      return urlData.publicUrl;
+      const folder = `chat-files_${user.id}_${consultationId}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
+      return publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
       toast.error("Gagal mengupload file");

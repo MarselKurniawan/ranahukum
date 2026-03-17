@@ -76,7 +76,7 @@ export function SuratKuasaUpload({
       const folder = `surat-kuasa_${lawyerId}_${requestId}`;
       const publicUrl = await uploadToExternalStorage(file, folder);
 
-      await onSubmit(data.publicUrl);
+      await onSubmit(publicUrl);
       toast.success("Surat Kuasa berhasil diunggah");
       setFile(null);
       setPreview(null);
