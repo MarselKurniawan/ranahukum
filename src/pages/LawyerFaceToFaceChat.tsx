@@ -538,18 +538,12 @@ export default function LawyerFaceToFaceChat() {
                   
                   setIsSendingFile(true);
                   try {
-                    const fileExt = file.name.split('.').pop();
-                    const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
+                    const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+                    const folder = `face-to-face-chat_${id}`;
+                    const publicUrl = await uploadToExternalStorage(file, folder);
 
-                    const { error: uploadError } = await supabase.storage
-                      .from('chat-files')
-                      .upload(filePath, file);
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: urlData } = supabase.storage
-                      .from('chat-files')
-                      .getPublicUrl(filePath);
+                    const isImage = file.type.startsWith('image/');
+                    const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
 
                     const isImage = file.type.startsWith('image/');
                     const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;

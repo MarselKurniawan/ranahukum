@@ -229,18 +229,9 @@ export default function FaceToFaceChat() {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `face-to-face/${id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('chat-files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('chat-files')
-        .getPublicUrl(filePath);
+      const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+      const folder = `face-to-face_${id}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
 
       const isImage = file.type.startsWith('image/');
       const content = isImage ? `📷 ${file.name}` : `📎 ${file.name}`;
@@ -249,7 +240,7 @@ export default function FaceToFaceChat() {
         requestId: id,
         content,
         messageType: "file",
-        fileUrl: urlData.publicUrl,
+        fileUrl: publicUrl,
       });
 
       toast({ title: "File berhasil dikirim" });
