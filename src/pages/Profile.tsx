@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { useUnreadActivityAlertCount } from "@/hooks/useActivityAlerts";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
