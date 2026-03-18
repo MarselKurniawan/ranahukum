@@ -29,6 +29,17 @@ export interface LawyerWithdrawal {
   updated_at: string;
 }
 
+export interface HeldEarningDetail {
+  earningId: string;
+  amount: number;
+  requestId: string;
+  displayId: string | null;
+  clientName: string | null;
+  caseType: string | null;
+  missingEvidence: boolean;
+  missingSignature: boolean;
+}
+
 // Get lawyer's earnings
 export function useLawyerEarnings() {
   const { user } = useAuth();
@@ -38,7 +49,6 @@ export function useLawyerEarnings() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get lawyer ID
       const { data: lawyer } = await supabase
         .from('lawyers')
         .select('id')
@@ -69,7 +79,6 @@ export function useLawyerWithdrawals() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get lawyer ID
       const { data: lawyer } = await supabase
         .from('lawyers')
         .select('id')
@@ -91,28 +100,27 @@ export function useLawyerWithdrawals() {
   });
 }
 
-// Get available balance (earnings that haven't been withdrawn)
+// Get available balance with held amount details
 export function useLawyerBalance() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['lawyer-balance', user?.id],
     queryFn: async () => {
-      if (!user) return { available: 0, pending: 0, total: 0 };
+      if (!user) return { available: 0, pending: 0, total: 0, held: 0, heldDetails: [] as HeldEarningDetail[] };
 
-      // Get lawyer ID
       const { data: lawyer } = await supabase
         .from('lawyers')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!lawyer) return { available: 0, pending: 0, total: 0 };
+      if (!lawyer) return { available: 0, pending: 0, total: 0, held: 0, heldDetails: [] as HeldEarningDetail[] };
 
       // Get all earnings
       const { data: earnings } = await supabase
         .from('lawyer_earnings')
-        .select('amount, is_withdrawn')
+        .select('id, amount, is_withdrawn, request_id')
         .eq('lawyer_id', lawyer.id);
 
       // Get pending withdrawals
@@ -122,60 +130,73 @@ export function useLawyerBalance() {
         .eq('lawyer_id', lawyer.id)
         .in('status', ['pending', 'processing']);
 
+      // Get incomplete assistance requests (completed but missing evidence/signature)
+      const { data: incompleteRequests } = await supabase
+        .from('legal_assistance_requests')
+        .select('id, display_id, client_name, case_type, meeting_evidence_url, meeting_signature_url, meeting_verified')
+        .eq('lawyer_id', lawyer.id)
+        .eq('status', 'completed')
+        .eq('meeting_verified', false);
+
+      const incompleteRequestIds = new Set(
+        (incompleteRequests || [])
+          .filter(r => !r.meeting_evidence_url || !r.meeting_signature_url)
+          .map(r => r.id)
+      );
+
       const totalEarnings = earnings?.reduce((sum, e) => sum + e.amount, 0) || 0;
       const withdrawnAmount = earnings?.filter(e => e.is_withdrawn).reduce((sum, e) => sum + e.amount, 0) || 0;
       const pendingAmount = pendingWithdrawals?.reduce((sum, w) => sum + w.amount, 0) || 0;
 
+      // Calculate held amount - only earnings from incomplete accompaniments
+      const heldDetails: HeldEarningDetail[] = [];
+      let heldAmount = 0;
+
+      if (earnings && incompleteRequests) {
+        for (const earning of earnings) {
+          if (earning.is_withdrawn || !earning.request_id) continue;
+          if (incompleteRequestIds.has(earning.request_id)) {
+            const request = incompleteRequests.find(r => r.id === earning.request_id);
+            if (request) {
+              heldAmount += earning.amount;
+              heldDetails.push({
+                earningId: earning.id,
+                amount: earning.amount,
+                requestId: request.id,
+                displayId: request.display_id,
+                clientName: request.client_name,
+                caseType: request.case_type,
+                missingEvidence: !request.meeting_evidence_url,
+                missingSignature: !request.meeting_signature_url,
+              });
+            }
+          }
+        }
+      }
+
       return {
-        available: totalEarnings - withdrawnAmount - pendingAmount,
+        available: totalEarnings - withdrawnAmount - pendingAmount - heldAmount,
         pending: pendingAmount,
-        total: totalEarnings
+        total: totalEarnings,
+        held: heldAmount,
+        heldDetails,
       };
     },
     enabled: !!user
   });
 }
 
-// Check if lawyer can withdraw (has verified meetings)
+// Check if lawyer can withdraw (always can, but with reduced available balance)
 export function useCanWithdraw() {
-  const { user } = useAuth();
+  const { data: balance } = useLawyerBalance();
 
   return useQuery({
-    queryKey: ['can-withdraw', user?.id],
+    queryKey: ['can-withdraw', balance?.available],
     queryFn: async () => {
-      if (!user) return { canWithdraw: false, reason: 'Not authenticated' };
-
-      // Get lawyer ID
-      const { data: lawyer } = await supabase
-        .from('lawyers')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!lawyer) return { canWithdraw: false, reason: 'Lawyer not found' };
-
-      // Check if there are any completed assistance requests with unverified meetings
-      const { data: unverifiedMeetings } = await supabase
-        .from('legal_assistance_requests')
-        .select('id, meeting_verified, meeting_evidence_url, meeting_signature_url')
-        .eq('lawyer_id', lawyer.id)
-        .eq('status', 'completed')
-        .eq('meeting_verified', false);
-
-      if (unverifiedMeetings && unverifiedMeetings.length > 0) {
-        const missingEvidence = unverifiedMeetings.filter(m => !m.meeting_evidence_url || !m.meeting_signature_url);
-        if (missingEvidence.length > 0) {
-          return { 
-            canWithdraw: false, 
-            reason: `Ada ${missingEvidence.length} pendampingan selesai yang belum memiliki bukti pertemuan atau tanda tangan. Harap upload terlebih dahulu.`,
-            unverifiedCount: missingEvidence.length
-          };
-        }
-      }
-
+      // Always allow withdrawal, the held amount is already excluded from available balance
       return { canWithdraw: true, reason: '' };
     },
-    enabled: !!user
+    enabled: balance !== undefined
   });
 }
 
@@ -200,7 +221,6 @@ export function useRequestWithdrawal() {
     }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // Get lawyer ID
       const { data: lawyer } = await supabase
         .from('lawyers')
         .select('id')
@@ -244,7 +264,6 @@ export function useAllWithdrawals() {
 
       if (error) throw error;
 
-      // Enrich with lawyer info
       const enriched = await Promise.all(
         (data || []).map(async (withdrawal) => {
           const { data: lawyer } = await supabase
@@ -302,7 +321,6 @@ export function useProcessWithdrawal() {
           .single();
 
         if (withdrawal) {
-          // Get unwithdrawn earnings up to the withdrawal amount
           const { data: earnings } = await supabase
             .from('lawyer_earnings')
             .select('id, amount')

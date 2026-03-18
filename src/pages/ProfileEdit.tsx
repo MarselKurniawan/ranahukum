@@ -1,51 +1,95 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Camera } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Camera, Loader2 } from "lucide-react";
 import { MobileLayout } from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   // Password change
   const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setFullName(user.user_metadata?.full_name || "");
-      fetchProfile();
-    }
-  }, [user]);
+  const { data: profileData } = useQuery({
+    queryKey: ['user-profile-edit', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, phone, avatar_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user
+  });
 
-  const fetchProfile = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, phone')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    if (data) {
-      setFullName(data.full_name || "");
-      setPhone(data.phone || "");
+  useEffect(() => {
+    if (profileData) {
+      setFullName(profileData.full_name || "");
+      setPhone(profileData.phone || "");
+      setAvatarUrl(profileData.avatar_url || null);
+    } else if (user) {
+      setFullName(user.user_metadata?.full_name || "");
+    }
+  }, [profileData, user]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const { uploadToExternalStorage } = await import("@/lib/externalStorage");
+      const folder = `user-photos_${user.id}`;
+      const publicUrl = await uploadToExternalStorage(file, folder);
+
+      // Save to profiles table
+      await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          avatar_url: publicUrl,
+          email: user.email
+        }, { onConflict: 'user_id' });
+
+      setAvatarUrl(publicUrl);
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      toast({
+        title: "Berhasil",
+        description: "Foto profil berhasil diperbarui"
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Gagal",
+        description: "Gagal mengunggah foto profil",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -54,12 +98,10 @@ export default function ProfileEdit() {
     
     setIsLoading(true);
     try {
-      // Update auth metadata
       await supabase.auth.updateUser({
         data: { full_name: fullName }
       });
 
-      // Update/insert profile
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -71,6 +113,7 @@ export default function ProfileEdit() {
 
       if (error) throw error;
 
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       toast({
         title: "Profil Diperbarui",
         description: "Perubahan berhasil disimpan"
@@ -89,47 +132,24 @@ export default function ProfileEdit() {
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      toast({
-        title: "Password Tidak Cocok",
-        description: "Password baru dan konfirmasi harus sama",
-        variant: "destructive"
-      });
+      toast({ title: "Password Tidak Cocok", description: "Password baru dan konfirmasi harus sama", variant: "destructive" });
       return;
     }
-
     if (newPassword.length < 6) {
-      toast({
-        title: "Password Terlalu Pendek",
-        description: "Password minimal 6 karakter",
-        variant: "destructive"
-      });
+      toast({ title: "Password Terlalu Pendek", description: "Password minimal 6 karakter", variant: "destructive" });
       return;
     }
 
     setIsChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-
-      toast({
-        title: "Password Diperbarui",
-        description: "Password berhasil diubah"
-      });
-      
-      setCurrentPassword("");
+      toast({ title: "Password Diperbarui", description: "Password berhasil diubah" });
       setNewPassword("");
       setConfirmPassword("");
       setShowPasswordSection(false);
     } catch (error: any) {
-      console.error('Error changing password:', error);
-      toast({
-        title: "Gagal",
-        description: error.message || "Terjadi kesalahan saat mengubah password",
-        variant: "destructive"
-      });
+      toast({ title: "Gagal", description: error.message || "Terjadi kesalahan saat mengubah password", variant: "destructive" });
     } finally {
       setIsChangingPassword(false);
     }
@@ -139,6 +159,8 @@ export default function ProfileEdit() {
     navigate('/auth');
     return null;
   }
+
+  const displayName = fullName || user.email?.split('@')[0] || 'U';
 
   return (
     <MobileLayout showBottomNav={false}>
@@ -157,13 +179,32 @@ export default function ProfileEdit() {
         <Card>
           <CardContent className="p-6 flex flex-col items-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center">
-                <User className="w-12 h-12 text-muted-foreground" />
-              </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <Camera className="w-4 h-4 text-primary-foreground" />
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback className="text-2xl">
+                  {displayName[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
               </button>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
             <p className="text-sm text-muted-foreground mt-3">Ketuk untuk mengubah foto</p>
           </CardContent>
         </Card>
@@ -257,11 +298,7 @@ export default function ProfileEdit() {
                       className="absolute right-3 top-1/2 -translate-y-1/2"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                      )}
+                      {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
                     </button>
                   </div>
                 </div>
