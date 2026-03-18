@@ -118,9 +118,12 @@ export default function Profile() {
           <div className="gradient-hero h-20" />
           <CardContent className="p-4 -mt-10">
             <div className="flex items-end gap-4">
-              <div className="w-20 h-20 rounded-xl bg-secondary border-4 border-card flex items-center justify-center">
-                <User className="w-10 h-10 text-muted-foreground" />
-              </div>
+              <Avatar className="w-20 h-20 rounded-xl border-4 border-card">
+                <AvatarImage src={userProfile?.avatar_url || undefined} />
+                <AvatarFallback className="rounded-xl">
+                  <User className="w-10 h-10 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 pb-1">
                 <h2 className="font-bold text-lg">{userName}</h2>
                 <p className="text-sm text-muted-foreground">{userEmail}</p>

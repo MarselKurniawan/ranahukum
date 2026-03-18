@@ -381,6 +381,14 @@ export function EarningsDashboard({ lawyerId }: EarningsDashboardProps) {
           </CardContent>
         </Card>
 
+        {/* Held Balance Info */}
+        {(balance?.held || 0) > 0 && balance?.heldDetails && (
+          <HeldBalanceCard 
+            heldAmount={balance.held} 
+            heldDetails={balance.heldDetails} 
+          />
+        )}
+
         <WithdrawalForm />
         <WithdrawalHistory />
       </TabsContent>
