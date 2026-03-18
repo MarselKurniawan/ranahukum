@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WithdrawalForm } from "./WithdrawalForm";
 import { WithdrawalHistory } from "./WithdrawalHistory";
+import { HeldBalanceCard } from "./HeldBalanceCard";
 import { useLawyerBalance } from "@/hooks/useLawyerWithdrawal";
 
 interface EarningsDashboardProps {
