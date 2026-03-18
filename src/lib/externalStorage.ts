@@ -3,7 +3,7 @@
  * Uploads files to storage-consult.saatdigital.com with WebP conversion for images
  */
 
-const STORAGE_BASE_URL = "https://storage-consult.saatdigital.com";
+const STORAGE_BASE_URL = "https://storage-consult.lynkto.site";
 const UPLOAD_ENDPOINT = `${STORAGE_BASE_URL}/upload.php`;
 
 /**
