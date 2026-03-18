@@ -16,6 +16,8 @@ const REQUIRED_FIELDS = [
   { key: 'location', label: 'Lokasi' },
   { key: 'experience_years', label: 'Pengalaman (Tahun)' },
   { key: 'image_url', label: 'Foto Profil' },
+  { key: 'bio', label: 'Biografi' },
+  { key: 'documents', label: 'Dokumen Verifikasi' },
 ] as const;
 
 export function useLawyerProfile() {
@@ -64,14 +66,39 @@ export function useUpdateLawyerProfile() {
 }
 
 export function useLawyerProfileCompletion(): LawyerProfileCompletion | null {
-  const { data: profile, isLoading } = useLawyerProfile();
+  const { data: profile, isLoading: profileLoading } = useLawyerProfile();
+  
+  // Also check if documents are uploaded
+  const { data: documents, isLoading: docsLoading } = useQuery({
+    queryKey: ['lawyer-documents-count', profile?.id],
+    queryFn: async () => {
+      if (!profile) return [];
+      const { data, error } = await supabase
+        .from('lawyer_documents')
+        .select('id')
+        .eq('lawyer_id', profile.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id
+  });
 
-  if (isLoading || !profile) return null;
+  if (profileLoading || docsLoading || !profile) return null;
 
   const missingFields: string[] = [];
   let completedFields = 0;
 
   for (const field of REQUIRED_FIELDS) {
+    if (field.key === 'documents') {
+      // Check if at least 1 document is uploaded
+      if (documents && documents.length > 0) {
+        completedFields++;
+      } else {
+        missingFields.push(field.label);
+      }
+      continue;
+    }
+
     const value = profile[field.key as keyof DbLawyer];
     
     if (field.key === 'specialization') {
@@ -82,6 +109,12 @@ export function useLawyerProfileCompletion(): LawyerProfileCompletion | null {
       }
     } else if (field.key === 'experience_years') {
       if (typeof value === 'number' && value > 0) {
+        completedFields++;
+      } else {
+        missingFields.push(field.label);
+      }
+    } else if (field.key === 'bio') {
+      if (value && String(value).trim().length >= 50) {
         completedFields++;
       } else {
         missingFields.push(field.label);
