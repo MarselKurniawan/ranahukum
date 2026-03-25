@@ -2483,6 +2483,11 @@ export default function SuperAdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4 mt-0">
+            <PlatformAnalyticsCard />
+          </TabsContent>
         </Tabs>
       </main>
 
